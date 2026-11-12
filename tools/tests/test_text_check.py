@@ -70,3 +70,8 @@ def test_spelling_findings_parse_cspell_output():
         tc.Finding("docs/x.md", 4, "spelling", "not in the en-GB dictionary", "color"),
         tc.Finding("core/y.lua", 2, "spelling", "not in the en-GB dictionary", "behavior"),
     ]
+
+
+def test_link_definitions_are_not_prose():
+    defs = "".join(f"[label{n}]: docs/design.md#a-section-{n}\n" for n in range(12))
+    assert tc.check_files({"ROADMAP.md": "Read [it][label0].\n\n" + defs}) == []

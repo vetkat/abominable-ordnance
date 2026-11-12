@@ -14,12 +14,19 @@ LINK_TARGET = re.compile(r"\]\([^)]*\)")
 URL = re.compile(r"<https?://[^>]*>|https?://\S+")
 LONG_BRACKET = re.compile(r"\[(=*)\[")
 PLACEHOLDER = re.compile(r"__\w+__|\[[^\]]*\]")
+LINK_DEFINITION = re.compile(r"^ {0,3}\[[^\]]+\]:\s*\S")
+
+
+def without_link_definitions(text: str) -> str:
+    """Blank out Markdown link definitions ([label]: target), line by line."""
+    return "\n".join("" if LINK_DEFINITION.match(line) else line
+                     for line in text.split("\n"))
 
 
 def markdown_prose(text: str) -> str:
     out = []
     fence = None
-    for line in text.split("\n"):
+    for line in without_link_definitions(text).split("\n"):
         match = FENCE.match(line)
         if fence:
             if match and match.group(1).startswith(fence):

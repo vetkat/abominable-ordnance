@@ -68,8 +68,12 @@ def prose_of(path: str, text: str) -> str:
 
 
 def _style(path: str, text: str) -> list[Finding]:
-    # The checker skips Markdown code itself, so it gets the raw Markdown.
-    source = text if kind(path) == "markdown" else prose_of(path, text)
+    # The checker skips Markdown code itself, so it gets the Markdown without
+    # its link definitions, which are not prose.
+    if kind(path) == "markdown":
+        source = prose.without_link_definitions(text)
+    else:
+        source = prose_of(path, text)
     return [Finding(path, f.line, f.rule, f.message, f.excerpt)
             for f in ste_check.check(source, False)]
 

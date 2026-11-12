@@ -55,3 +55,10 @@ def test_locale_keeps_values_only():
 def test_locale_drops_placeholders_and_rich_text():
     out = prose.locale_prose("[x]\nk=Fires __1__ [item=iron-plate] larvae\n")
     assert "__1__" not in out and "iron-plate" not in out and "larvae" in out
+
+
+def test_markdown_drops_link_definitions():
+    text = "See [it][a].\n\n[a]: docs/design.md#a-long-anchor\n  [b]: <https://x.org> \"Title\"\n"
+    out = prose.markdown_prose(text)
+    assert lines(out)[2:4] == ["", ""]
+    assert prose.without_link_definitions(text).split("\n")[2:4] == ["", ""]
