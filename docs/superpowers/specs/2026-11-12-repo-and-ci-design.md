@@ -320,27 +320,32 @@ for cspell.
 
 ### Claude Code hook
 
-`.claude/settings.json` adds a `PreToolUse` hook for Bash commands that
-contain `git commit`. The hook calls `review_stamp.py`, which blocks the
-commit (exit code 2) in two cases:
+`tools/review_stamp.py` blocks an agent commit until the agent runs the
+review skills. A hook cannot run a skill. But it can refuse the commit until
+the agent runs the skills. `make stamp` writes the hash of the staged tree
+(`git write-tree`) to `.git/review-stamp`. Two hooks use it:
 
-1. `core.hooksPath` is not `.githooks`. The message tells the agent to run
-   `make setup`.
-2. There is no review stamp for the staged files. The message tells the
-   agent to do these steps:
+1. The git pre-commit hook checks the stamp when the commit comes from
+   Claude Code (the `CLAUDECODE` variable is set). During a commit, git
+   points `git write-tree` at the exact index that it is about to commit.
+   So the check also holds for `git commit -a` and for paths after
+   `git commit`. Without a current stamp, the message tells the agent to
+   do these steps:
    1. Run `/ste80-humanizer` on staged prose and comments.
    2. Run `/simplify` on staged code.
    3. Update `ROADMAP.md` if the change affects it.
    4. Run `make stamp`.
+2. `.claude/settings.json` adds a `PreToolUse` hook for Bash commands that
+   contain `git commit`. It makes sure that the git hook runs. It blocks
+   the commit (exit code 2) when `core.hooksPath` is not `.githooks`, and
+   when the command has `--no-verify`.
 
-A hook cannot run a skill. But it can refuse the commit until the agent
-runs the skills. `make stamp` writes the hash of the staged tree
-(`git write-tree`) to `.git/review-stamp`. A change to the staged files
-after that gives a new hash, so the hook asks again. The Claude hook does
-not run `make fast`, because the git hook runs it on the same commit.
+A change to the staged files after `make stamp` gives a new hash, so the
+git hook asks again. The Claude hook does not run `make fast`, because the
+git hook runs it on the same commit.
 
 The stamp shows that the skills ran, not that they did their job well. A
-human who commits outside Claude Code does not meet this hook.
+human who commits outside Claude Code does not meet the stamp check.
 
 ## CLAUDE.md and the PR template
 
