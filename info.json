@@ -1,0 +1,9 @@
+{
+  "name": "abominable-ordnance",
+  "version": "0.1.0",
+  "title": "Abominable Ordnance",
+  "author": "vetkat",
+  "factorio_version": "2.1",
+  "description": "Breed monsters, load them with ordnance and fire them at your enemies.",
+  "dependencies": ["base >= 2.1", "? space-age"]
+}
