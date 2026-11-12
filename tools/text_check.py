@@ -1,0 +1,126 @@
+"""Check the prose in Markdown files, Lua comments and locale files.
+
+The rules: the findings of the vendored humanizer checker, no en dash
+(the checker only flags em dashes), and cspell with the en-GB dictionary.
+.ste-allow lists accepted exceptions. Each entry names a rule, a file
+pattern, an optional word and a reason:
+
+    spelling | docs/superpowers/reviews/*.md | color | quotes the old spec
+
+    python3 -m tools.text_check            # every tracked file
+    python3 -m tools.text_check FILE ...   # only these files
+"""
+from __future__ import annotations
+
+import fnmatch
+import pathlib
+import re
+import subprocess
+import sys
+import tempfile
+from typing import NamedTuple
+
+from tools import prose
+from tools.vendor import ste_check
+
+ROOT = pathlib.Path(__file__).resolve().parents[1]
+EN_DASH = "–"
+# Copied code keeps its upstream text.
+SKIP = ("tools/vendor/",)
+EXTRACT = {
+    "markdown": prose.markdown_prose,
+    "lua": prose.lua_prose,
+    "locale": prose.locale_prose,
+}
+CSPELL = re.compile(r"^(?P<file>.+?):(?P<line>\d+):\d+ - Unknown word \((?P<word>[^)]+)\)")
+
+
+class Finding(NamedTuple):
+    path: str
+    line: int
+    rule: str
+    message: str
+    excerpt: str
+
+
+class Allow(NamedTuple):
+    rule: str
+    path: str  # an fnmatch pattern
+    word: str  # empty: any finding of this rule in these files
+    reason: str
+
+
+def kind(path: str) -> str | None:
+    if path.startswith(SKIP):
+        return None
+    if path.endswith(".md"):
+        return "markdown"
+    if path.endswith(".lua"):
+        return "lua"
+    if path.startswith("locale/") and path.endswith(".cfg"):
+        return "locale"
+    return None
+
+
+def prose_of(path: str, text: str) -> str:
+    found = kind(path)
+    return EXTRACT[found](text) if found else ""
+
+
+def _style(path: str, text: str) -> list[Finding]:
+    # The checker skips Markdown code itself, so it gets the raw Markdown.
+    source = text if kind(path) == "markdown" else prose_of(path, text)
+    return [Finding(path, f.line, f.rule, f.message, f.excerpt)
+            for f in ste_check.check(source, False)]
+
+
+def _dashes(path: str, prose_text: str) -> list[Finding]:
+    return [Finding(path, no, "en-dash", "en dash: use 'to', a hyphen or a comma",
+                    line.strip()[:100])
+            for no, line in enumerate(prose_text.split("\n"), 1) if EN_DASH in line]
+
+
+def check_files(texts: dict[str, str]) -> list[Finding]:
+    found: list[Finding] = []
+    for path in sorted(texts):
+        if kind(path) is None:
+            continue
+        found += _style(path, texts[path]) + _dashes(path, prose_of(path, texts[path]))
+    return found
+
+
+def parse_allow(text: str) -> tuple[list[Allow], list[str]]:
+    allows, problems = [], []
+    for no, line in enumerate(text.splitlines(), 1):
+        if not line.strip() or line.lstrip().startswith("#"):
+            continue
+        fields = [field.strip() for field in line.split("|")]
+        if len(fields) != 4:
+            problems.append(f".ste-allow line {no}: use 'rule | path | word | reason'")
+            continue
+        rule, path, word, reason = fields
+        if not rule or rule == "*" or not path or not reason:
+            problems.append(f".ste-allow line {no}: an entry needs a rule (not *), "
+                            "a path and a reason")
+            continue
+        allows.append(Allow(rule, path, word, reason))
+    return allows, problems
+
+
+def allowed(finding: Finding, allows: list[Allow]) -> bool:
+    return any(a.rule == finding.rule
+               and fnmatch.fnmatchcase(finding.path, a.path)
+               and (not a.word or a.word.lower() in finding.excerpt.lower())
+               for a in allows)
+
+
+def spelling_findings(output: str) -> list[Finding]:
+    """Read cspell's output. The prose copies are named <path>.txt."""
+    found = []
+    for line in output.splitlines():
+        match = CSPELL.match(line.strip())
+        if match:
+            path = match["file"].removeprefix("./").removesuffix(".txt")
+            found.append(Finding(path, int(match["line"]), "spelling",
+                                 "not in the en-GB dictionary", match["word"]))
+    return found
