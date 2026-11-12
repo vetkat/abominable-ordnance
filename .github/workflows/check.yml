@@ -1,0 +1,98 @@
+name: check
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+    types: [opened, synchronize, reopened, edited, labeled, unlabeled]
+  workflow_call:
+
+permissions:
+  contents: read
+
+jobs:
+  text:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: "3.4"
+      - run: gem install mdl
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Install lychee
+        run: |
+          mkdir -p "$HOME/.local/bin"
+          curl -fsSL https://github.com/lycheeverse/lychee/releases/download/lychee-v0.24.2/lychee-x86_64-unknown-linux-gnu.tar.gz \
+            | tar -xz -C "$HOME/.local/bin" --strip-components=1 lychee-x86_64-unknown-linux-gnu/lychee
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+      - run: make text
+
+  lua:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      # Factorio embeds Lua 5.2. A newer Lua could hide a bug.
+      - uses: leafo/gh-actions-lua@v13
+        with:
+          luaVersion: "5.2"
+      - uses: leafo/gh-actions-luarocks@v6
+      - run: luarocks install busted && luarocks install luacheck && luarocks install luacov
+      - run: make lua
+
+  tools:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+      - run: pip install pytest
+      - run: make tools
+
+  ingame:
+    runs-on: ubuntu-latest
+    env:
+      FACTORIO_CACHE: ${{ github.workspace }}/../factorio-cache
+    strategy:
+      fail-fast: false
+      matrix:
+        mode: [base, space-age]
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - id: factorio
+        run: echo "version=$(cat .factorio-version)" >> "$GITHUB_OUTPUT"
+      - uses: actions/cache@v6
+        with:
+          path: ${{ env.FACTORIO_CACHE }}
+          key: factorio-headless-${{ steps.factorio.outputs.version }}
+      - run: make ingame MODE=${{ matrix.mode }}
+
+  pr:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - run: python3 -m tools.pr_checks
+
+  # Branch protection requires this job only, so the matrix entries do
+  # not each need a rule.
+  all-checks:
+    if: always()
+    needs: [text, lua, tools, ingame, pr]
+    runs-on: ubuntu-latest
+    steps:
+      - if: contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled')
+        run: exit 1
+      - run: echo "all checks passed"
