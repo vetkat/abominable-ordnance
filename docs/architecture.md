@@ -12,7 +12,7 @@ then write the result to the game.
 ## The core
 
 Pure modules make the decisions, for example feral checks, payload
-stacking, recipe generation and balance numbers. A core module never names
+stacks, recipe generation and balance numbers. A core module never names
 `game`, `storage`, `script` or `defines`. So it loads under plain Lua 5.2,
 and busted can test it outside the game.
 

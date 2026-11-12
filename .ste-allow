@@ -1,0 +1,24 @@
+# Accepted text-check findings. One entry per line:
+#   rule | file pattern | word (optional) | reason
+# The rule is required and cannot be *. tools/text_check.py has the rules.
+
+# The design document names game parts and actions with -ing words
+# (Breeding pod, heating towers, Packing). Renaming them would change the
+# design.
+ing-form | docs/design.md | | names of game parts and actions in the design
+
+# The review reports record what reviewers said and quote the old spec,
+# including its American spellings.
+spelling | docs/superpowers/reviews/*.md | color | quotes the old spec
+spelling | docs/superpowers/reviews/*.md | behavior | quotes the old spec
+ing-form | docs/superpowers/reviews/*.md | | records the reviewers' wording
+passive | docs/superpowers/reviews/*.md | | records the reviewers' wording
+perfect-tense | docs/superpowers/reviews/*.md | | records the reviewers' wording
+sentence-length | docs/superpowers/reviews/*.md | | records the reviewers' wording
+word | docs/superpowers/reviews/*.md | | records the reviewers' wording
+
+# The plan follows the writing-plans format ("Modify:" in file lists) and
+# the functional-core work loop, which defines "attempt".
+word | docs/superpowers/plans/*.md | modify | the writing-plans file-list format
+word | docs/superpowers/plans/*.md | attempt | a term the work loop defines
+word | docs/superpowers/plans/*.md | utilize | the planted mistake for the checker test

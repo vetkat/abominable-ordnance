@@ -124,3 +124,54 @@ def spelling_findings(output: str) -> list[Finding]:
             found.append(Finding(path, int(match["line"]), "spelling",
                                  "not in the en-GB dictionary", match["word"]))
     return found
+def spelling(root: pathlib.Path, prose_by_path: dict[str, str]) -> list[Finding]:
+    """Run cspell once over copies of the prose, named <path>.txt."""
+    names = []
+    with tempfile.TemporaryDirectory() as tmp:
+        for path, text in prose_by_path.items():
+            target = pathlib.Path(tmp, path + ".txt")
+            target.parent.mkdir(parents=True, exist_ok=True)
+            target.write_text(text, encoding="utf-8")
+            names.append(path + ".txt")
+        if not names:
+            return []
+        result = subprocess.run(
+            [str(root / "node_modules/.bin/cspell"), "--no-progress", "--no-summary",
+             "--no-color", "--dot", "--config", str(root / "cspell.json"), *names],
+            cwd=tmp, capture_output=True, text=True)
+    if result.returncode not in (0, 1):
+        raise SystemExit(f"text check: cspell failed:\n{result.stdout}{result.stderr}")
+    return spelling_findings(result.stdout)
+
+
+def tracked(root: pathlib.Path) -> list[str]:
+    result = subprocess.run(["git", "ls-files", "-z"], cwd=root,
+                            capture_output=True, text=True, check=True)
+    return [p for p in result.stdout.split("\0") if p and (root / p).is_file()]
+
+
+def relative(path: str) -> str:
+    return pathlib.Path(path).resolve().relative_to(ROOT).as_posix()
+
+
+def main(argv: list[str]) -> int:
+    paths = [relative(p) for p in argv[1:]] or tracked(ROOT)
+    texts = {p: (ROOT / p).read_text(encoding="utf-8") for p in paths if kind(p)}
+    allow_file = ROOT / ".ste-allow"
+    allow_text = allow_file.read_text(encoding="utf-8") if allow_file.exists() else ""
+    allows, problems = parse_allow(allow_text)
+    findings = check_files(texts) + spelling(
+        ROOT, {p: prose_of(p, t) for p, t in texts.items()})
+    left = sorted(f for f in findings if not allowed(f, allows))
+    for problem in problems:
+        print(f"text check: {problem}", file=sys.stderr)
+    for f in left:
+        print(f"{f.path}:{f.line}: {f.rule}: {f.message} ({f.excerpt})")
+    if left:
+        print(f"text check: {len(left)} finding(s). Fix the text, or add an entry "
+              "with a reason to .ste-allow.", file=sys.stderr)
+    return 1 if left or problems else 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main(sys.argv))

@@ -25,7 +25,7 @@ function M.problems(path, text)
       elseif not section then
         problems[#problems + 1] = where .. "key outside a [section]"
       elseif value:find(";", 1, true) then
-        -- The .cfg format may read ';' as the start of a comment.
+        -- The .cfg format may read a semicolon as the start of a comment.
         problems[#problems + 1] = where .. "semicolon in a value"
       end
     end

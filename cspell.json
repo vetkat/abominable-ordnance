@@ -1,0 +1,41 @@
+{
+  "version": "0.2",
+  "language": "en-GB",
+  "import": [
+    "@cspell/dict-en-gb-mit/cspell-ext.json"
+  ],
+  "words": [
+    "breedable",
+    "crossbreed",
+    "crossbreeding",
+    "desync",
+    "Dodaios",
+    "facehugger",
+    "facehuggers",
+    "Factorio",
+    "Gleba",
+    "Hattorio",
+    "ingame",
+    "Lavapod",
+    "leafo",
+    "linted",
+    "linters",
+    "luacheck",
+    "luacov",
+    "luarocks",
+    "Nauvis",
+    "overclaims",
+    "pathspecs",
+    "pentapod",
+    "pentapods",
+    "pytest",
+    "Skitterpod",
+    "Spitpod",
+    "Spitworm",
+    "sulfuric",
+    "tanky",
+    "vendored",
+    "vetkat",
+    "Vulcanus"
+  ]
+}

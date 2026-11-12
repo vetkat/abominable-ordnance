@@ -37,10 +37,13 @@ GNU Make, GitHub Actions, Factorio 2.1.24 headless.
 - `check.yml` uses no secrets.
 - Commit messages and PR titles are Conventional Commits.
 - Never commit `docs/archive/`.
-- From Task 16 on, every commit goes in this order, each command as its
-  own Bash call: run `/ste80-humanizer` on changed prose and comments and
-  `/simplify` on changed code, then `git add` the files, then `make stamp`,
-  then `git commit`. The Claude Code hook refuses a commit that stages
+- From Task 16 on, every commit follows these steps. Each command is a
+  Bash call of its own.
+  1. Run `/ste80-humanizer` on changed prose and comments.
+  2. Run `/simplify` on changed code.
+  3. Run `git add` on the files, then `make stamp`, then `git commit`.
+
+  The Claude Code hook refuses a commit that stages
   files in the same command.
 - Deviation from the spec: the vendored `factorio-test` zip lives in
   `tools/vendor/`, not in `tests/ingame/vendor/`. The mod zip ships
@@ -1800,12 +1803,13 @@ $BUSTED --coverage && ~/.luarocks/bin/luacov && python3 -m tools.coverage_floor 
 
 Expected: exit 0. Open `build/luacov.report.out` and check that the
 Summary rows look like `ROW`. If the format differs, adapt `ROW` and the
-test helper to the real format (that counts as the first attempt).
+test helper to the real format. That change counts as the first attempt.
 
 Then plant a mistake: write `core/planted.lua` with
 `local M = {} function M.f() return 1 end return M` and no test. Run the
-chain again. Expected: `coverage: core/ coverage is 0.0%`. If it passes,
-luacov skipped the untested file: log the attempt, then try
+chain again. Expected: `coverage: core/ coverage is 0.0%`.
+
+If it passes, luacov skipped the untested file: log the attempt, then try
 `include = { "core/" }` and run again. If it still passes, hand back.
 Delete `core/planted.lua` and `build/`.
 
@@ -2118,7 +2122,7 @@ Failure log:
 - Create: `tools/vendor/__init__.py` (empty), `tools/vendor/ste_check.py`
 - Create: `tools/text_check.py`, `THIRD_PARTY.md`
 - Commit: `tools/vendor/factorio-test_3.2.0.zip` (on disk since 2026-11-12,
-  not yet committed; Task 18 needs it in CI)
+  not yet committed. Task 18 needs it in CI.)
 - Test: `tools/tests/test_text_check.py`
 
 **Interfaces:**
@@ -2394,8 +2398,12 @@ def spelling_findings(output: str) -> list[Finding]:
 
 Run: `python3 -m pytest tools/tests/test_text_check.py`
 Expected: all pass. If `test_style_findings_come_from_the_vendored_checker`
-fails, run `printf 'We utilize this tool.\n' | python3 -I
-tools/vendor/ste_check.py -` and use the rule name that it prints.
+fails, run the checker on the test sentence and put the rule name that it
+prints in the test:
+
+```bash
+printf 'We utilize this tool.\n' | python3 -I tools/vendor/ste_check.py -
+```
 
 - [ ] **Step 6: Commit**
 
@@ -2557,8 +2565,10 @@ if __name__ == "__main__":
 - [ ] **Step 6: Run the gate tests**
 
 Run: `python3 -m pytest tools/tests/test_gates.py`
-Expected: PASS. If `color` is not flagged, cspell still loads the US
-dictionary: run `npx cspell trace color --config cspell.json` and change
+Expected: PASS.
+
+If cspell does not flag `color`, it still loads the US dictionary. Run
+`npx cspell trace color --config cspell.json` and change
 `cspell.json` until only the en-GB dictionary knows English words (for
 example add `"dictionaries": ["en-gb-mit"]` or set
 `"languageSettings"`). If the output format differs from `CSPELL`, adapt
@@ -2577,7 +2587,7 @@ Then work through the findings:
    keeps the meaning.
 3. A finding that a fix cannot remove gets a `.ste-allow` entry with the
    reason. Examples: an "-ing" word that is a name ("Breeding" branch,
-   "heating towers"; see the ledger notes from Task 2), and text that
+   "heating towers", from the ledger notes of Task 2), and text that
    quotes others (the review reports quote reviewers and the old spec).
 
 Start `.ste-allow` with this header:
@@ -2768,7 +2778,7 @@ With staged files that hold no text, `make text` checks every file, which
 is slower but still correct. luacheck, busted and pytest always run in
 full. CI calls `make text` without `FILES` and checks every file.
 
-- [ ] **Step 6: Turn on the hook and commit through it**
+- [ ] **Step 6: Activate the hook and commit through it**
 
 ```bash
 make setup
@@ -3332,8 +3342,8 @@ Run: `chmod +x tools/ingame.sh`
 - [ ] **Step 5: Run it**
 
 Run: `make ingame`
-Expected: the server downloads once (61 MB), then two runs report 2
-passing tests each. If the CLI rejects an option, read
+Expected: the server downloads once (61 MB), then two runs report that 2
+tests pass. If the CLI rejects an option, read
 `npx factorio-test run --help` and adapt `run()`. If `--mods space-age`
 does not pull in `quality` and `elevated-rails`, pass them too. Note each
 change in the failure log.
@@ -3667,8 +3677,8 @@ jobs:
 `make lua` in CI: the leafo Lua binary is `lua`, not `lua5.2`, but CI has
 `busted` on `PATH`, so the Makefile uses it.
 
-The action versions were checked on 2026-11-12 with
-`gh api repos/<owner>/<action>/releases/latest`: checkout v7.0.1,
+The planner checked the action versions on 2026-11-12. The command was
+`gh api repos/<owner>/<action>/releases/latest`. Results: checkout v7.0.1,
 setup-python v7.1.0, setup-node v7.1.0, cache v6.1.0, upload-artifact
 v7.0.2, download-artifact v8.0.2, gh-actions-lua v13.1.0,
 gh-actions-luarocks v6.1.1. Dependabot moves them later.
@@ -3900,7 +3910,7 @@ repository, push, configure it and run the acceptance checks.
 
 Run: `make check`
 Expected: exit 0. Then `python3 -m pytest tools/tests/test_gates.py -v`
-and check that no test was skipped. A skip means a tool is missing: go
+and check that pytest skipped no test. A skip means a tool is missing: go
 back to Task 0.
 
 - [ ] **Step 2: Create the repository and push**
@@ -3965,7 +3975,7 @@ gh api -X PUT repos/vetkat/abominable-ordnance/branches/main/protection --input 
    branch.
 3. A clean PR passes: branch `docs/acceptance`, tick the 0.1.0 items in
    `ROADMAP.md`, open a PR titled `docs: tick the 0.1.0 roadmap items`.
-   Expected: every job passes, including both `ingame` entries. Squash
+   Expected: every job passes, both `ingame` entries too. Squash
    merge it.
 4. A dry run of the release:
 
@@ -3993,7 +4003,7 @@ gh api -X PUT repos/vetkat/abominable-ordnance/branches/main/protection --input 
 
 - [ ] **Step 7: Record the result**
 
-In the agent's memory, record that the CI project is done and that the
+In the agent's memory, record that the CI project is complete and that the
 next project is design version 1.
 
 Failure log:
@@ -4007,7 +4017,7 @@ Failure log:
 | mdl | a heading without a space | Task 15, `test_gates.py` |
 | text check: humanizer rules | "We utilize this tool." | Task 13, `test_text_check.py` |
 | text check: en dash | an en dash between two page numbers | Task 13, `test_text_check.py` |
-| text check: cspell | "The color is red." | Task 14, `test_gates.py` |
+| text check: cspell | `The color is red.` | Task 14, `test_gates.py` |
 | `.ste-allow` | entries without a reason or with rule `*` | Task 13, `test_text_check.py` |
 | lychee | a link to a missing file | Task 15, `test_gates.py` |
 | luacheck | a new global | Task 15, `test_gates.py` |

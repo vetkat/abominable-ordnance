@@ -69,7 +69,7 @@ The agent checked these facts on 2026-11-12.
 | Factorio version | Pinned in `.factorio-version`. A weekly job fails when a newer stable version exists. | Steam updates the maintainer's game, so CI must notice when it falls behind. |
 | Updates | Dependabot, weekly, for GitHub Actions, with the commit prefix `ci` | The prefix makes its PR titles pass the title check. |
 | Local gates | A git pre-commit hook for the fixed checks. A Claude Code hook that blocks a commit until the review skills have run. | The git hook catches mistakes from everyone. Only the Claude hook can make the agent run a skill. |
-| Design doc | Converted to `docs/design.md`, which is then the source of truth for the design. The PDF is no longer used. | A Markdown file can be diffed, linted and reviewed. |
+| Design doc | Converted to `docs/design.md`, which is then the source of truth for the design. The PDF is no longer used. | A Markdown file works with diffs, linters and reviews. |
 | Reviews | [EGM](https://github.com/google/elephant-goldfish-model) (`/egm:egm-review`) on every spec, `/egm:egm-drift-report docs/` before each release | Reviewers with no context find the gaps that the author cannot see. |
 | Language | British English for all text | The maintainer's choice. |
 
@@ -278,7 +278,7 @@ that.
 `.factorio-version` holds the pinned headless version, 2.1.24.
 `.factorio-test-version` holds the pinned `factorio-test` version.
 Dependabot cannot update these files. A move to a new Factorio version is
-a PR that changes `.factorio-version`. The `ingame` job shows whether the
+a PR that changes `.factorio-version`. The `ingame` job shows if the
 mod still passes on that version.
 
 `factorio-test` must come from a source that needs no login, so that
@@ -374,7 +374,7 @@ pass, the changelog and the EGM review of any new spec.
   finding goes in `.ste-allow` with a reason.
 - **Copied code.** `vendor/ste_check.py` runs in CI. `THIRD_PARTY.md`
   records its upstream commit, and an update is a reviewed PR.
-- **Floating tool versions.** CI pins Lua, Factorio and `factorio-test`.
+- **Tool versions that float.** CI pins Lua, Factorio and `factorio-test`.
   mdl, cspell, lychee, luacheck, busted and pytest float. CI is the source
   of truth when a local result differs.
 
@@ -402,7 +402,7 @@ These are the acceptance criteria for this project:
 ## Out of scope
 
 - Any mod feature. Those belong to the design version 1 project.
-- Publishing to the mod portal. It arrives with design version 1.
+- Uploads to the mod portal. They arrive with design version 1.
 - A fix for Hattorio's `factorio_version`, which still says "2.0".
 - Automated version bumps from commit messages.
 - Pinned versions for tools other than Lua, Factorio and `factorio-test`.
