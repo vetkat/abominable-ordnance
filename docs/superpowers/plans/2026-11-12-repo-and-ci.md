@@ -37,11 +37,25 @@ GNU Make, GitHub Actions, Factorio 2.1.24 headless.
 - `check.yml` uses no secrets.
 - Commit messages and PR titles are Conventional Commits.
 - Never commit `docs/archive/`.
-- From Task 16 on, every commit needs `/ste80-humanizer` on changed prose
-  and comments, `/simplify` on changed code, then `make stamp`.
-- The vendored `factorio-test` zip lives in `tools/vendor/`, not in
-  `tests/ingame/vendor/` as the spec says. The zip ships `tests/ingame/`,
-  and a third-party mod must not ship inside this mod.
+- From Task 16 on, every commit goes in this order, each command as its
+  own Bash call: run `/ste80-humanizer` on changed prose and comments and
+  `/simplify` on changed code, then `git add` the files, then `make stamp`,
+  then `git commit`. The Claude Code hook refuses a commit that stages
+  files in the same command.
+- Deviation from the spec: the vendored `factorio-test` zip lives in
+  `tools/vendor/`, not in `tests/ingame/vendor/`. The mod zip ships
+  `tests/ingame/`, and a third-party mod must not ship inside this mod.
+- Deviation from the spec: mod code (for the changelog rule) is every
+  shipped file except `changelog.txt`, `LICENSE` and `tests/`. A licence
+  or test change needs no changelog entry.
+- "Failure log": an attempt is a change that you expected to make a check
+  pass. The planned red run of TDD is not an attempt. A planned
+  adaptation that a step names ("adapt the pattern") counts as one. Add
+  one line per failed attempt under the task. After 3 failed attempts on
+  one task, stop and hand back to the maintainer (vetkat) with the log.
+- The executor's ledger is
+  `.superpowers/sdd/2026-11-12-repo-and-ci/progress.md`. Notes that a later
+  task needs go there.
 
 ## Review Focus
 
@@ -62,6 +76,7 @@ GNU Make, GitHub Actions, Factorio 2.1.24 headless.
 
 | File | Responsibility | Task |
 | --- | --- | --- |
+| (none) | the local tools | 0 |
 | `docs/design.md` | the design document in Markdown | 1, 2 |
 | `docs/architecture.md` | the architecture rules, for 2.1 | 3 |
 | `pyproject.toml` | pytest settings | 4 |
@@ -78,6 +93,7 @@ GNU Make, GitHub Actions, Factorio 2.1.24 headless.
 | `spec/docs_spec.lua` | docs against code | 11 |
 | `tools/prose.py` | prose extraction | 12 |
 | `tools/text_check.py`, `tools/vendor/ste_check.py`, `THIRD_PARTY.md` | the text check | 13, 14 |
+| `tools/vendor/factorio-test_3.2.0.zip` | the vendored in-game test mod, committed | 13 |
 | `package.json`, `cspell.json`, `.ste-allow` | cspell and exceptions | 14 |
 | `Makefile`, `.githooks/pre-commit`, `lychee.toml` | gates | 15 |
 | `tools/tests/test_gates.py` | planted mistakes for third-party gates | 15 |
@@ -90,10 +106,50 @@ GNU Make, GitHub Actions, Factorio 2.1.24 headless.
 | GitHub settings | repository, protection, acceptance | 22 |
 
 Each task ends with a commit. Each task also has an empty "Failure log"
-list for the functional-core work loop. Add one line after each failed
-attempt. After 3 failed attempts on one task, stop and hand back.
+list (see Global Constraints).
 
 ---
+
+### Task 0: Check the local tools
+
+The maintainer installed the tools on 2026-11-12. This task checks them
+and defines `$BUSTED`, which later steps use.
+
+- [ ] **Step 1: Check each tool**
+
+```bash
+for tool in pdftotext python3 pytest lua5.2 luacheck luarocks mdl lychee node npm make gh; do
+  command -v "$tool" >/dev/null || echo "MISSING: $tool"
+done
+eval "$(luarocks --lua-version 5.2 path)"
+lua5.2 -e 'require("luacov.runner"); require("lfs")' && echo "luacov and lfs load"
+ls tools/vendor/factorio-test_3.2.0.zip
+```
+
+Expected: no `MISSING` line, `luacov and lfs load`, and the zip path.
+Install a missing tool on Arch with these commands:
+
+```bash
+sudo pacman -S poppler lua52 lua52-busted luacheck luarocks lychee ruby nodejs npm python-pytest
+gem install mdl
+luarocks --lua-version 5.2 install --local luacov
+```
+
+Without the zip, stop and ask the maintainer: it needs a mod portal login.
+
+- [ ] **Step 2: Define `$BUSTED`**
+
+On Arch, the `lua52-busted` package puts busted outside `PATH`. Every
+later step that runs busted uses this variable:
+
+```bash
+BUSTED="lua5.2 $(ls /usr/lib/luarocks/rocks-5.2/busted/*/bin/busted | tail -1) --lua=lua5.2"
+$BUSTED --version
+```
+
+Expected: a version number such as `2.3.0`.
+
+Failure log:
 
 ### Task 1: Convert the design document
 
@@ -166,7 +222,8 @@ mdl docs/design.md && python3 -I ~/.agents/skills/ste80-humanizer/scripts/ste_ch
 ```
 
 Expected: mdl prints nothing. Fix the checker's findings where the fix
-keeps the meaning. Note the rest for `.ste-allow` in Task 14.
+keeps the meaning. List the rest in the ledger under Task 2, for
+`.ste-allow` in Task 14.
 
 - [ ] **Step 3: Commit**
 
@@ -185,8 +242,8 @@ Failure log:
 
 - [ ] **Step 1: Edit**
 
-Change the title to `# Factorio 2.1 mods`. Add this section after
-"Determinism":
+Change the title to `# Factorio 2.1 mods`. The body has no other mention
+of a game version. Add this section after "Determinism":
 
 ```markdown
 ## Tests for these rules
@@ -1177,10 +1234,8 @@ Failure log:
   strings), `code_only(src) -> string`, `core_problems(path, src) ->
   list`, `random_problems(path, src) -> list`, `lua_files(dir) -> list`.
 
-Busted on Arch: the `lua52-busted` package puts busted outside `PATH`. Run
-it as `lua5.2 /usr/lib/luarocks/rocks-5.2/busted/2.3.0-1/bin/busted
---lua=lua5.2`. The Makefile (Task 15) picks this up. Below, `BUSTED`
-means that command.
+`$BUSTED` is the shell variable from Task 0, Step 2. The Makefile
+(Task 15) finds busted the same way.
 
 - [ ] **Step 1: Write the settings**
 
@@ -1201,7 +1256,12 @@ return {
 ```lua
 std = "lua52"
 max_line_length = 100
-exclude_files = { "spec/fixtures/**", "node_modules/**", "build/**" }
+-- .lua, .luarocks and .install hold the Lua that CI installs in the
+-- workspace. docs/archive holds old chat logs.
+exclude_files = {
+  "spec/fixtures/**", "node_modules/**", "build/**", "docs/archive/**",
+  ".lua/**", ".luarocks/**", ".install/**",
+}
 
 -- Factorio's Lua environment. The game provides these, not Lua.
 local factorio = {
@@ -1210,11 +1270,17 @@ local factorio = {
   "helpers",
 }
 
--- storage is the mod's saved table. Mods write to it.
-local factorio_writable = { "storage" }
+-- storage is the mod's saved table, and Factorio adds table.deepcopy.
+-- Mods write to both.
+local factorio_writable = { "storage", "table" }
 
-files["data.lua"] = { read_globals = factorio }
-files["control.lua"] = { read_globals = factorio, globals = factorio_writable }
+local stage = { read_globals = factorio, globals = factorio_writable }
+for _, path in ipairs({
+  "data.lua", "data-updates.lua", "data-final-fixes.lua", "settings.lua",
+  "settings-updates.lua", "settings-final-fixes.lua", "control.lua", "prototypes",
+}) do
+  files[path] = stage
+end
 
 -- core/ gets no Factorio globals. That is the architecture rule.
 
@@ -1312,7 +1378,7 @@ end)
 
 - [ ] **Step 4: Run the spec to see it fail**
 
-Run: `BUSTED spec/architecture_spec.lua`
+Run: `$BUSTED spec/architecture_spec.lua`
 Expected: FAIL, `module 'spec.support.architecture' not found`.
 
 - [ ] **Step 5: Write `spec/support/architecture.lua`**
@@ -1409,7 +1475,7 @@ return M
 
 - [ ] **Step 6: Run the spec and luacheck**
 
-Run: `BUSTED && luacheck .`
+Run: `$BUSTED && luacheck .`
 Expected: busted reports 7 successes. luacheck reports 0 warnings.
 
 - [ ] **Step 7: Commit**
@@ -1428,8 +1494,8 @@ Failure log:
 - Create: `data.lua`, `control.lua`, `locale/en/locale.cfg`, `core/.gitkeep`
 - Create: `spec/support/locale.lua`
 - Test: `spec/locale_spec.lua`
-- Modify: `CHANGELOG.md` (no change needed: the Unreleased entry from
-  Task 5 already covers the empty mod)
+
+The Unreleased entry from Task 5 already covers the empty mod.
 
 **Interfaces:**
 
@@ -1497,7 +1563,7 @@ end)
 
 - [ ] **Step 2: Run it to see it fail**
 
-Run: `BUSTED spec/locale_spec.lua`
+Run: `$BUSTED spec/locale_spec.lua`
 Expected: FAIL, `module 'spec.support.locale' not found`.
 
 - [ ] **Step 3: Write `spec/support/locale.lua`**
@@ -1584,7 +1650,7 @@ abominable-ordnance=Breed monsters, load them with ordnance and fire them at you
 
 - [ ] **Step 5: Run the specs and luacheck**
 
-Run: `BUSTED && luacheck .`
+Run: `$BUSTED && luacheck .`
 Expected: all specs pass, 0 warnings.
 
 - [ ] **Step 6: Commit**
@@ -1719,7 +1785,7 @@ Expected: all pass.
 return {
   statsfile = "build/luacov.stats.out",
   reportfile = "build/luacov.report.out",
-  include = { "core/" },
+  include = { "^%.?/?core/" },
   includeuntestedfiles = true,
 }
 ```
@@ -1729,7 +1795,7 @@ return {
 ```bash
 eval "$(luarocks --lua-version 5.2 path)"
 mkdir -p build
-BUSTED --coverage && ~/.luarocks/bin/luacov && python3 -m tools.coverage_floor build/luacov.report.out
+$BUSTED --coverage && ~/.luarocks/bin/luacov && python3 -m tools.coverage_floor build/luacov.report.out
 ```
 
 Expected: exit 0. Open `build/luacov.report.out` and check that the
@@ -1739,7 +1805,8 @@ test helper to the real format (that counts as the first attempt).
 Then plant a mistake: write `core/planted.lua` with
 `local M = {} function M.f() return 1 end return M` and no test. Run the
 chain again. Expected: `coverage: core/ coverage is 0.0%`. If it passes,
-`includeuntestedfiles` does not work: record that in the failure log.
+luacov skipped the untested file: log the attempt, then try
+`include = { "core/" }` and run again. If it still passes, hand back.
 Delete `core/planted.lua` and `build/`.
 
 - [ ] **Step 7: Commit**
@@ -1756,6 +1823,7 @@ Failure log:
 **Files:**
 
 - Test: `spec/docs_spec.lua`
+- Modify: `docs/architecture.md` only if Step 2 says so
 
 **Interfaces:**
 
@@ -1823,16 +1891,17 @@ end)
 
 - [ ] **Step 2: Run it**
 
-Run: `BUSTED spec/docs_spec.lua`
+Run: `$BUSTED spec/docs_spec.lua`
 Expected: PASS. The first paragraph with "never names" is in "The
 core" section of `docs/architecture.md`. It names the four names and no
-other name in backticks. If the spec reads another paragraph, reword the
-paragraphs so that the rule paragraph comes first.
+other name in backticks. If the spec reads another paragraph, move the
+rule paragraph so that it comes first.
 
 - [ ] **Step 3: Check that it catches drift**
 
 Temporarily remove `` `defines` `` from that paragraph in
-`docs/architecture.md`. Run the spec. Expected: FAIL. Restore the line.
+`docs/architecture.md`. Run the spec. Expected: FAIL. Restore the
+paragraph.
 
 - [ ] **Step 4: Commit**
 
@@ -2048,6 +2117,8 @@ Failure log:
 
 - Create: `tools/vendor/__init__.py` (empty), `tools/vendor/ste_check.py`
 - Create: `tools/text_check.py`, `THIRD_PARTY.md`
+- Commit: `tools/vendor/factorio-test_3.2.0.zip` (on disk since 2026-11-12,
+  not yet committed; Task 18 needs it in CI)
 - Test: `tools/tests/test_text_check.py`
 
 **Interfaces:**
@@ -2072,7 +2143,13 @@ git hash-object tools/vendor/ste_check.py
 
 Expected hash: `1ddf0440ab561f71db06692f04b1429bfa0ae165`. That is the
 blob of `scripts/ste_check.py` at upstream commit
-`6a69c447a3eb24c7d403aea5fc04f965ad6dafcc`. Do not edit the copy.
+`6a69c447a3eb24c7d403aea5fc04f965ad6dafcc`. Do not edit the copy. On a
+mismatch, take the upstream file instead:
+
+```bash
+curl -fsSL -o tools/vendor/ste_check.py \
+  https://raw.githubusercontent.com/Dodaios/ste80-humanizer/6a69c447a3eb24c7d403aea5fc04f965ad6dafcc/scripts/ste_check.py
+```
 
 `THIRD_PARTY.md`:
 
@@ -2323,7 +2400,7 @@ tools/vendor/ste_check.py -` and use the rule name that it prints.
 - [ ] **Step 6: Commit**
 
 ```bash
-git add tools/vendor/__init__.py tools/vendor/ste_check.py tools/text_check.py tools/tests/test_text_check.py THIRD_PARTY.md
+git add tools/vendor/__init__.py tools/vendor/ste_check.py tools/vendor/factorio-test_3.2.0.zip tools/text_check.py tools/tests/test_text_check.py THIRD_PARTY.md
 git commit -m "feat: add the text check rules and the .ste-allow format"
 ```
 
@@ -2437,7 +2514,7 @@ def spelling(root: pathlib.Path, prose_by_path: dict[str, str]) -> list[Finding]
             return []
         result = subprocess.run(
             [str(root / "node_modules/.bin/cspell"), "--no-progress", "--no-summary",
-             "--no-color", "--config", str(root / "cspell.json"), *names],
+             "--no-color", "--dot", "--config", str(root / "cspell.json"), *names],
             cwd=tmp, capture_output=True, text=True)
     if result.returncode not in (0, 1):
         raise SystemExit(f"text check: cspell failed:\n{result.stdout}{result.stderr}")
@@ -2450,8 +2527,12 @@ def tracked(root: pathlib.Path) -> list[str]:
     return [p for p in result.stdout.split("\0") if p and (root / p).is_file()]
 
 
+def relative(path: str) -> str:
+    return pathlib.Path(path).resolve().relative_to(ROOT).as_posix()
+
+
 def main(argv: list[str]) -> int:
-    paths = argv[1:] or tracked(ROOT)
+    paths = [relative(p) for p in argv[1:]] or tracked(ROOT)
     texts = {p: (ROOT / p).read_text(encoding="utf-8") for p in paths if kind(p)}
     allow_file = ROOT / ".ste-allow"
     allow_text = allow_file.read_text(encoding="utf-8") if allow_file.exists() else ""
@@ -2490,11 +2571,14 @@ Then work through the findings:
 
 1. Real project words that cspell does not know (Factorio, luacheck,
    busted, biter, pentapod and so on) go in `cspell.json` `words`.
-2. Prose that we wrote (the spec, the plan, `docs/design.md`,
-   `docs/architecture.md`, `CHANGELOG.md`, Lua comments) gets fixed in
-   place, in the style of `/ste80-humanizer`.
-3. Text that quotes others (the review reports quote reviewers and the
-   old spec) gets a `.ste-allow` entry with the reason.
+2. A finding in this project's own prose (the spec, the plan,
+   `docs/design.md`, `docs/architecture.md`, `CHANGELOG.md`, Lua
+   comments) gets fixed in place, with `/ste80-humanizer`, when the fix
+   keeps the meaning.
+3. A finding that a fix cannot remove gets a `.ste-allow` entry with the
+   reason. Examples: an "-ing" word that is a name ("Breeding" branch,
+   "heating towers"; see the ledger notes from Task 2), and text that
+   quotes others (the review reports quote reviewers and the old spec).
 
 Start `.ste-allow` with this header:
 
@@ -2592,7 +2676,7 @@ exclude_path = ["node_modules", "build", "docs/archive"]
 # On Arch, lua52-busted installs busted outside PATH. Use a busted on PATH
 # if there is one (CI). If not, use the Arch rock path.
 LUA         := lua5.2
-ARCH_BUSTED := /usr/lib/luarocks/rocks-5.2/busted/2.3.0-1/bin/busted
+ARCH_BUSTED := $(lastword $(wildcard /usr/lib/luarocks/rocks-5.2/busted/*/bin/busted))
 BUSTED      := $(shell command -v busted 2>/dev/null)
 ifeq ($(BUSTED),)
   RUN_BUSTED := $(LUA) $(ARCH_BUSTED) --lua=$(LUA)
@@ -2600,14 +2684,19 @@ else
   RUN_BUSTED := $(BUSTED)
 endif
 
-# Lua modules that luarocks installed for this user, such as luacov.
+# Lua modules that luarocks installed for this user, such as luacov. The
+# _5_2 names reach Lua 5.2 only. Arch's luacheck runs on Lua 5.4 and must
+# not load 5.2 modules.
 ifneq ($(shell command -v luarocks 2>/dev/null),)
-  export LUA_PATH  := $(shell luarocks --lua-version 5.2 path --lr-path);;
-  export LUA_CPATH := $(shell luarocks --lua-version 5.2 path --lr-cpath);;
-  export PATH      := $(HOME)/.luarocks/bin:$(PATH)
+  export LUA_PATH_5_2  := $(shell luarocks --lua-version 5.2 path --lr-path);;
+  export LUA_CPATH_5_2 := $(shell luarocks --lua-version 5.2 path --lr-cpath);;
+  export PATH          := $(HOME)/.luarocks/bin:$(PATH)
 endif
 
-MARKDOWN = $(shell git ls-files '*.md')
+# The git hook may pass the staged files in FILES (see Task 15, Step 5).
+# Without FILES, the text checks cover every tracked file, as in CI.
+MARKDOWN   = $(if $(FILES),$(filter %.md,$(FILES)),$(shell git ls-files '*.md'))
+TEXT_FILES = $(if $(FILES),$(filter %.md %.lua locale/%.cfg,$(FILES)),)
 
 .PHONY: setup fast check text lua tools ingame stamp package
 
@@ -2622,9 +2711,9 @@ fast: text lua tools
 check: fast ingame
 
 text:
-	mdl $(MARKDOWN)
-	python3 -m tools.text_check
-	lychee --offline --no-progress $(MARKDOWN)
+	$(if $(MARKDOWN),mdl $(MARKDOWN))
+	python3 -m tools.text_check $(TEXT_FILES)
+	$(if $(MARKDOWN),lychee --offline --no-progress $(MARKDOWN))
 
 lua:
 	mkdir -p build
@@ -2649,8 +2738,8 @@ package:
 	python3 -m tools.package
 ```
 
-`tools/ingame.sh` and `tools/review_stamp.py` arrive in Tasks 16 and 18.
-`make ingame` and `make stamp` fail until then.
+`tools/review_stamp.py` arrives in Task 16 and `tools/ingame.sh` in
+Task 18. `make stamp` and `make ingame` fail until then.
 
 - [ ] **Step 4: Write `.githooks/pre-commit`**
 
@@ -2665,9 +2754,19 @@ Run: `chmod +x .githooks/pre-commit`
 - [ ] **Step 5: Run the gates and measure them**
 
 Run: `time make fast`
-Expected: exit 0. Write the time down. If it is over 10 seconds, note it
-in the failure log and in the final report. The spec says that the hook
-then checks staged files only; that change is not part of this plan.
+Expected: exit 0. Write the time in the ledger under Task 15.
+
+If it is over 10 seconds, the spec says that the git hook checks the
+staged files only. Then replace the last line of `.githooks/pre-commit`
+with:
+
+```sh
+exec make fast FILES="$(git diff --cached --name-only --diff-filter=ACMR | tr '\n' ' ')"
+```
+
+With staged files that hold no text, `make text` checks every file, which
+is slower but still correct. luacheck, busted and pytest always run in
+full. CI calls `make text` without `FILES` and checks every file.
 
 - [ ] **Step 6: Turn on the hook and commit through it**
 
@@ -2691,6 +2790,7 @@ Failure log:
 **Interfaces:**
 
 - Produces: `review_stamp.is_commit(command: str) -> bool`,
+  `review_stamp.commit_stages_files(command: str) -> bool`,
   `review_stamp.decide(command: str, hooks_path: str | None, tree: str |
   None, stamp: str | None) -> tuple[int, str]`.
 
@@ -2702,12 +2802,14 @@ Failure log:
 from tools import review_stamp as rs
 
 GOOD = (".githooks", "tree1", "tree1")
+HEREDOC = "git commit -q -F - <<'EOF'\nfeat: don't stop\n\nmore text\nEOF"
 
 
 def test_commits_are_recognised():
     for command in ["git commit -m x", "cd repo && git commit -m x",
                     "git -C /repo commit -m x", "git --no-pager commit",
-                    "make fast; git commit --amend --no-edit"]:
+                    "make fast; git commit --amend --no-edit",
+                    "make fast\ngit commit -m x", HEREDOC]:
         assert rs.is_commit(command), command
 
 
@@ -2722,7 +2824,10 @@ def test_non_commit_passes_whatever_the_state():
 
 
 def test_commit_with_a_current_stamp_passes():
-    assert rs.decide("git commit -m x", *GOOD) == (0, "")
+    for command in ["git commit -m x", "git commit -qm x", "git commit -mfoo",
+                    'git commit -m "docs: explain git add"', HEREDOC,
+                    "git commit --amend --no-edit", "git commit --message=x"]:
+        assert rs.decide(command, *GOOD) == (0, ""), command
 
 
 def test_commit_without_the_git_hook_is_blocked():
@@ -2742,14 +2847,16 @@ def test_commit_with_an_old_stamp_is_blocked():
 
 
 def test_staging_in_the_same_command_is_blocked():
-    for command in ["git add . && git commit -m x", "git commit -am x",
-                    "git commit -a -m x", "git commit --all -m x"]:
+    for command in ["git add . && git commit -m x", "git add -A\ngit commit -m x",
+                    "git commit -am x", "git commit -a -m x", "git commit --all -m x",
+                    "git commit -m x path/to/file", "git commit -i -m x f",
+                    "git commit -o f -m x", "git commit --only f", "git commit -p"]:
         code, message = rs.decide(command, *GOOD)
         assert code == 2 and "separate command" in message, command
 
 
-def test_amend_is_not_mistaken_for_all():
-    assert rs.decide("git commit --amend --no-edit", *GOOD) == (0, "")
+def test_unreadable_quotes_are_blocked():
+    assert rs.decide('git commit -m "x', *GOOD)[0] == 2
 ```
 
 - [ ] **Step 2: Run them to see them fail**
@@ -2774,28 +2881,80 @@ from __future__ import annotations
 import json
 import pathlib
 import re
+import shlex
 import subprocess
 import sys
 from typing import TextIO
 
-# git, its global options, then the commit subcommand, at the start of a
-# command or after ; & | ( or a shell keyword.
-COMMIT = re.compile(
-    r"(?:^|[;&|(]|\bthen\b|\bdo\b)\s*git\s+"
-    r"(?:(?:-C|-c)\s+\S+\s+|--?[\w-]+(?:=\S+)?\s+)*commit(?![\w-])")
-STAGE_COMMAND = re.compile(r"\bgit\s+(?:add|rm|mv|stage)\b")
-STAGE_OPTION = re.compile(r"\scommit\b[^;&|]*\s(?:--all\b|-a\b|-[b-zA-Z]*a[a-zA-Z]*\b)")
+# A git subcommand at the start of a command line, or after ; & | ( or a
+# shell keyword, with git's own options before it.
+_GIT = (r"(?:^|[;&|(]|\bthen\b|\bdo\b)[ \t]*git\s+"
+        r"(?:(?:-C|-c)\s+\S+\s+|--?[\w-]+(?:=\S+)?\s+)*")
+COMMIT = re.compile(_GIT + r"commit(?![\w-])", re.MULTILINE)
+STAGE_COMMAND = re.compile(_GIT + r"(?:add|rm|mv|stage)(?![\w-])", re.MULTILINE)
+
+# Options of git commit that stage files at commit time.
+STAGING_OPTIONS = {"-a", "--all", "-i", "--include", "-o", "--only", "-p",
+                   "--patch", "--interactive"}
+STAGING_LETTERS = set("aiop")
+# Options whose value is the next argument.
+VALUE_OPTIONS = {"-m", "-F", "-C", "-c", "-t", "--message", "--file", "--author",
+                 "--date", "--template", "--cleanup", "--fixup", "--squash",
+                 "--reuse-message", "--reedit-message", "--trailer"}
+VALUE_LETTERS = set("mFCct")
+SHELL_PUNCTUATION = set(";&|<>()")
 
 REVIEW_STEPS = """The staged files have no review stamp. Before you commit:
 1. Run /ste80-humanizer (British English) on staged prose and comments.
 2. Run /simplify on staged code.
 3. Update ROADMAP.md if the change affects it.
 4. Stage the results, then run `make stamp`.
-Then commit again."""
+Then commit again, in a command of its own."""
 
 
 def is_commit(command: str) -> bool:
     return COMMIT.search(command) is not None
+
+
+def _short_option_stages(token: str, tokens) -> bool:
+    """Reads a cluster such as -qm. Consumes a separate value if needed."""
+    letters = token[1:]
+    for index, letter in enumerate(letters):
+        if letter in STAGING_LETTERS:
+            return True
+        if letter in VALUE_LETTERS:
+            if index == len(letters) - 1:
+                next(tokens, None)
+            return False
+    return False
+
+
+def commit_stages_files(command: str) -> bool:
+    """True when git commit itself stages files: -a, -i, -o, -p or a path."""
+    match = COMMIT.search(command)
+    if match is None:
+        return False
+    lexer = shlex.shlex(command[match.end():], posix=True, punctuation_chars=True)
+    lexer.whitespace_split = True
+    tokens = iter(lexer)
+    try:
+        for token in tokens:
+            if set(token) <= SHELL_PUNCTUATION:
+                return False  # the commit command ends here
+            if token in STAGING_OPTIONS:
+                return True
+            if token in VALUE_OPTIONS:
+                next(tokens, None)
+            elif token.startswith("--"):
+                continue
+            elif token.startswith("-") and len(token) > 1:
+                if _short_option_stages(token, tokens):
+                    return True
+            else:
+                return True  # a path
+    except ValueError:
+        return True  # unbalanced quotes: the hook cannot tell, so it refuses
+    return False
 
 
 def decide(command: str, hooks_path: str | None, tree: str | None,
@@ -2805,9 +2964,10 @@ def decide(command: str, hooks_path: str | None, tree: str | None,
         return 0, ""
     if hooks_path != ".githooks":
         return 2, "The git hook is not active. Run `make setup`, then commit again."
-    if STAGE_COMMAND.search(command) or STAGE_OPTION.search(command):
+    if STAGE_COMMAND.search(command) or commit_stages_files(command):
         return 2, ("Stage files in a separate command (git add), then run `make stamp`, "
-                   "then commit. The hook checks what is staged before the command runs.")
+                   "then commit. The hook checks what is staged before the command runs, "
+                   "so it refuses -a, -i, -o, -p and paths after git commit.")
     if tree is None or stamp != tree:
         return 2, REVIEW_STEPS
     return 0, ""
@@ -2888,9 +3048,8 @@ Expected: first `exit 2` with the review steps, then `exit 0`.
 
 - [ ] **Step 7: Commit through the hook**
 
-Stage the files. Run `/ste80-humanizer` on the new comments and
-`/simplify` on `tools/review_stamp.py`. Stage again, run `make stamp`,
-then commit in a separate command:
+Run `/ste80-humanizer` on the new comments and `/simplify` on
+`tools/review_stamp.py`. Then run each line below as its own Bash call:
 
 ```bash
 git add tools/review_stamp.py tools/tests/test_review_stamp.py .claude/settings.json
@@ -2908,11 +3067,13 @@ Failure log:
 
 **Files:**
 
-- Modify: `CLAUDE.md`, `CHANGELOG.md`
+- Modify: `CLAUDE.md`
 - Create: `README.md`, `ROADMAP.md`, `LICENSE`,
   `.github/pull_request_template.md`
 
 - [ ] **Step 1: Write `CLAUDE.md`**
+
+Replace the whole file with this text. It keeps the functional-core line.
 
 ```markdown
 # Abominable Ordnance
@@ -2976,12 +3137,13 @@ Sections, in this order:
 
 1. `# Abominable Ordnance`, then two or three sentences on what the mod
    does, taken from the concept section of `docs/design.md`.
-2. `## Status`: version 0.1.0 is an empty mod with the repository and its
-   checks. The first features arrive in 1.0.0 (design version 1). Link
-   `ROADMAP.md`.
-3. `## Install`: not on the mod portal yet. A release zip from the GitHub
-   releases page goes in the Factorio `mods` folder. Needs Factorio 2.1.
-   Space Age is optional.
+2. `## Status`, with this text: "Version 0.1.0 is an empty mod: the
+   repository, its checks and its release workflow. The first features
+   arrive in 1.0.0 (design version 1). See the [roadmap](ROADMAP.md)."
+3. `## Install`, with this text: "The mod is not on the mod portal yet.
+   Download the zip from the GitHub releases page and put it in your
+   Factorio `mods` folder. The mod needs Factorio 2.1. Space Age is
+   optional."
 4. `## Development`: the tools and how to install them on Arch:
    `sudo pacman -S lua52 lua52-busted luacheck luarocks lychee`,
    `sudo pacman -S ruby nodejs npm python-pytest`,
@@ -3039,16 +3201,20 @@ anchor with `lychee --offline --include-fragments ROADMAP.md`.
 
 - [ ] **Step 6: Check and commit**
 
-Run: `make fast`
-Expected: exit 0. Fix text-check findings in the new files.
+The text check reads tracked and staged files, so stage first:
 
 ```bash
 git add CLAUDE.md README.md ROADMAP.md LICENSE .github/pull_request_template.md
+```
+
+Run: `make fast`. Fix any finding in the new files, run
+`/ste80-humanizer` on them, stage them again and run `make fast` until it
+exits 0. Then run each line as its own Bash call:
+
+```bash
 make stamp
 git commit -m "docs: add the README, roadmap, licence and agent rules"
 ```
-
-(Run the review skills before `make stamp`, as in Task 16.)
 
 Failure log:
 
@@ -3058,9 +3224,8 @@ Failure log:
 
 - Create: `tools/ingame.sh`, `tests/ingame/smoke_test.lua`,
   `.factorio-version`, `.factorio-test-version`
-- Modify: `control.lua`, `.luacheckrc`
-- Existing: `tools/vendor/factorio-test_3.2.0.zip` (the maintainer put it
-  there)
+- Modify: `control.lua`, `.luacheckrc`, `CHANGELOG.md`
+- Uses: `tools/vendor/factorio-test_3.2.0.zip` (committed in Task 13)
 
 - [ ] **Step 1: Write the version files**
 
@@ -3180,7 +3345,8 @@ Run `make ingame MODE=base`. Expected: FAIL. Remove the planted test.
 
 - [ ] **Step 7: Check that the zip ships the tests but not the vendored mod**
 
-Run:
+`make package` reads `git ls-files`, so stage first:
+`git add tests/ingame/ control.lua`. Then run:
 
 ```bash
 make package && python3 -I -c "import zipfile;print('\n'.join(zipfile.ZipFile('build/abominable-ordnance_0.1.0.zip').namelist()))"
@@ -3193,6 +3359,8 @@ Expected: `tests/ingame/smoke_test.lua` is in the list. No path under
 
 Add an Unreleased entry to `CHANGELOG.md` under `### Added`:
 `- In-game smoke tests that run in the headless server.`
+
+Run the review skills, then each line as its own Bash call:
 
 ```bash
 git add tools/ingame.sh tests/ingame/ .factorio-version .factorio-test-version control.lua .luacheckrc CHANGELOG.md
@@ -3332,6 +3500,8 @@ maintainer, not a failure of this task.
 
 - [ ] **Step 5: Commit**
 
+Run the review skills, then each line as its own Bash call:
+
 ```bash
 git add tools/factorio_version.py tools/tests/test_factorio_version.py
 make stamp
@@ -3367,9 +3537,8 @@ def test_check_uses_no_secrets():
 
 
 def test_pr_checks_run_again_when_title_or_labels_change():
-    text = read("check.yml")
-    for event_type in ["edited", "labeled", "unlabeled", "synchronize"]:
-        assert event_type in text
+    assert ("types: [opened, synchronize, reopened, edited, labeled, unlabeled]"
+            in read("check.yml"))
 
 
 def test_all_checks_needs_every_job():
@@ -3453,6 +3622,8 @@ jobs:
 
   ingame:
     runs-on: ubuntu-latest
+    env:
+      FACTORIO_CACHE: ${{ github.workspace }}/../factorio-cache
     strategy:
       fail-fast: false
       matrix:
@@ -3468,7 +3639,7 @@ jobs:
         run: echo "version=$(cat .factorio-version)" >> "$GITHUB_OUTPUT"
       - uses: actions/cache@v6
         with:
-          path: ~/.cache/abominable-ordnance
+          path: ${{ env.FACTORIO_CACHE }}
           key: factorio-headless-${{ steps.factorio.outputs.version }}
       - run: make ingame MODE=${{ matrix.mode }}
 
@@ -3495,6 +3666,12 @@ jobs:
 
 `make lua` in CI: the leafo Lua binary is `lua`, not `lua5.2`, but CI has
 `busted` on `PATH`, so the Makefile uses it.
+
+The action versions were checked on 2026-11-12 with
+`gh api repos/<owner>/<action>/releases/latest`: checkout v7.0.1,
+setup-python v7.1.0, setup-node v7.1.0, cache v6.1.0, upload-artifact
+v7.0.2, download-artifact v8.0.2, gh-actions-lua v13.1.0,
+gh-actions-luarocks v6.1.1. Dependabot moves them later.
 
 - [ ] **Step 4: Write `.github/dependabot.yml`**
 
@@ -3527,6 +3704,8 @@ Run: `python3 -m pytest tools/tests/test_workflows.py`
 Expected: all pass.
 
 - [ ] **Step 7: Commit**
+
+Run the review skills, then each line as its own Bash call:
 
 ```bash
 git add .github/workflows/check.yml .github/dependabot.yml tools/tests/test_workflows.py
@@ -3690,7 +3869,8 @@ jobs:
       - run: python3 -m tools.factorio_version
 ```
 
-Use the same tar options as check.yml after Task 20, Step 5.
+If Task 20, Step 5 added `--strip-components=1` to check.yml, add it here
+too.
 
 - [ ] **Step 4: Run the tests and the gates**
 
@@ -3698,6 +3878,8 @@ Run: `python3 -m pytest tools/tests/test_workflows.py && make fast`
 Expected: all pass.
 
 - [ ] **Step 5: Commit**
+
+Run the review skills, then each line as its own Bash call:
 
 ```bash
 git add .github/workflows/release.yml .github/workflows/weekly.yml tools/tests/test_workflows.py
@@ -3712,14 +3894,14 @@ Failure log:
 The maintainer approved this task on 2026-11-12: create the public
 repository, push, configure it and run the acceptance checks.
 
-**Files:** none in the repository. `ROADMAP.md` and `CHANGELOG.md` change
-at the end.
+**Files:** `ROADMAP.md` changes through the acceptance PR in Step 6.
 
 - [ ] **Step 1: Final local check**
 
 Run: `make check`
 Expected: exit 0. Then `python3 -m pytest tools/tests/test_gates.py -v`
-and check that no test was skipped.
+and check that no test was skipped. A skip means a tool is missing: go
+back to Task 0.
 
 - [ ] **Step 2: Create the repository and push**
 
@@ -3742,15 +3924,19 @@ gh label create no-changelog --repo vetkat/abominable-ordnance \
 
 - [ ] **Step 4: Wait for the first CI run on main**
 
-Run:
-
 ```bash
-gh run watch --repo vetkat/abominable-ordnance --exit-status $(gh run list --repo vetkat/abominable-ordnance --workflow check.yml --limit 1 --json databaseId --jq '.[0].databaseId')
+repo=vetkat/abominable-ordnance
+sha=$(git rev-parse HEAD)
+until id=$(gh run list --repo $repo --workflow check.yml --branch main --event push \
+    --commit "$sha" --json databaseId --jq '.[0].databaseId') && [ -n "$id" ]; do
+  sleep 10
+done
+gh run watch "$id" --repo $repo --exit-status
 ```
 
-Expected: every job passes. If a job fails, fix it on a branch through a
-PR from here on (Step 5 turns on protection, so fix CI first, with direct
-pushes to main while protection is still off).
+Expected: every job passes. Protection is still off, so fix a failing job
+with a commit pushed straight to main, then watch the new run. Step 5
+turns protection on, and from then on every change goes through a PR.
 
 - [ ] **Step 5: Branch protection, also for admins**
 
@@ -3771,17 +3957,29 @@ gh api -X PUT repos/vetkat/abominable-ordnance/branches/main/protection --input 
 1. A direct push to main fails:
    `git commit --allow-empty -m "test: direct push" && git push origin main`.
    Expected: rejected. Then `git reset --hard origin/main`.
-2. A PR with a planted mistake fails: branch `test/planted`, add a line to
-   `core/` without a changelog entry, open a PR titled `Planted mistake`.
-   Expected: the `pr` job fails (title and changelog). Close the PR and
-   delete the branch.
+2. A PR with a planted mistake fails: branch `test/planted`, create
+   `core/planted.lua` with the content `return {}` and no changelog
+   entry, and open a PR titled `Planted mistake`. Expected: the `pr` job
+   fails with two problems (title and changelog), `lua` fails on the
+   coverage floor, and `all-checks` fails. Close the PR and delete the
+   branch.
 3. A clean PR passes: branch `docs/acceptance`, tick the 0.1.0 items in
    `ROADMAP.md`, open a PR titled `docs: tick the 0.1.0 roadmap items`.
    Expected: every job passes, including both `ingame` entries. Squash
    merge it.
-4. A dry run of the release: `gh workflow run release.yml --repo
-   vetkat/abominable-ordnance -f mode=dry-run`. Wait for it, then
-   `gh run download <run id> --name mod-zip --dir build/dry-run`.
+4. A dry run of the release:
+
+   ```bash
+   gh workflow run release.yml --repo $repo -f mode=dry-run
+   sleep 10
+   id=$(gh run list --repo $repo --workflow release.yml --event workflow_dispatch \
+     --limit 1 --json databaseId --jq '.[0].databaseId')
+   gh run watch "$id" --repo $repo --exit-status
+   gh run download "$id" --repo $repo --name mod-zip --dir build/dry-run
+   ```
+
+   Expected: the run passes, and `build/dry-run` holds the zip (the dry
+   run writes no `notes.md`).
 5. The zip loads in the headless server (manual check, once):
 
    ```bash
