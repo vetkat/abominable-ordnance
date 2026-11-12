@@ -1,0 +1,67 @@
+# Each CI job calls one of these targets, so a check works the same way
+# on the maintainer's machine and in CI. The spec is
+# docs/superpowers/specs/2026-11-12-repo-and-ci-design.md.
+
+# On Arch, lua52-busted installs busted outside PATH. Use a busted on PATH
+# if there is one (CI). If not, use the Arch rock path.
+LUA         := lua5.2
+ARCH_BUSTED := $(lastword $(wildcard /usr/lib/luarocks/rocks-5.2/busted/*/bin/busted))
+BUSTED      := $(shell command -v busted 2>/dev/null)
+ifeq ($(BUSTED),)
+  RUN_BUSTED := $(LUA) $(ARCH_BUSTED) --lua=$(LUA)
+else
+  RUN_BUSTED := $(BUSTED)
+endif
+
+# Lua modules that luarocks installed for this user, such as luacov. The
+# _5_2 names reach Lua 5.2 only. Arch's luacheck runs on Lua 5.4 and must
+# not load 5.2 modules.
+ifneq ($(shell command -v luarocks 2>/dev/null),)
+  export LUA_PATH_5_2  := $(shell luarocks --lua-version 5.2 path --lr-path);;
+  export LUA_CPATH_5_2 := $(shell luarocks --lua-version 5.2 path --lr-cpath);;
+  export PATH          := $(HOME)/.luarocks/bin:$(PATH)
+endif
+
+# The git hook may pass the staged files in FILES (see Task 15, Step 5).
+# Without FILES, the text checks cover every tracked file, as in CI.
+MARKDOWN   = $(if $(FILES),$(filter %.md,$(FILES)),$(shell git ls-files '*.md'))
+TEXT_FILES = $(if $(FILES),$(filter %.md %.lua locale/%.cfg,$(FILES)),)
+
+.PHONY: setup fast check text lua tools ingame stamp package
+
+## once, after a clone: turn on the git hook
+setup:
+	git config core.hooksPath .githooks
+
+## every commit (the git hook)
+fast: text lua tools
+
+## before a PR
+check: fast ingame
+
+text:
+	$(if $(MARKDOWN),mdl $(MARKDOWN))
+	python3 -m tools.text_check $(TEXT_FILES)
+	$(if $(MARKDOWN),lychee --offline --no-progress $(MARKDOWN))
+
+lua:
+	mkdir -p build
+	luacheck .
+	$(RUN_BUSTED) --coverage
+	luacov
+	python3 -m tools.coverage_floor build/luacov.report.out
+
+tools:
+	python3 -m pytest
+	python3 -m tools.check_version
+
+## MODE=base or MODE=space-age runs one mode; empty runs both
+ingame:
+	tools/ingame.sh $(MODE)
+
+## after /ste80-humanizer and /simplify: lets the Claude Code hook pass
+stamp:
+	python3 -m tools.review_stamp stamp
+
+package:
+	python3 -m tools.package

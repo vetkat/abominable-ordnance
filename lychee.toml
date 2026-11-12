@@ -1,0 +1,3 @@
+# lychee settings. `make text` checks the links inside the repository
+# (--offline). weekly.yml checks every link, external ones included.
+exclude_path = ["node_modules", "build", "docs/archive"]

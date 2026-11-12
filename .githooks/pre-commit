@@ -1,0 +1,3 @@
+#!/bin/sh
+# Every commit runs the fast gates. CI runs them again on every PR.
+exec make fast

@@ -3149,7 +3149,8 @@ Sections, in this order:
    does, taken from the concept section of `docs/design.md`.
 2. `## Status`, with this text: "Version 0.1.0 is an empty mod: the
    repository, its checks and its release workflow. The first features
-   arrive in 1.0.0 (design version 1). See the [roadmap](ROADMAP.md)."
+   arrive in 1.0.0 (design version 1). See the roadmap." Link the word
+   "roadmap" to `ROADMAP.md`.
 3. `## Install`, with this text: "The mod is not on the mod portal yet.
    Download the zip from the GitHub releases page and put it in your
    Factorio `mods` folder. The mod needs Factorio 2.1. Space Age is
