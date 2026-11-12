@@ -29,3 +29,10 @@ end
 -- core/ gets no Factorio globals. That is the architecture rule.
 
 files["spec"] = { std = "+busted" }
+-- The in-game tests see the game, plus what factorio-test provides.
+local ingame = {
+  "test", "describe", "it", "before_each", "after_each", "before_all",
+  "after_all", "async", "done", "after_ticks", "on_tick", "ticks_between_tests",
+}
+for _, name in ipairs(factorio) do ingame[#ingame + 1] = name end
+files["tests/ingame"] = { read_globals = ingame }
