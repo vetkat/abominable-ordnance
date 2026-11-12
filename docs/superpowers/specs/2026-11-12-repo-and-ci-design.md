@@ -182,8 +182,9 @@ and the check prints the file, the line and the rule.
 
 ## CI
 
-`check.yml` runs on every push and every PR. Other workflows can also call
-it (`workflow_call`). It has these jobs:
+`check.yml` runs on every PR and on every push to `main`. A push run on a
+PR branch would report a second `all-checks` without the PR checks. Other
+workflows can also call it (`workflow_call`). It has these jobs:
 
 1. **`text`**: `make text`.
 2. **`lua`**: `make lua`.

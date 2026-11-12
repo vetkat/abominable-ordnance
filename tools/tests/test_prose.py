@@ -62,3 +62,8 @@ def test_markdown_drops_link_definitions():
     out = prose.markdown_prose(text)
     assert lines(out)[2:4] == ["", ""]
     assert prose.without_link_definitions(text).split("\n")[2:4] == ["", ""]
+
+
+def test_lua_comment_code_spans_and_annotations_are_not_prose():
+    out = prose.lua_prose("-- the `color` field is read\n---@param color Color\n")
+    assert lines(out)[:2] == ["the field is read", ""]

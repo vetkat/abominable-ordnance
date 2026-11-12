@@ -67,7 +67,8 @@ def _lua_line(line: str, block: tuple[str, bool] | None) -> tuple[str, tuple[str
                 block = ("]" + match.group(1) + "]", True)
                 i = match.end()
                 continue
-            parts.append(line[i + 2:].lstrip("-"))
+            if not line.startswith("---@", i):  # a type annotation is code
+                parts.append(line[i + 2:].lstrip("-"))
             break
         if line[i] in "\"'":
             quote = line[i]
@@ -82,7 +83,9 @@ def _lua_line(line: str, block: tuple[str, bool] | None) -> tuple[str, tuple[str
             i = match.end()
             continue
         i += 1
-    return " ".join(p.strip() for p in parts if p.strip()), block
+    # A code span in a comment names code, such as an API field.
+    text = CODE_SPAN.sub(" ", " ".join(parts))
+    return " ".join(text.split()), block
 
 
 def lua_prose(text: str) -> str:

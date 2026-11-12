@@ -44,3 +44,9 @@ def test_weekly_has_links_and_factorio_version_jobs():
     text = read("weekly.yml")
     assert "links:" in text and "factorio-version:" in text
     assert "schedule:" in text
+
+
+def test_push_runs_check_on_main_only():
+    # A push run on a PR branch would report a second all-checks that
+    # skips the pr job, and could hide a failing PR check.
+    assert 'push:\n    branches: [main]\n' in read("check.yml")

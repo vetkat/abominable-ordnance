@@ -1,8 +1,11 @@
 name: check
 
 on:
+  # PR branches run through pull_request, and main runs after each merge.
+  # A push run on a PR branch would report a second all-checks that skips
+  # the pr job.
   push:
-    branches: ["**"]
+    branches: [main]
   pull_request:
     types: [opened, synchronize, reopened, edited, labeled, unlabeled]
   workflow_call:
@@ -56,8 +59,6 @@ jobs:
 
   ingame:
     runs-on: ubuntu-latest
-    env:
-      FACTORIO_CACHE: ${{ github.workspace }}/../factorio-cache
     strategy:
       fail-fast: false
       matrix:
@@ -73,9 +74,11 @@ jobs:
         run: echo "version=$(cat .factorio-version)" >> "$GITHUB_OUTPUT"
       - uses: actions/cache@v6
         with:
-          path: ${{ env.FACTORIO_CACHE }}
+          path: ${{ runner.temp }}/factorio-cache
           key: factorio-headless-${{ steps.factorio.outputs.version }}
       - run: make ingame MODE=${{ matrix.mode }}
+        env:
+          FACTORIO_CACHE: ${{ runner.temp }}/factorio-cache
 
   pr:
     if: github.event_name == 'pull_request'
