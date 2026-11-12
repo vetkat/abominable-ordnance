@@ -1,0 +1,6 @@
+# The tools in tools/ use the standard library only. pytest runs their
+# tests.
+[tool.pytest.ini_options]
+testpaths = ["tools/tests"]
+pythonpath = ["."]
+addopts = "-q"
