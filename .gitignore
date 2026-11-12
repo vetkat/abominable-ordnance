@@ -1,1 +1,8 @@
+# Old chat logs, for reference only
 docs/archive/
+# Build output: the zip, coverage data and the in-game test data
+build/
+changelog.txt
+node_modules/
+__pycache__/
+.pytest_cache/
