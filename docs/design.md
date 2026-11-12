@@ -1,4 +1,4 @@
-# Abominable Ordnance — Factorio mod design doc
+# Abominable Ordnance: Factorio mod design doc
 
 Nov 11, 2026 · @Mark
 
@@ -9,8 +9,8 @@ fire them at the natives. A biter loaded with an explosive rocket blows up on
 death. A pentapod loaded with a nuke becomes an atomic bomb with legs. Late
 game, you crossbreed everything into one final Abomination.
 
-The mod is PvE by default: loaded monsters fight native enemies. A PvP setting
-lets them be fired at other players' bases in multiplayer.
+The mod is PvE by default: loaded monsters fight native enemies. With a PvP
+setting, players can fire them at other players' bases in multiplayer.
 
 ### Design pillars
 
@@ -20,7 +20,7 @@ lets them be fired at other players' bases in multiplayer.
   and a spoiled loaded larva turns into its full monster on the spot. The
   factory has to keep them at a distance.
 - **Biology as a production chain.** Capture, breed, load and crossbreed are
-  machines and recipes, so the whole thing can be automated.
+  machines and recipes, so you can automate the whole thing.
 - **Absurd on purpose.** Smooth jazz in the breeding pods, an "Expand
   Orifices" research, facehuggers. The tone is a joke, but the systems are
   played straight.
@@ -28,7 +28,7 @@ lets them be fired at other players' bases in multiplayer.
 ## Core loop
 
 The loop runs from a captured egg to a detonation in enemy territory. Every
-step is a machine, so it can be automated.
+step is a machine, so you can automate it.
 
 1. **Capture.** Get eggs from captive spawners, pentapod egg farms, worms and
    demolisher hatchlings caught in the field, or steal them from native nests.
@@ -80,8 +80,8 @@ flowchart TD
     egg --> incubator --> larva --> chamber --> loaded --> launcher --> monster
 ```
 
-Rounded boxes are items, square boxes are machines; the last box is a live
-monster in the field.
+Rounded boxes are items, and square boxes are machines. The last box is a
+live monster in the field.
 
 The main chain runs down the middle: egg, incubator, larva, loading chamber,
 launcher. Embryos branch off to the left for hybrids and facehuggers.
@@ -95,8 +95,8 @@ launcher. Embryos branch off to the left for hybrids and facehuggers.
 | Loaded larva | Loading chamber: larva + 1 to 3 ordnance | Long-range rocket ammo and artillery shells | Becomes its full loaded monster on the spot |
 | Facehugger | Facehugger lab: embryo + catalyst | Converting enemies; the embryo's species decides what the host becomes | Dies |
 
-The stasis ward pauses the spoil timer of any of these items, and the timer
-resumes where it stopped when it is unpacked.
+The stasis ward pauses the spoil timer of any of these items. When you unpack
+the item, the timer resumes where it stopped.
 
 ## Monsters
 
@@ -112,9 +112,9 @@ base role that carries over into hybrids.
 | Demolisher hatchling | Vulcanus | Capture a hatchling near a demolisher territory | Heavy, slow, huge payload capacity |
 
 Full-size demolishers are too large to launch, so the mod adds a small
-"hatchling" species (not to be confused with larvae, the ammo stage of every
-species). Hatchling eggs breed only in heated pods, using Vulcanus lava or
-imported heat from heating towers or a nuclear reactor. Without Space Age,
+"hatchling" species. A hatchling is not a larva: larvae are the ammo stage of
+every species. Hatchling eggs breed only in heated pods. The heat comes from
+Vulcanus lava, or from heating towers or a nuclear reactor. Without Space Age,
 only the three Nauvis species are available.
 
 ## Ordnance loading
@@ -149,7 +149,7 @@ Balance rules for stacking:
 Jazz pods combine two embryos of different species into a hybrid egg that
 keeps one trait from each parent. Hybrid eggs can't breed: each one needs a
 fresh cross, then goes through the incubator and loading chamber like any
-other egg. All benefits below are first proposals, still to be tuned.
+other egg. All benefits below are first proposals. They still need tuning.
 
 | Hybrid | Parents | Benefit (proposal) |
 | --- | --- | --- |
@@ -183,8 +183,9 @@ decides what the host turns into.
 - **Effect.** The facehugger latches on to the nearest enemy. After a few
   seconds the host turns into the target species and fights on your side. If
   the host dies first, the conversion fails.
-- **Limits.** Only small and medium enemies can be converted at first. Big and
-  behemoth hosts need a later research. Demolishers can't be converted.
+- **Limits.** At first, a facehugger converts only small and medium enemies.
+  Big and behemoth hosts need a later research. A facehugger can't convert a
+  demolisher.
 - **Converted units are temporary.** They live until they die, and they go
   feral like any other loaded monster.
 
@@ -206,11 +207,11 @@ A loaded monster goes feral when a player stands inside its feral radius.
 Feral monsters attack the nearest target, including you and your buildings,
 and their payload still goes off when they die.
 
-- **Feral radius.** Grows with payload count and monster size. A one-slot
-  biter is around 5 tiles; the Abomination is around 20.
+- **Feral radius.** Grows with payload count and monster size. For a
+  one-slot biter it is around 5 tiles. For the Abomination it is around 20.
 - **Spoiled larvae.** A loaded larva that spoils outside a stasis ward becomes
   its full monster at once, already loaded. A nuke larva spoiling on a belt is
-  a real risk. Spoiled eggs hatch a wild, unloaded monster; spoiled embryos
+  a real risk. Spoiled eggs hatch a wild, unloaded monster. Spoiled embryos
   just die.
 - **Calming research.** Pheromone dampeners shrink the feral radius by a
   percentage per level. They never remove it entirely.
@@ -226,9 +227,9 @@ The stasis ward keeps eggs from spoiling, and the launchers turn eggs into
 ammunition.
 
 - **Stasis ward.** A crafted item that holds one egg, embryo or larva. Packing
-  pauses the item's spoil timer; unpacking restores it with its spoil timer
-  continuing where it stopped. Packing and unpacking happen in an assembler,
-  so warded eggs can travel by belt, train or rocket.
+  pauses the item's spoil timer. Unpacking restores the item, and its spoil
+  timer continues where it stopped. Packing and unpacking happen in an
+  assembler, so warded eggs can travel by belt, train or rocket.
 - **Long-range rocket ammo.** No new turret: loaded larvae and facehuggers are
   packed into rocket ammo that extends the rocket turret's range. The rocket
   turret only exists in Space Age, so in vanilla the mod adds a simple
@@ -285,8 +286,8 @@ flowchart TD
 
 Research tree · 4 branches, 18 techs.
 
-The Delivery and Control branches are side paths; they make the Abomination
-safer and easier to use but don't gate it.
+The Delivery and Control branches are side paths. They make the Abomination
+safer and easier to use, but they don't gate it.
 
 ## Version 1 feature list
 
@@ -302,8 +303,8 @@ It proves the core loop before adding planets.
 - [ ] Generated item and entity prototypes for each species × payload larva
 - [ ] Death effects for all three payloads, plus the acid poison cloud while
   alive
-- [ ] Long-range rocket ammo that fires loaded larvae; the monster appears
-  where it lands (plus a simple launcher for vanilla)
+- [ ] Long-range rocket ammo that fires loaded larvae. The monster appears
+  where it lands. Vanilla gets a simple launcher.
 - [ ] Feral behaviour: monsters attack players inside a fixed radius
 - [ ] Spoil outcomes: eggs hatch wild, loaded larvae become loaded monsters
 - [ ] Stasis ward that pauses and resumes the spoil timer
@@ -330,16 +331,15 @@ It proves the core loop before adding planets.
 
 ## Technical notes (Factorio 2.1 / Space Age)
 
-Most of the mod can be done with ordinary prototypes plus a small control
-script. The hard parts are prototype count, demolishers and the player
-transformation.
+Ordinary prototypes plus a small control script can do most of the mod. The
+hard parts are prototype count, demolishers and the player transformation.
 
 - **Loaded larvae as items.** Generate one item per species × payload in
   `data-final-fixes`. With one slot that is 5 × 8 = 40 items. With three
   slots it grows to hundreds. Two options: limit which combinations are
   allowed, or use a single `item-with-tags` per species and have the script
-  record the payloads in the tags. Tags don't stack and can't be made by
-  normal recipes, so the first option is simpler for version 1.
+  record the payloads in the tags. Tags don't stack, and normal recipes
+  can't make them, so the first option is simpler for version 1.
 - **Spoiling and hatching.** Use the 2.1 spoilage system (`spoil_ticks` plus a
   spoil trigger that creates the unit), the same way Space Age biter eggs
   hatch. Without Space Age, the mod turns spoilage on itself through the
@@ -348,7 +348,7 @@ transformation.
   `create-entity` trigger on impact, spawning the loaded unit at the landing
   spot.
 - **Live and death effects.** Track loaded units in `storage`. Live effects
-  run from `on_nth_tick`; death effects come from `on_entity_died`, which
+  run from `on_nth_tick`. Death effects come from `on_entity_died`, which
   spawns the matching explosion or cloud.
 - **Forces.** Loaded monsters join an allied force that is hostile to the
   natives. Going feral moves the unit to a separate feral force that is
@@ -358,23 +358,28 @@ transformation.
   positions and the feral radius.
 - **Jazz.** A `working_sound` on the interbreeding pod with a short
   `audible_distance_modifier`.
-- **Demolisher hatchlings.** Full demolishers are segmented multi-entity
-  units, so the hatchling should be a new, ordinary unit with demolisher
+- **Demolisher hatchlings.** A full demolisher is a chain of linked
+  entities, so the hatchling should be a new, ordinary unit with demolisher
   graphics.
 - **Facehugger on players.** Create a new character entity with a
   monster-skinned prototype, move the inventory over, and attach it to the
   player. Reverse it on timeout, death or cure.
 - **Extractor egg return.** A recipe result with a `probability` of x gives
   the chance of getting an egg back.
-- **Stasis ward.** A normal recipe always makes a fresh item, so packing and
-  unpacking should be scripted: read the item's spoil progress on packing,
-  store it in the ward's tags, and write it back on unpacking.
+- **Stasis ward.** A normal recipe always makes a fresh item, so the script
+  must do the packing and unpacking. On packing, it reads the item's spoil
+  progress and stores it in the ward's tags. On unpacking, it writes the
+  progress back.
 
 ## Open questions
 
-Ticked questions are answered: hybrid benefits as proposed, facehuggers on
-players as both bonus and punishment, re-taming via the pacifier facehugger,
-support for vanilla and Space Age, and the name stays.
+The ticked questions have answers:
+
+- Hybrid benefits: as proposed.
+- Facehuggers on players: both a bonus and a punishment.
+- Re-taming: through the pacifier facehugger.
+- Support: both vanilla and Space Age.
+- The name stays.
 
 - [x] ~~Final hybrid benefits: are the proposals in Crossbreeding the right
   direction?~~
@@ -385,8 +390,8 @@ support for vanilla and Space Age, and the name stays.
 - [x] ~~Mod name: "Abominable Ordnance" is a working title.~~
 - [ ] Jazz: commission or find a royalty-free track (license must allow
   redistribution in a mod).
-- [ ] Extractor egg-return chance: what value for x (20–30% as a starting
-  point)?
+- [ ] Extractor egg-return chance: what value for x (20 to 30% as a
+  starting point)?
 - [ ] PvP rules: can loaded monsters be re-tamed by the enemy player, and do
   facehuggers work on enemy players?
 - [ ] Facehugger catalyst: which item, and does it differ per planet?
