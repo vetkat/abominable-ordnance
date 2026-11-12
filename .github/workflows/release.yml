@@ -1,0 +1,77 @@
+name: release
+
+# A tag v<version> on main builds the zip and makes a GitHub release.
+# A manual run in dry-run mode builds the zip and publishes nothing.
+# Publishing to the mod portal arrives with design version 1.
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: "dry-run builds the zip and publishes nothing"
+        type: choice
+        options: [dry-run]
+        default: dry-run
+
+permissions:
+  contents: read
+
+jobs:
+  on-main:
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - name: Fail unless the tagged commit is on main
+        run: git merge-base --is-ancestor "$GITHUB_SHA" origin/main
+
+  checks:
+    uses: ./.github/workflows/check.yml
+
+  build:
+    needs: [on-main, checks]
+    if: >-
+      always() && needs.checks.result == 'success' &&
+      (needs.on-main.result == 'success' || needs.on-main.result == 'skipped')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - name: Check the version
+        run: |
+          if [ "$GITHUB_EVENT_NAME" = push ]; then
+            python3 -m tools.check_version "$GITHUB_REF_NAME"
+          else
+            python3 -m tools.check_version
+          fi
+      - run: make package
+      - run: python3 -m tools.changelog notes "${GITHUB_REF_NAME#v}" > build/notes.md
+        if: github.event_name == 'push'
+      - uses: actions/upload-artifact@v7
+        with:
+          name: mod-zip
+          path: |
+            build/*.zip
+            build/notes.md
+          if-no-files-found: error
+
+  release:
+    needs: build
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v8
+        with:
+          name: mod-zip
+          path: build
+      - name: Make the GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: >-
+          gh release create "$GITHUB_REF_NAME" build/*.zip
+          --repo "$GITHUB_REPOSITORY" --title "$GITHUB_REF_NAME"
+          --notes-file build/notes.md

@@ -30,3 +30,17 @@ def test_each_gate_job_calls_its_make_target():
 
 def test_check_can_be_called_by_the_release():
     assert "workflow_call:" in read("check.yml")
+def test_release_calls_check_and_does_not_publish_to_the_portal():
+    text = read("release.yml")
+    assert "uses: ./.github/workflows/check.yml" in text
+    assert "mods.factorio.com" not in text and "secrets." not in text
+
+
+def test_release_checks_that_the_tag_is_on_main():
+    assert "merge-base --is-ancestor" in read("release.yml")
+
+
+def test_weekly_has_links_and_factorio_version_jobs():
+    text = read("weekly.yml")
+    assert "links:" in text and "factorio-version:" in text
+    assert "schedule:" in text
