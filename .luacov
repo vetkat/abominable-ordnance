@@ -1,0 +1,8 @@
+-- luacov settings. Coverage counts core/ only, including files that no
+-- test loads.
+return {
+  statsfile = "build/luacov.stats.out",
+  reportfile = "build/luacov.report.out",
+  include = { "^%.?/?core/" },
+  includeuntestedfiles = true,
+}
