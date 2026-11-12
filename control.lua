@@ -1,0 +1,2 @@
+-- The control stage. This file is the shell: it talks to the game and
+-- calls the pure modules in core/. The mod has no features yet.
