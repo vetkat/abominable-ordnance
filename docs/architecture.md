@@ -1,4 +1,4 @@
-# Factorio 2.0 mods
+# Factorio 2.1 mods
 
 A Factorio mod has two layers. The shell talks to the game. The core
 makes decisions and never touches the game.
@@ -66,3 +66,14 @@ The control stage must give the same result on every computer, or
 multiplayer games desync. Do not use `math.random` there. Use a generator
 from `game.create_random_generator()`, and pass it into the core as a
 parameter.
+
+## Tests for these rules
+
+`spec/architecture_spec.lua` enforces two rules on every commit:
+
+- A module in `core/` never names `game`, `storage`, `script` or
+  `defines`.
+- Neither `core/` nor `control.lua` uses `math.random`.
+
+`spec/docs_spec.lua` checks that this file still names the same game API
+as the test.
