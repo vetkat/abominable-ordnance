@@ -24,7 +24,7 @@ endif
 
 MARKDOWN = $(shell git ls-files '*.md')
 
-.PHONY: setup fast check text lua tools ingame stamp package
+.PHONY: setup fast check text lua tools gates format ingame stamp package
 
 ## once, after a clone: turn on the git hook
 setup:
@@ -34,7 +34,7 @@ setup:
 fast: text lua tools
 
 ## before a PR
-check: fast ingame
+check: fast gates ingame
 
 text:
 	mdl $(MARKDOWN)
@@ -49,8 +49,12 @@ lua:
 	python3 -m tools.coverage_floor build/luacov.report.out
 
 tools:
-	python3 -m pytest
+	python3 -m pytest -m "not gates"
 	python3 -m tools.check_version
+
+## the gate tests that need LuaLS, StyLua and the API folder
+gates:
+	python3 -m pytest -m gates
 
 ## MODE=base or MODE=space-age runs one mode; empty runs both
 ingame:

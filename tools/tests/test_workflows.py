@@ -1,4 +1,4 @@
-"""Static checks on the workflows, for rules that only fail on GitHub."""
+"""Static checks on the workflows and the Makefile, for rules that only fail on GitHub."""
 import pathlib
 
 ROOT = pathlib.Path(__file__).resolve().parents[2]
@@ -6,6 +6,17 @@ ROOT = pathlib.Path(__file__).resolve().parents[2]
 
 def read(name):
     return (ROOT / ".github/workflows" / name).read_text(encoding="utf-8")
+
+
+def makefile():
+    return (ROOT / "Makefile").read_text(encoding="utf-8")
+
+
+def test_make_fast_leaves_out_the_gate_tests():
+    text = makefile()
+    assert 'python3 -m pytest -m "not gates"' in text
+    assert "python3 -m pytest -m gates" in text
+    assert "\ncheck: fast gates ingame\n" in text
 
 
 def test_check_uses_no_secrets():
