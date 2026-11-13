@@ -27,11 +27,16 @@ function Helpers.arena(surface, position)
   end
 end
 
+-- Gives the player force Monster husbandry, or takes it away.
+function Helpers.research(done)
+  game.forces["player"].technologies[Names.TECH].researched = done
+end
+
 -- A breeding pod with power from an electric energy interface. The
 -- force gets Monster husbandry, so it can use the pod's recipes.
 function Helpers.powered_pod(surface, position)
   local x, y = position[1], position[2]
-  game.forces["player"].technologies[Names.TECH].researched = true
+  Helpers.research(true)
   local pod = surface.create_entity({
     name = "ao-breeding-pod",
     position = { x, y },
@@ -56,6 +61,21 @@ function Helpers.count_units(surface, position, names)
     name = names,
     force = "enemy",
   })
+end
+
+-- The number of items of one name on the ground near a position.
+function Helpers.count_items(surface, position, name)
+  local count = 0
+  local items = surface.find_entities_filtered({
+    area = area(position, 6),
+    name = "item-on-ground",
+  })
+  for _, item in pairs(items) do
+    if item.stack.name == name then
+      count = count + item.stack.count
+    end
+  end
+  return count
 end
 
 return Helpers

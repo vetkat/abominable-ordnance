@@ -14,3 +14,5 @@ mod uses [semantic versioning](https://semver.org/spec/v2.0.0.html).
   pod, unlocked by the Monster husbandry research.
 - Eggs hatch when they spoil: every 10 eggs hatch a wild monster of
   their species, sized by enemy evolution.
+- Native biter and spitter spawners drop 1 to 3 eggs when a force with
+  Monster husbandry destroys them.

@@ -2,6 +2,8 @@
 -- pure modules in core/ and writes the result to the game.
 local Balance = require("core.balance")
 local Hatching = require("core.hatching")
+local Loot = require("core.loot")
+local Names = require("core.names")
 local Species = require("core.species")
 
 -- A deterministic random number in [0, 1). storage keeps only the seed.
@@ -31,6 +33,25 @@ script.on_event(defines.events.on_script_trigger_effect, function(event)
   end
 end)
 
+local spawner_filters = {}
+for _, species in ipairs(Species.ALL) do
+  spawner_filters[#spawner_filters + 1] = { filter = "name", name = species.spawner }
+end
+
+script.on_event(defines.events.on_entity_died, function(event)
+  local researched = event.force ~= nil and event.force.technologies[Names.TECH].researched
+  local entity = event.entity
+  local drop = Loot.drop(entity.name, researched, random())
+  if drop then
+    entity.surface.spill_item_stack({
+      position = entity.position,
+      stack = drop,
+      drop_full_stack = true,
+      enable_looted = true,
+    })
+  end
+end, spawner_filters)
+
 -- factorio-test runs the in-game tests. The hook does nothing unless the
 -- factorio-test mod is active.
 if script.active_mods["factorio-test"] then
@@ -38,5 +59,6 @@ if script.active_mods["factorio-test"] then
     "tests/ingame/smoke_test",
     "tests/ingame/content_test",
     "tests/ingame/hatching_test",
+    "tests/ingame/loot_test",
   })
 end

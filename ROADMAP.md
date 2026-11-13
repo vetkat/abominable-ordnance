@@ -13,6 +13,8 @@ date.
 
 ## 1.0.0: design version 1
 
+Slice 1 (lifecycle) ships in this release.
+
 - [ ] Breeding pod (slice 1) and incubator (slice 2) for biters and
   spitters ([design][lifecycle])
 
