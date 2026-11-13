@@ -19,6 +19,12 @@ def test_make_fast_leaves_out_the_gate_tests():
     assert "\ncheck: fast gates ingame\n" in text
 
 
+def test_lua_and_gates_depend_on_the_api_folder():
+    text = makefile()
+    assert "\nlua: $(API)/stamp\n" in text
+    assert "\ngates: $(API)/stamp\n" in text
+
+
 def test_check_uses_no_secrets():
     assert "secrets." not in read("check.yml")
 
