@@ -49,3 +49,8 @@ stay under about 10 seconds.
   then set the version by the version rules in
   `docs/superpowers/specs/2026-11-12-repo-and-ci-design.md`.
 - Never commit `docs/archive/`. It holds old chat logs.
+- Before you use a Factorio API name, look it up in
+  `.factorio-api/factorio/library/`. Give that path to the search: a
+  search from the repository root skips the folder, because git ignores
+  it.
+- Run `make format` before you stage Lua files.

@@ -22,7 +22,7 @@ Factorio 2.1. Space Age is optional.
 The tools, on Arch Linux:
 
 ```bash
-sudo pacman -S lua52 lua52-busted luacheck luarocks lychee
+sudo pacman -S lua52 lua52-busted luacheck luarocks lychee lua-language-server
 sudo pacman -S ruby nodejs npm python-pytest poppler
 gem install mdl
 luarocks --lua-version 5.2 install --local luacov
@@ -37,13 +37,35 @@ make setup
 | --- | --- | --- |
 | `make setup` | Sets `core.hooksPath` to `.githooks` | once, after a clone |
 | `make text` | mdl, the text check, lychee in offline mode | in `make fast`, CI job `text` |
-| `make lua` | luacheck, busted under Lua 5.2, the coverage floor | in `make fast`, CI job `lua` |
-| `make tools` | pytest, `check_version.py` without a tag | in `make fast`, CI job `tools` |
+| `make lua` | Builds the API folder if needed, then luacheck, StyLua, LuaLS, busted under Lua 5.2, the coverage floor | in `make fast`, CI job `lua` |
+| `make tools` | pytest without the gate tests, `check_version.py` without a tag | in `make fast`, CI job `tools` |
+| `make gates` | The gate tests that need LuaLS, StyLua and the API folder | in `make check`, CI job `lua` |
+| `make format` | Rewrites the Lua files in the repository's format | before you stage Lua |
 | `make fast` | `make text`, `make lua`, `make tools` | every commit (git hook) |
 | `make ingame` | The in-game tests in the headless server, base game only and with Space Age | CI job `ingame`, by hand |
-| `make check` | `make fast`, `make ingame` | before a PR |
+| `make check` | `make fast`, `make gates`, `make ingame` | before a PR |
 | `make stamp` | Writes the review stamp for the staged files | after the review skills |
 | `make package` | Generates `changelog.txt` and builds the zip in `build/` | release |
+
+`make lua` builds `.factorio-api/` the first time, and again after a
+change to `.factorio-version` or `package-lock.json`. That needs the
+network. The folder holds the Factorio API JSON for the pinned version
+and the type library that FMTK builds from it.
+
+For VS Code, the FMTK extension (Factorio Modding Tool Kit) gives a
+debugger and a profiler for the running game. If it offers to write
+`.luarc.json`, keep the committed file.
+
+To move to a new FMTK version:
+
+1. Change the version of `factoriomod-debug` in `package.json`.
+2. Run `npm install`, then `make lua`.
+3. Compare the `settings` object in
+   `.factorio-api/factorio/config.json` with `.luarc.json`. Copy any
+   change.
+
+After a factorio-test upgrade, compare its globals in `.luacheckrc` with
+`diagnostics.globals` in `.luarc.json` in the same way.
 
 The in-game tests use the `factorio-test` mod. Its zip is in
 `tools/vendor/`, because the mod portal needs a login to download it.

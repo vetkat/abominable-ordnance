@@ -67,6 +67,20 @@ multiplayer games desync. Do not use `math.random` there. Use a generator
 from `game.create_random_generator()`, and pass it into the core as a
 parameter.
 
+## Type annotations
+
+LuaLS checks the mod against the Factorio API, but only values whose type
+it knows. Give the shell code types:
+
+- A named event handler gets `---@param event EventData.<event name>`.
+  An inline handler needs no annotation.
+- A prototype table for `data:extend` gets `---@type <Prototype class>`,
+  for example `---@type ItemPrototype`.
+
+LuaLS does not check values from `storage`, `data.raw` lookups with keys
+that the code builds, or values of type `any`. The busted tests and the
+in-game tests check those.
+
 ## Tests for these rules
 
 `spec/architecture_spec.lua` enforces two rules on every commit:

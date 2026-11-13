@@ -147,18 +147,18 @@ The Makefile builds the API folder with a file target:
 
 ```make
 API      := .factorio-api
-FACTORIO := $(shell cat .factorio-version)
+FACTORIO := $(shell tr -d '[:space:]' < .factorio-version)
 DOCS     := https://lua-api.factorio.com/$(FACTORIO)
+FMTK     := node_modules/.bin/fmtk
 
 $(API)/stamp: .factorio-version package-lock.json
-	@test -x node_modules/.bin/fmtk || \
+	@test -x $(FMTK) || \
 	  { echo "fmtk is missing: run \`npm ci\`, then try again"; exit 1; }
 	rm -rf $(API)
-	mkdir -p $(API)
+	mkdir $(API)
 	curl -fsSL -o $(API)/runtime-api.json $(DOCS)/runtime-api.json
 	curl -fsSL -o $(API)/prototype-api.json $(DOCS)/prototype-api.json
-	npx --no-install fmtk docs -d $(API)/runtime-api.json \
-	  -p $(API)/prototype-api.json $(API)
+	$(FMTK) docs -d $(API)/runtime-api.json -p $(API)/prototype-api.json $(API)
 	echo "factorio $(FACTORIO)" > $@
 ```
 
@@ -360,8 +360,9 @@ time, and the cache restores the stamp with its old time. Without the
 step, Make would rebuild the folder on every run. The cache key holds the
 same inputs as the Make target, so a restored folder is current.
 
-After `make lua`, the job runs `pip install pytest` and `make gates`. The
-runner's `python3` runs Make's Python steps, as in the `tools` job.
+After `make lua`, the job sets up Python with `actions/setup-python`, as
+the `tools` job does, then runs `pip install pytest` and `make gates`.
+The Python of the Ubuntu runner refuses `pip install`.
 
 `actions/cache` saves the folder only when the job passes. A failed run
 on a new key downloads the JSON again on the next run. That costs a few
