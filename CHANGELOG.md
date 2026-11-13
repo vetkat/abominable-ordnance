@@ -12,3 +12,5 @@ mod uses [semantic versioning](https://semver.org/spec/v2.0.0.html).
 - In-game smoke tests that run in the headless server.
 - Biter and spitter eggs, monster chow, spitter chow and the breeding
   pod, unlocked by the Monster husbandry research.
+- Eggs hatch when they spoil: every 10 eggs hatch a wild monster of
+  their species, sized by enemy evolution.
