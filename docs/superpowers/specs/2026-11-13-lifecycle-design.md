@@ -88,7 +88,7 @@ The agent checked these facts on 2026-11-13. The sources are the Factorio
 | Hatch method | Native spoilage with a `script` trigger effect. A pure core module picks the unit. | A plain `create-entity` trigger, as Space Age uses: it cannot follow evolution. Script timers: they fight the engine and the stasis ward of slice 4. |
 | Hatch ratio | 10 eggs hatch one monster (`items_per_trigger = 10`). The probe measures how this works in the game. | One per egg: a stack of 100 eggs at high evolution would hatch 100 behemoths. 25, as Space Age: eggs would be too safe. |
 | Incubator and larvae | They move to slice 2. | Slice 1: larvae have no use yet and hatch one to one, which undoes the egg ratio. |
-| Graphics | `data.lua` passes copies of the vanilla machine graphics and sound into the builder, which tints them. The mod copies no game files. | Writing the sprite fields by hand: long, and a moved sprite in a game update breaks the mod. |
+| Graphics | `data.lua` passes the vanilla machine graphics and sound to the builder, which tints a copy. The mod copies no game files. | Writing the sprite fields by hand: long, and a moved sprite in a game update breaks the mod. |
 | Music | None in this slice. The music starts with the jazz pods of version 2. | The maintainer chose this. |
 | Prototype names | All new prototypes start with `ao-`. | |
 
@@ -201,9 +201,11 @@ The prototype builder, hatching and nest loot all read this table.
 Eggs that spoil on another planet hatch there, with the evolution of that
 surface. Space Age's `biter-egg` behaves the same way.
 
-The mod makes its random generator with `game.create_random_generator()`
-in `on_init`, and keeps it in `storage`. `on_configuration_changed` makes
-one if it is missing. So the control stage stays deterministic.
+The shell keeps a seed number in `storage`. For each random number it
+makes a generator with `game.create_random_generator(seed)`, takes one
+number, and stores the next seed from the same generator. A missing seed
+starts at 1. So the control stage stays deterministic, and `storage` holds
+only a number.
 
 ### Nest loot
 
@@ -221,6 +223,7 @@ one if it is missing. So the control stage stays deterministic.
 
 | Module | Job |
 | --- | --- |
+| `core/names.lua` | Prototype names that several modules use. |
 | `core/balance.lua` | Every number in this slice, including the hatch ratio, the loot range and the research cost. |
 | `core/species.lua` | The species table. |
 | `core/hatching.lua` | Picks a unit from a species, an evolution factor and a random number. |
@@ -229,8 +232,8 @@ one if it is missing. So the control stage stays deterministic.
 
 ### Data stage
 
-`data.lua` stays a short shell. It copies the source machine's graphics
-and working sound, and passes them in:
+`data.lua` stays a short shell. It passes the source machine's graphics
+and working sound to the builder, which tints a copy:
 
 ```lua
 local Lifecycle = require("core.prototypes.lifecycle")
@@ -238,8 +241,8 @@ local source = mods["space-age"] and data.raw["assembling-machine"]["biochamber"
   or data.raw["assembling-machine"]["chemical-plant"]
 data:extend(Lifecycle.prototypes({
   space_age = mods["space-age"] ~= nil,
-  graphics_set = table.deepcopy(source.graphics_set),
-  working_sound = table.deepcopy(source.working_sound),
+  graphics_set = source.graphics_set,
+  working_sound = source.working_sound,
 }))
 ```
 
