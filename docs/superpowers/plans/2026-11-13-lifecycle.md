@@ -43,7 +43,14 @@ Make.
 - Recipes in Factorio 2.1 use `categories = { ... }` (a list), not
   `category`.
 - `make fast` must pass before every commit. `make check` must pass
-  before every PR.
+  before every PR. `make lua` also runs StyLua and the LuaLS type check.
+- Before you use a Factorio API name, look it up in
+  `.factorio-api/factorio/library/`. Pass that path to the search,
+  because git ignores the folder.
+- Annotate a named event handler with
+  `---@param event EventData.<event name>`, and a prototype table with
+  `---@type <Prototype class>`, for example `---@type ItemPrototype`.
+  Inline handlers need nothing.
 
 **Commit routine.** CLAUDE.md sets this order. Run each command as a Bash
 call of its own:
@@ -52,7 +59,9 @@ call of its own:
    comments.
 2. Run `/simplify` on changed code, with the reviewer count that the task
    names.
-3. `git add <the files>`, then `make stamp`, then
+3. Run `make format`. StyLua can need two passes: if `make fast` still
+   flags a file, run `make format` again.
+4. `git add <the files>`, then `make stamp`, then
    `git commit -m "<message>"`. Never use `git commit -a`, and never put
    paths after `git commit`. End the message with
    `Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>`.
