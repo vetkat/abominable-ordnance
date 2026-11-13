@@ -45,6 +45,19 @@ def test_each_gate_job_calls_its_make_target():
         assert target in text
 
 
+def test_lua_job_installs_luals_and_runs_the_gate_tests():
+    text = read("check.yml")
+    lua_job = text[text.index("\n  lua:\n"):text.index("\n  tools:\n")]
+    assert "lua-language-server-3.19.2-linux-x64.tar.gz" in lua_job
+    assert "sha256sum -c" in lua_job
+    assert "path: .factorio-api" in lua_job
+    assert "touch .factorio-api/stamp" in lua_job
+    assert "run: npm ci" in lua_job
+    # Ubuntu's own Python refuses pip install, so the job sets up Python.
+    assert "uses: actions/setup-python@v7" in lua_job
+    assert "make gates" in lua_job
+
+
 def test_check_can_be_called_by_the_release():
     assert "workflow_call:" in read("check.yml")
 def test_release_calls_check_and_does_not_publish_to_the_portal():

@@ -51,7 +51,38 @@ jobs:
           luaVersion: "5.2"
       - uses: leafo/gh-actions-luarocks@v6
       - run: luarocks install busted && luarocks install luacheck && luarocks install luacov
+      # FMTK builds the type library, and StyLua checks the format.
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Install lua-language-server
+        run: |
+          mkdir -p "$HOME/.local/luals"
+          curl -fsSL -o luals.tar.gz https://github.com/LuaLS/lua-language-server/releases/download/3.19.2/lua-language-server-3.19.2-linux-x64.tar.gz
+          echo "93ad326b10f6c00911dd8c450fa098332dbd8f9f45d1052f5636a2d54479b947  luals.tar.gz" | sha256sum -c
+          tar -xzf luals.tar.gz -C "$HOME/.local/luals"
+          rm luals.tar.gz
+          echo "$HOME/.local/luals/bin" >> "$GITHUB_PATH"
+      - id: factorio
+        run: echo "version=$(cat .factorio-version)" >> "$GITHUB_OUTPUT"
+      - id: api
+        uses: actions/cache@v6
+        with:
+          path: .factorio-api
+          key: factorio-api-${{ steps.factorio.outputs.version }}-${{ hashFiles('package-lock.json') }}
+      # The checkout gives each file the current time, and the cache keeps
+      # the stamp's old time. Without this step, Make rebuilds the folder.
+      - name: Mark the restored API folder as current
+        if: steps.api.outputs.cache-hit == 'true'
+        run: touch .factorio-api/stamp
       - run: make lua
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+      - run: pip install pytest
+      - run: make gates
 
   tools:
     runs-on: ubuntu-latest
