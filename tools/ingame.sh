@@ -45,5 +45,9 @@ run() {
 
 for mode in $modes; do
   echo "ingame: $mode"
-  if [ "$mode" = space-age ]; then run --mods space-age; else run; fi
+  if [ "$mode" = space-age ]; then
+    run --mods space-age --tag-blacklist base
+  else
+    run --tag-blacklist space-age
+  fi
 done

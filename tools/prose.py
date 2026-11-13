@@ -10,7 +10,8 @@ import re
 
 FENCE = re.compile(r"^\s*(`{3,}|~{3,})")
 CODE_SPAN = re.compile(r"`[^`]*`")
-LINK_TARGET = re.compile(r"\]\([^)]*\)")
+# A link target, inline (](url)) or by reference (][label]).
+LINK_TARGET = re.compile(r"\]\([^)]*\)|\]\[[^\]]*\]")
 URL = re.compile(r"<https?://[^>]*>|https?://\S+")
 LONG_BRACKET = re.compile(r"\[(=*)\[")
 PLACEHOLDER = re.compile(r"__\w+__|\[[^\]]*\]")

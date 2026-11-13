@@ -50,3 +50,9 @@ def test_push_runs_check_on_main_only():
     # A push run on a PR branch would report a second all-checks that
     # skips the pr job, and could hide a failing PR check.
     assert 'push:\n    branches: [main]\n' in read("check.yml")
+
+
+def test_check_cancels_superseded_pr_runs_only():
+    text = read("check.yml")
+    assert "concurrency:" in text
+    assert "cancel-in-progress: ${{ github.event_name == 'pull_request' }}" in text
