@@ -56,6 +56,11 @@ The agent checked these facts in the Space Age 2.1.24 data files on
 - `biter-egg` spoils in 30 minutes. Its `spoil_to_trigger_result` creates
   one `big-biter` per 25 eggs (`items_per_trigger = 25`), on the enemy
   force, at a free position. It does nothing over space.
+- `pentapod-egg` spoils in 15 minutes. It creates one
+  `big-wriggler-pentapod-premature` per egg (`items_per_trigger = 1`).
+- The Factorio wiki agrees on the spoil times and on what hatches. It
+  gives no ratio for either egg, and its biter egg page reads like one
+  biter per egg. The probe in Delivery checks the ratios in the game.
 - The base game has no biochamber, no nutrients and no `biter-egg`.
 
 ## Decisions
@@ -69,7 +74,7 @@ The agent checked these facts in the Space Age 2.1.24 data files on
 | Feed | Two crafted feeds: monster chow and spitter chow. |
 | Hatch size | The script picks the unit from the enemy evolution on the surface, with the weights of the vanilla spawner. |
 | Hatch method | Native spoilage with a `script` trigger effect. A pure core module picks the unit. |
-| Hatch ratio | 10 eggs hatch one monster. One larva hatches one monster. A chest of eggs stays dangerous, but egg buffers and loot left on a battlefield do not flood a base. Space Age's `biter-egg` uses 25. |
+| Hatch ratio | 10 eggs hatch one monster. One larva hatches one monster. A chest of eggs stays dangerous, but egg buffers and loot left on a battlefield do not flood a base. Space Age's `biter-egg` uses 25. The probe confirms how the ratio works in the game. |
 | Graphics | Tinted vanilla and Space Age sprites, referenced by path. The mod copies no game files. |
 | Jazz | A CC BY or CC0 track that the maintainer picks. A vanilla machine sound is the placeholder until then. |
 | Prototype names | All new prototypes start with `ao-`. |
@@ -252,7 +257,11 @@ update.
 
 The probe also finds the call that forces a spoil in a test. It
 also records what happens when fewer than 10 eggs spoil, for example the
-1 to 3 eggs of nest loot: one hatch or none. The spec records the result.
+1 to 3 eggs of nest loot: one hatch or none. In the Space Age run, it
+spoils 25 `biter-egg` items and 1 `pentapod-egg` in a chest, and counts
+what hatches. The spec records the results. The game may not give one
+hatch per `items_per_trigger` items. Then the maintainer sets the egg
+balance again before PR 2.
 
 The slice ships in four PRs. Each PR title is a Conventional Commit, and
 each PR adds an entry under Unreleased in `CHANGELOG.md`:
