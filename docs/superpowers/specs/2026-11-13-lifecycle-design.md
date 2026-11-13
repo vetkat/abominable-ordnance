@@ -69,7 +69,7 @@ The agent checked these facts in the Space Age 2.1.24 data files on
 | Feed | Two crafted feeds: monster chow and spitter chow. |
 | Hatch size | The script picks the unit from the enemy evolution on the surface, with the weights of the vanilla spawner. |
 | Hatch method | Native spoilage with a `script` trigger effect. A pure core module picks the unit. |
-| Hatch ratio | One item hatches one monster. `items_per_trigger` is the lever if this is too harsh. |
+| Hatch ratio | 10 eggs hatch one monster. One larva hatches one monster. A chest of eggs stays dangerous, but egg buffers and loot left on a battlefield do not flood a base. Space Age's `biter-egg` uses 25. |
 | Graphics | Tinted vanilla and Space Age sprites, referenced by path. The mod copies no game files. |
 | Jazz | A CC BY or CC0 track that the maintainer picks. A vanilla machine sound is the placeholder until then. |
 | Prototype names | All new prototypes start with `ao-`. |
@@ -83,8 +83,8 @@ Every number in this section is a first guess. All numbers live in
 
 | Item | Stack | Spoils in | When it spoils |
 | --- | --- | --- | --- |
-| `ao-biter-egg` | 100 | 30 min | Hatches a wild biter |
-| `ao-spitter-egg` | 100 | 30 min | Hatches a wild spitter |
+| `ao-biter-egg` | 100 | 30 min | Every 10 eggs hatch a wild biter |
+| `ao-spitter-egg` | 100 | 30 min | Every 10 eggs hatch a wild spitter |
 | `ao-biter-larva` | 50 | 10 min | Hatches a wild biter |
 | `ao-spitter-larva` | 50 | 10 min | Hatches a wild spitter |
 | `ao-monster-chow` | 100 | Does not spoil | Nothing |
@@ -139,8 +139,9 @@ turns on egg loot from native spawners for the force that researches it.
 
 ### Hatching
 
-1. Each egg and larva has a `spoil_to_trigger_result` with
-   `items_per_trigger = 1`. The trigger runs a `script` trigger effect.
+1. Each egg and larva has a `spoil_to_trigger_result`. Eggs have
+   `items_per_trigger = 10` and larvae have `items_per_trigger = 1`. The
+   trigger runs a `script` trigger effect.
    The effect ID names the species, for example `ao-hatch-biter`.
 2. The shell handles `on_script_trigger_effect`. It reads the surface and
    the position from the event. It reads the evolution of the `enemy`
@@ -245,9 +246,13 @@ eggs from Gleba nests" and gets that correction in version 2.
 
 The plan starts with the largest risk. Its first task is a throwaway
 in-game probe. It checks that a `script` trigger from spoilage inside a
-chest gives a usable surface and position. It also finds the call that
-forces a spoil in a test. If it does not, the shell uses the position of the
-inventory's owner entity, and this spec gets an update.
+chest gives a usable surface and position. If it does not, the shell
+uses the position of the inventory's owner entity, and this spec gets an
+update.
+
+The probe also finds the call that forces a spoil in a test. It
+also records what happens when fewer than 10 eggs spoil, for example the
+1 to 3 eggs of nest loot: one hatch or none. The spec records the result.
 
 The slice ships in four PRs. Each PR title is a Conventional Commit, and
 each PR adds an entry under Unreleased in `CHANGELOG.md`:
@@ -273,7 +278,7 @@ stays open until slice 2 adds loaded larvae. This slice does its egg half.
 | Risk | Answer |
 | --- | --- |
 | A `script` trigger from spoilage in an inventory gives no usable position. | The first plan task tests it. The fallback is the owner entity's position. |
-| One-to-one hatching swarms a base when a chest of eggs spoils. | This is the intended risk. `items_per_trigger` in `core/balance.lua` can soften it. |
+| A chest of eggs that spoils late in the game hatches 10 behemoths. | This is the intended risk. The ratio lives in `core/balance.lua`. |
 | Spawner loot clutters the front for artillery players. | Loot needs the research. Eggs that are left behind hatch, which removes them. |
 | The biochamber graphics change in a later Space Age version. | The builder references them by path. The in-game test in the Space Age run fails when a path is gone. |
 
