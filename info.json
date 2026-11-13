@@ -5,5 +5,6 @@
   "author": "vetkat",
   "factorio_version": "2.1",
   "description": "Breed monsters, load them with ordnance and fire them at your enemies.",
-  "dependencies": ["base >= 2.1", "? space-age"]
+  "dependencies": ["base >= 2.1", "? space-age"],
+  "spoiling_required": true
 }

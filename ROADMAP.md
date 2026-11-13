@@ -13,8 +13,9 @@ date.
 
 ## 1.0.0: design version 1
 
-- [ ] Breeding pod and incubator for biters and spitters
-  ([design][lifecycle])
+- [ ] Breeding pod (slice 1) and incubator (slice 2) for biters and
+  spitters ([design][lifecycle])
+
 - [ ] Loading chamber with three payloads: explosive rocket, sulfuric acid,
   poison capsule ([design][ordnance-loading])
 - [ ] Generated item and entity prototypes for each species and payload

@@ -4,6 +4,15 @@
 
 local L = require("spec.support.locale")
 
+local Lifecycle = require("core.prototypes.lifecycle")
+
+local SECTION = {
+  item = "item-name",
+  recipe = "recipe-name",
+  technology = "technology-name",
+  ["assembling-machine"] = "entity-name",
+}
+
 local function read(path)
   local f = assert(io.open(path, "r"), "cannot open " .. path)
   local s = f:read("*a")
@@ -36,6 +45,16 @@ end)
 
 describe("locale/en/locale.cfg", function()
   local text = read("locale/en/locale.cfg")
+
+  it("names every prototype of slice 1", function()
+    local opts = { space_age = true, graphics_set = {}, working_sound = {} }
+    for _, p in ipairs(Lifecycle.prototypes(opts)) do
+      local section = SECTION[p.type]
+      if section then
+        assert.truthy(L.value(text, section, p.name), section .. "." .. p.name)
+      end
+    end
+  end)
 
   it("has no problems", function()
     assert.are.same({}, L.problems("locale/en/locale.cfg", text))

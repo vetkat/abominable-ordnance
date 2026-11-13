@@ -6,6 +6,7 @@
 # (Breeding pod, heating towers, Packing). Renaming them would change the
 # design.
 ing-form | docs/design.md | | names of game parts and actions in the design
+ing-form | locale/en/locale.cfg | breeding | the name of the breeding pod
 ing-form | docs/superpowers/specs/*-lifecycle-design.md | | names of game parts and research (Breeding pod, Sulfur processing)
 
 # The review reports record what reviewers said and quote the old spec,

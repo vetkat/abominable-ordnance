@@ -37,4 +37,5 @@ local ingame = {
   "tags",
 }
 for _, name in ipairs(factorio) do ingame[#ingame + 1] = name end
-files["tests/ingame"] = { read_globals = ingame }
+-- A test may change game state, for example a research.
+files["tests/ingame"] = { read_globals = ingame, globals = { "game" } }
