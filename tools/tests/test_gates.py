@@ -3,8 +3,12 @@
 These tests run the real tools with this repository's settings. A test
 skips when its tool is not installed, so CI's tools job skips most of
 them. CI runs the gates themselves in the text and lua jobs.
+
+The tests with the marker gates do not skip. make gates runs them after
+it builds the API folder, and CI's lua job runs make gates.
 """
 import pathlib
+import re
 import shutil
 import subprocess
 
@@ -76,3 +80,37 @@ def test_missing_cspell_says_what_to_do(tmp_path):
     assert text_check.missing_tools(tmp_path) == [
         "cspell is missing: run `npm ci`, then try again"]
     assert text_check.missing_tools(ROOT) == [] or not CSPELL.exists()
+
+
+STYLUA = ROOT / "node_modules/.bin/stylua"
+FOUR_SPACES = "if ready then\n    return 1\nend\n"
+TWO_SPACES = "if ready then\n  return 1\nend\n"
+
+
+def stylua_check(tmp_path, source):
+    assert STYLUA.exists(), "StyLua is missing: run `npm ci`, then try again"
+    path = tmp_path / "sample.lua"
+    path.write_text(source, encoding="utf-8")
+    return run([str(STYLUA), "--config-path", str(ROOT / "stylua.toml"),
+                "--check", str(path)])
+
+
+@pytest.mark.gates
+def test_stylua_fails_on_four_space_indents(tmp_path):
+    assert stylua_check(tmp_path, FOUR_SPACES).returncode != 0
+
+
+@pytest.mark.gates
+def test_stylua_passes_two_space_indents(tmp_path):
+    # StyLua's default indent is a tab. This passes only when StyLua reads
+    # the repository's stylua.toml.
+    result = stylua_check(tmp_path, TWO_SPACES)
+    assert result.returncode == 0, result.stdout + result.stderr
+
+
+def test_styluaignore_lists_every_luacheck_exclusion():
+    luacheck = (ROOT / ".luacheckrc").read_text(encoding="utf-8")
+    block = re.search(r"exclude_files = \{(.*?)\}", luacheck, re.S).group(1)
+    excluded = {p[:-2] for p in re.findall(r'"([^"]+)"', block)}
+    ignored = set((ROOT / ".styluaignore").read_text(encoding="utf-8").split())
+    assert excluded == ignored

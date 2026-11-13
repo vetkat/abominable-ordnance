@@ -27,7 +27,9 @@ function M.code_only(src)
     elseif c == '"' or c == "'" then
       local j = i + 1
       while j <= n and src:sub(j, j) ~= c do
-        if src:sub(j, j) == "\\" then j = j + 1 end
+        if src:sub(j, j) == "\\" then
+          j = j + 1
+        end
         j = j + 1
       end
       out[#out + 1] = " "
@@ -52,8 +54,10 @@ function M.core_problems(path, src)
   local code, problems = M.code_only(src), {}
   for _, name in ipairs(M.GAME_API) do
     if names(code, name) then
-      problems[#problems + 1] = path .. " names " .. name ..
-        ", but a core module never touches the game"
+      problems[#problems + 1] = path
+        .. " names "
+        .. name
+        .. ", but a core module never touches the game"
     end
   end
   return problems
@@ -69,12 +73,16 @@ end
 -- Lists the .lua files under dir, sorted. A missing dir gives {}.
 function M.lua_files(dir)
   local files = {}
-  if lfs.attributes(dir, "mode") ~= "directory" then return files end
+  if lfs.attributes(dir, "mode") ~= "directory" then
+    return files
+  end
   for name in lfs.dir(dir) do
     local path = dir .. "/" .. name
     if name:sub(1, 1) ~= "." then
       if lfs.attributes(path, "mode") == "directory" then
-        for _, f in ipairs(M.lua_files(path)) do files[#files + 1] = f end
+        for _, f in ipairs(M.lua_files(path)) do
+          files[#files + 1] = f
+        end
       elseif name:match("%.lua$") then
         files[#files + 1] = path
       end

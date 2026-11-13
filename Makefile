@@ -13,6 +13,9 @@ else
   RUN_BUSTED := $(BUSTED)
 endif
 
+# StyLua comes from npm, so the maintainer and CI use the same version.
+STYLUA := node_modules/.bin/stylua
+
 # Lua modules that luarocks installed for this user, such as luacov. The
 # _5_2 names reach Lua 5.2 only. Arch's luacheck runs on Lua 5.4 and must
 # not load 5.2 modules.
@@ -44,9 +47,14 @@ text:
 lua:
 	mkdir -p build
 	luacheck .
+	$(STYLUA) --check .
 	$(RUN_BUSTED) --coverage
 	luacov
 	python3 -m tools.coverage_floor build/luacov.report.out
+
+## rewrites the Lua files in the repository's format
+format:
+	$(STYLUA) .
 
 tools:
 	python3 -m pytest -m "not gates"
