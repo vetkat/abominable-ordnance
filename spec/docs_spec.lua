@@ -17,7 +17,9 @@ local function rule_names(text)
   for paragraph in (text .. "\n\n"):gmatch("(.-)\n%s*\n") do
     if paragraph:find("never names", 1, true) then
       local names = {}
-      for name in paragraph:gmatch("`([%w_]+)`") do names[#names + 1] = name end
+      for name in paragraph:gmatch("`([%w_]+)`") do
+        names[#names + 1] = name
+      end
       return names
     end
   end
@@ -31,7 +33,9 @@ describe("docs/architecture.md", function()
     local names = rule_names(text)
     table.sort(names)
     local expected = {}
-    for _, name in ipairs(A.GAME_API) do expected[#expected + 1] = name end
+    for _, name in ipairs(A.GAME_API) do
+      expected[#expected + 1] = name
+    end
     table.sort(expected)
     assert.are.same(expected, names)
   end)

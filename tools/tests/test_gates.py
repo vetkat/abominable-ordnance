@@ -3,8 +3,13 @@
 These tests run the real tools with this repository's settings. A test
 skips when its tool is not installed, so CI's tools job skips most of
 them. CI runs the gates themselves in the text and lua jobs.
+
+The tests with the marker gates do not skip. make gates runs them after
+it builds the API folder, and CI's lua job runs make gates.
 """
+import json
 import pathlib
+import re
 import shutil
 import subprocess
 
@@ -76,3 +81,70 @@ def test_missing_cspell_says_what_to_do(tmp_path):
     assert text_check.missing_tools(tmp_path) == [
         "cspell is missing: run `npm ci`, then try again"]
     assert text_check.missing_tools(ROOT) == [] or not CSPELL.exists()
+
+
+STYLUA = ROOT / "node_modules/.bin/stylua"
+FOUR_SPACES = "if ready then\n    return 1\nend\n"
+TWO_SPACES = "if ready then\n  return 1\nend\n"
+
+
+def stylua_check(tmp_path, source):
+    assert STYLUA.exists(), "StyLua is missing: run `npm ci`, then try again"
+    path = tmp_path / "sample.lua"
+    path.write_text(source, encoding="utf-8")
+    return run([str(STYLUA), "--config-path", str(ROOT / "stylua.toml"),
+                "--check", str(path)])
+
+
+@pytest.mark.gates
+def test_stylua_fails_on_four_space_indents(tmp_path):
+    assert stylua_check(tmp_path, FOUR_SPACES).returncode != 0
+
+
+@pytest.mark.gates
+def test_stylua_passes_two_space_indents(tmp_path):
+    # StyLua's default indent is a tab. This passes only when StyLua reads
+    # the repository's stylua.toml.
+    result = stylua_check(tmp_path, TWO_SPACES)
+    assert result.returncode == 0, result.stdout + result.stderr
+
+
+LIBRARY = ROOT / ".factorio-api/factorio"
+
+
+def luals_check(tmp_path, source):
+    luals = shutil.which("lua-language-server")
+    assert luals, "lua-language-server is missing: see README.md"
+    assert LIBRARY.exists(), "the API folder is missing: run make gates"
+    work = tmp_path / "work"
+    work.mkdir()
+    config = json.loads((ROOT / ".luarc.json").read_text(encoding="utf-8"))
+    config["runtime.plugin"] = str(LIBRARY / "plugin.lua")
+    config["workspace.library"] = [str(LIBRARY / "library")]
+    (work / ".luarc.json").write_text(json.dumps(config), encoding="utf-8")
+    (work / "control.lua").write_text(source, encoding="utf-8")
+    return run([luals, "--check", ".", "--checklevel=Warning",
+                "--logpath", str(tmp_path / "log")], cwd=work)
+
+
+@pytest.mark.gates
+def test_luals_fails_on_an_unknown_event(tmp_path):
+    result = luals_check(
+        tmp_path, "script.on_event(defines.events.on_entity_dyed, function() end)\n")
+    assert result.returncode == 1
+    assert "undefined-field" in result.stdout + result.stderr
+
+
+@pytest.mark.gates
+def test_luals_passes_a_known_event(tmp_path):
+    result = luals_check(
+        tmp_path, "script.on_event(defines.events.on_entity_died, function() end)\n")
+    assert result.returncode == 0, result.stdout + result.stderr
+
+
+def test_styluaignore_lists_every_luacheck_exclusion():
+    luacheck = (ROOT / ".luacheckrc").read_text(encoding="utf-8")
+    block = re.search(r"exclude_files = \{(.*?)\}", luacheck, re.S).group(1)
+    excluded = {p[:-2] for p in re.findall(r'"([^"]+)"', block)}
+    ignored = set((ROOT / ".styluaignore").read_text(encoding="utf-8").split())
+    assert excluded == ignored

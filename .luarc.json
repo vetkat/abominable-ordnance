@@ -1,0 +1,20 @@
+{
+  "runtime.version": "Lua 5.2",
+  "runtime.path": ["?.lua"],
+  "runtime.builtin": { "io": "disable", "os": "disable", "coroutine": "disable" },
+  "runtime.plugin": ".factorio-api/factorio/plugin.lua",
+  "workspace.library": [".factorio-api/factorio/library"],
+  "workspace.ignoreDir": [
+    ".factorio-api", "spec", "tools", "build", "node_modules", "docs",
+    ".lua", ".luarocks", ".install"
+  ],
+  "workspace.checkThirdParty": false,
+  "diagnostics.globals": [
+    "__DebugAdapter", "__Profiler",
+    "test", "describe", "it", "before_each", "after_each", "before_all",
+    "after_all", "async", "done", "after_ticks", "on_tick",
+    "ticks_between_tests", "tags"
+  ],
+  "diagnostics.disable": ["lowercase-global"],
+  "language.fixIndent": false
+}

@@ -30,8 +30,11 @@ describe("the architecture checks", function()
 
   it("find Lua files in a folder", function()
     local files = A.lua_files("spec/fixtures")
-    assert.are.same({ "spec/fixtures/bad_core_api.lua",
-      "spec/fixtures/bad_random.lua", "spec/fixtures/good_core.lua" }, files)
+    assert.are.same({
+      "spec/fixtures/bad_core_api.lua",
+      "spec/fixtures/bad_random.lua",
+      "spec/fixtures/good_core.lua",
+    }, files)
   end)
 
   it("return an empty list for a missing folder", function()
@@ -48,7 +51,9 @@ describe("the repository", function()
 
   it("never uses math.random in core/ or control.lua", function()
     local paths = A.lua_files("core")
-    if io.open("control.lua") then paths[#paths + 1] = "control.lua" end
+    if io.open("control.lua") then
+      paths[#paths + 1] = "control.lua"
+    end
     for _, path in ipairs(paths) do
       assert.are.same({}, check(A.random_problems, path))
     end

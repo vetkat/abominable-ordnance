@@ -4,3 +4,5 @@
 testpaths = ["tools/tests"]
 pythonpath = ["."]
 addopts = "-q"
+# make gates runs these. They need LuaLS, StyLua and the API folder.
+markers = ["gates: needs LuaLS, StyLua or the API folder; run by make gates"]

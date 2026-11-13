@@ -1,0 +1,8 @@
+spec/fixtures/
+node_modules/
+build/
+docs/archive/
+.lua/
+.luarocks/
+.install/
+.factorio-api/

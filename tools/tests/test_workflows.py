@@ -1,4 +1,4 @@
-"""Static checks on the workflows, for rules that only fail on GitHub."""
+"""Static checks on the workflows and the Makefile, for rules that only fail on GitHub."""
 import pathlib
 
 ROOT = pathlib.Path(__file__).resolve().parents[2]
@@ -6,6 +6,23 @@ ROOT = pathlib.Path(__file__).resolve().parents[2]
 
 def read(name):
     return (ROOT / ".github/workflows" / name).read_text(encoding="utf-8")
+
+
+def makefile():
+    return (ROOT / "Makefile").read_text(encoding="utf-8")
+
+
+def test_make_fast_leaves_out_the_gate_tests():
+    text = makefile()
+    assert 'python3 -m pytest -m "not gates"' in text
+    assert "python3 -m pytest -m gates" in text
+    assert "\ncheck: fast gates ingame\n" in text
+
+
+def test_lua_and_gates_depend_on_the_api_folder():
+    text = makefile()
+    assert "\nlua: $(API)/stamp\n" in text
+    assert "\ngates: $(API)/stamp\n" in text
 
 
 def test_check_uses_no_secrets():
@@ -26,6 +43,19 @@ def test_each_gate_job_calls_its_make_target():
     text = read("check.yml")
     for target in ["make text", "make lua", "make tools", "make ingame"]:
         assert target in text
+
+
+def test_lua_job_installs_luals_and_runs_the_gate_tests():
+    text = read("check.yml")
+    lua_job = text[text.index("\n  lua:\n"):text.index("\n  tools:\n")]
+    assert "lua-language-server-3.19.2-linux-x64.tar.gz" in lua_job
+    assert "sha256sum -c" in lua_job
+    assert "path: .factorio-api" in lua_job
+    assert "touch .factorio-api/stamp" in lua_job
+    assert "run: npm ci" in lua_job
+    # Ubuntu's own Python refuses pip install, so the job sets up Python.
+    assert "uses: actions/setup-python@v7" in lua_job
+    assert "make gates" in lua_job
 
 
 def test_check_can_be_called_by_the_release():

@@ -41,7 +41,9 @@ function M.value(text, wanted_section, wanted_key)
       section = name
     elseif section == wanted_section then
       local key, value = line:match("^([^=]+)=(.*)$")
-      if key == wanted_key then return value end
+      if key == wanted_key then
+        return value
+      end
     end
   end
   return nil

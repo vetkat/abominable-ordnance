@@ -1,10 +1,11 @@
 std = "lua52"
 max_line_length = 100
 -- .lua, .luarocks and .install hold the Lua that CI installs in the
--- workspace. docs/archive holds old chat logs.
+-- workspace. docs/archive holds old chat logs. .factorio-api holds the
+-- generated Factorio type library.
 exclude_files = {
   "spec/fixtures/**", "node_modules/**", "build/**", "docs/archive/**",
-  ".lua/**", ".luarocks/**", ".install/**",
+  ".lua/**", ".luarocks/**", ".install/**", ".factorio-api/**",
 }
 
 -- Factorio's Lua environment. The game provides these, not Lua.

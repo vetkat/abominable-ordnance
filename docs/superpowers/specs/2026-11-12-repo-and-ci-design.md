@@ -146,6 +146,10 @@ developer's machine and in CI.
 | `make stamp` | Writes the review stamp for the staged files | after the review skills |
 | `make package` | Generates `changelog.txt` and builds `build/abominable-ordnance_<version>.zip` | release |
 
+The [Lua tooling spec](2026-11-13-lua-tooling-design.md) adds
+`make gates`, `make format`, the API folder, StyLua and LuaLS to these
+targets.
+
 The PR checks (`pr_checks.py`) need a PR title and a list of changed files,
 so they run only in CI, outside Make.
 

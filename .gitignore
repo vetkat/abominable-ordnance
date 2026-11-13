@@ -3,6 +3,8 @@ docs/archive/
 # Build output: the zip, coverage data and the in-game test data
 build/
 changelog.txt
+# The Factorio API and the LuaLS type library (make .factorio-api/stamp)
+.factorio-api/
 node_modules/
 __pycache__/
 .pytest_cache/
