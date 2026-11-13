@@ -7,6 +7,7 @@ them. CI runs the gates themselves in the text and lua jobs.
 The tests with the marker gates do not skip. make gates runs them after
 it builds the API folder, and CI's lua job runs make gates.
 """
+import json
 import pathlib
 import re
 import shutil
@@ -105,6 +106,39 @@ def test_stylua_passes_two_space_indents(tmp_path):
     # StyLua's default indent is a tab. This passes only when StyLua reads
     # the repository's stylua.toml.
     result = stylua_check(tmp_path, TWO_SPACES)
+    assert result.returncode == 0, result.stdout + result.stderr
+
+
+LIBRARY = ROOT / ".factorio-api/factorio"
+
+
+def luals_check(tmp_path, source):
+    luals = shutil.which("lua-language-server")
+    assert luals, "lua-language-server is missing: see README.md"
+    assert LIBRARY.exists(), "the API folder is missing: run make gates"
+    work = tmp_path / "work"
+    work.mkdir()
+    config = json.loads((ROOT / ".luarc.json").read_text(encoding="utf-8"))
+    config["runtime.plugin"] = str(LIBRARY / "plugin.lua")
+    config["workspace.library"] = [str(LIBRARY / "library")]
+    (work / ".luarc.json").write_text(json.dumps(config), encoding="utf-8")
+    (work / "control.lua").write_text(source, encoding="utf-8")
+    return run([luals, "--check", ".", "--checklevel=Warning",
+                "--logpath", str(tmp_path / "log")], cwd=work)
+
+
+@pytest.mark.gates
+def test_luals_fails_on_an_unknown_event(tmp_path):
+    result = luals_check(
+        tmp_path, "script.on_event(defines.events.on_entity_dyed, function() end)\n")
+    assert result.returncode == 1
+    assert "undefined-field" in result.stdout + result.stderr
+
+
+@pytest.mark.gates
+def test_luals_passes_a_known_event(tmp_path):
+    result = luals_check(
+        tmp_path, "script.on_event(defines.events.on_entity_died, function() end)\n")
     assert result.returncode == 0, result.stdout + result.stderr
 
 

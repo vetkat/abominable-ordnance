@@ -70,6 +70,7 @@ lua: $(API)/stamp
 	mkdir -p build
 	luacheck .
 	$(STYLUA) --check .
+	lua-language-server --check . --checklevel=Warning --logpath build/luals
 	$(RUN_BUSTED) --coverage
 	luacov
 	python3 -m tools.coverage_floor build/luacov.report.out
