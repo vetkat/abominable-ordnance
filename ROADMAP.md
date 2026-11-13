@@ -13,8 +13,8 @@ date.
 
 ## 1.0.0: design version 1
 
-- [ ] Breeding pod with the smooth jazz sound, and incubator, for biters and
-  spitters ([design][lifecycle])
+- [ ] Breeding pod and incubator for biters and spitters
+  ([design][lifecycle])
 - [ ] Loading chamber with three payloads: explosive rocket, sulfuric acid,
   poison capsule ([design][ordnance-loading])
 - [ ] Generated item and entity prototypes for each species and payload
@@ -40,8 +40,8 @@ date.
 - [ ] The remaining payloads: grenades, slowdown, flamethrower, tesla, atomic
   bomb ([design][ordnance-loading])
 - [ ] Artillery shells for loaded larvae ([design][logistics-and-delivery])
-- [ ] Extractor, embryos, jazz pods and the first hybrids
-  ([design][crossbreeding])
+- [ ] Extractor, embryos, jazz pods with the smooth jazz, and the first
+  hybrids ([design][crossbreeding])
 - [ ] Facehuggers on enemies, and the pacifier facehugger
   ([design][facehuggers])
 

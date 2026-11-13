@@ -70,13 +70,13 @@ The agent checked these facts in the Space Age 2.1.24 data files on
 | Egg items | The mod has its own `ao-biter-egg` and `ao-spitter-egg` in both modes. |
 | Captive spawner | It is not changed. In Space Age, an adopt recipe turns one `biter-egg` into one `ao-biter-egg`. This keeps the balance of promethium science. |
 | First eggs | Native spawners drop eggs when they die, after the killer's force researches Monster husbandry. |
-| Breeding machine | The mod's own breeding pod in both modes. In Space Age it borrows the biochamber graphics. The biochamber cannot run the breeding recipes, so all breeding plays the jazz. |
+| Breeding machine | The mod's own breeding pod in both modes. In Space Age it borrows the biochamber graphics. The biochamber cannot run the breeding recipes. |
 | Feed | Two crafted feeds: monster chow and spitter chow. |
 | Hatch size | The script picks the unit from the enemy evolution on the surface, with the weights of the vanilla spawner. |
 | Hatch method | Native spoilage with a `script` trigger effect. A pure core module picks the unit. |
 | Hatch ratio | 10 eggs hatch one monster. One larva hatches one monster. A chest of eggs stays dangerous, but egg buffers and loot left on a battlefield do not flood a base. Space Age's `biter-egg` uses 25. The probe confirms how the ratio works in the game. |
 | Graphics | Tinted vanilla and Space Age sprites, referenced by path. The mod copies no game files. |
-| Jazz | A CC BY or CC0 track that the maintainer picks. A vanilla machine sound is the placeholder until then. |
+| Music | None in this slice. The music starts with the jazz pods of version 2. |
 | Prototype names | All new prototypes start with `ao-`. |
 
 ## Game content
@@ -108,10 +108,8 @@ electronic circuits.
 
 - **Breeding pod** (`ao-breeding-pod`, category `ao-breeding`). In Space
   Age it uses the biochamber graphics with a tint. In the base game it uses
-  the chemical plant graphics with a tint. Its `working_sound` is the jazz
-  loop, with an audible distance of about 6 tiles. The startup setting
-  `ao-jazz` (default on) turns the jazz off. The pod then uses a vanilla
-  machine sound.
+  the chemical plant graphics with a tint. It uses the working sound of
+  the machine whose graphics it borrows.
 - **Incubator** (`ao-incubator`, category `ao-incubation`). It uses a
   tinted vanilla sprite.
 
@@ -181,7 +179,7 @@ one if it is missing. So the control stage stays deterministic.
 
 | Module | Job |
 | --- | --- |
-| `core/balance.lua` | Every number in this slice: spoil times, stack sizes, recipe amounts and times, loot range, jazz distance. |
+| `core/balance.lua` | Every number in this slice: spoil times, stack sizes, recipe amounts and times, loot range. |
 | `core/hatching.lua` | Picks a unit from a unit table, an evolution factor and a random number. |
 | `core/loot.lua` | Maps a spawner to a species, and a random number to an egg count. |
 | `core/prototypes/lifecycle.lua` | Builds every prototype table of this slice. |
@@ -194,18 +192,22 @@ one if it is missing. So the control stage stays deterministic.
 local Lifecycle = require("core.prototypes.lifecycle")
 data:extend(Lifecycle.prototypes({
   space_age = mods["space-age"] ~= nil,
-  jazz = settings.startup["ao-jazz"].value,
 }))
 ```
 
-`core/prototypes/lifecycle.lua` is pure. It gets the two flags as
-parameters and never reads `data`, `mods` or `settings`. So busted can
+`core/prototypes/lifecycle.lua` is pure. It gets the flag as a parameter
+and never reads `data`, `mods` or `settings`. So busted can
 build the prototypes for both modes. The Space Age parts are the
 biochamber graphics and the adopt recipe.
 
-`settings.lua` defines the startup setting `ao-jazz`.
-
 ## Notes for version 2
+
+The maintainer moved the music to version 2 on 2026-11-13. Each machine
+that plays music gets its own track, and the jazz pod is the first one.
+The tracks are Sascha Ende's "Sexy Scene Instrumentals" volumes 4, 9 and
+10 (CC BY 4.0). The maintainer likes volume 4 best. Each track is a mono
+`.ogg` loop of 20 to 40 seconds with no gap, and its credit goes in
+`THIRD_PARTY.md`.
 
 Version 2 adds pentapods. They should use Space Age's own `pentapod-egg`
 and its biochamber recipe, not a copy. `docs/design.md` says "Pentapod
@@ -227,9 +229,8 @@ eggs from Gleba nests" and gets that correction in version 2.
      in the base game, in Space Age or in this slice.
    - The adopt recipe exists only with Space Age.
    - The pod graphics come from the biochamber only with Space Age.
-   - The `jazz` flag changes the pod's `working_sound`.
    - The breeding recipes carry the flags of `pentapod-egg`.
-   - Every item, entity, recipe, technology and setting has a locale
+   - Every item, entity, recipe and technology has a locale
      entry in `locale/en/locale.cfg`. This is a new test. The existing
      `spec/locale_spec.lua` checks only the syntax of the file.
 - The existing architecture test keeps `core/` pure. The coverage floor
@@ -263,24 +264,16 @@ what hatches. The spec records the results. The game may not give one
 hatch per `items_per_trigger` items. Then the maintainer sets the egg
 balance again before PR 2.
 
-The slice ships in four PRs. Each PR title is a Conventional Commit, and
+The slice ships in three PRs. Each PR title is a Conventional Commit, and
 each PR adds an entry under Unreleased in `CHANGELOG.md`:
 
-1. Content: items, machines, recipes, research and the `ao-jazz` setting,
-   with the placeholder sound.
+1. Content: items, machines, recipes and research.
 2. Hatching.
 3. Nest loot.
-4. The jazz track. Its licence must allow redistribution in a mod. CC BY
-   attribution goes in `THIRD_PARTY.md`. The loop is a mono `.ogg` of 20
-   to 40 seconds that loops without a gap.
 
-PR 4 waits for the maintainer to pick the track. PRs 1 to 3 do not wait.
-Candidates found on 2026-11-13: Sascha Ende, "Sexy Scene Instrumentals"
-volumes 9 and 10 (CC BY 4.0, attribution optional by the author).
-
-`ROADMAP.md`: PR 4 ticks "Breeding pod with the smooth jazz sound, and
-incubator", because the item names the jazz. The item "Spoil outcomes"
-stays open until slice 2 adds loaded larvae. This slice does its egg half.
+`ROADMAP.md`: PR 1 ticks "Breeding pod and incubator". The item "Spoil
+outcomes" stays open until slice 2 adds loaded larvae. This slice does
+its egg half.
 
 ## Risks
 
@@ -298,3 +291,4 @@ stays open until slice 2 adds loaded larvae. This slice does its egg half.
 - Feral behaviour and the stasis ward (slice 4).
 - Worms, pentapods and demolisher hatchlings (versions 2 and 3).
 - Original graphics. This slice uses tinted sprites.
+- Music (version 2, with the jazz pods).
