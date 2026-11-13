@@ -5,15 +5,15 @@
 > superpowers:executing-plans to implement this plan task-by-task. Steps
 > use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Biter and spitter eggs that a player gets from nests, breeds in
-a breeding pod, and that hatch a wild monster of their species when they
-spoil.
+**Goal:** A player gets biter and spitter eggs from nests and breeds them
+in a breeding pod. When eggs spoil, every 10 eggs hatch one wild monster
+of their species.
 
-**Architecture:** Pure modules in `core/` hold every decision: the species
-table, the numbers, the unit pick, the loot drop and the prototype tables.
-`data.lua` and `control.lua` are thin shells that read the game, call the
-core and write the result. The hatch uses native spoilage with a `script`
-trigger effect.
+**Architecture:** Pure modules in `core/` make the game-rule decisions:
+the species table, the numbers, the unit pick, the loot drop and the
+prototype tables. `data.lua` and `control.lua` are thin shells that read
+the game, call the core and write the result. The hatch uses native
+spoilage with a `script` trigger effect.
 
 **Tech Stack:** Lua 5.2, Factorio 2.1.24 (base and Space Age), busted and
 luacov for unit tests, factorio-test 3.2.0 for in-game tests, luacheck,
@@ -27,9 +27,16 @@ Make.
   `"factorio_version": "2.1"`.
 - Every new prototype name starts with `ao-`.
 - A module in `core/` never names `game`, `storage`, `script`, `defines`
-  or `math.random`, and never reads the `data`, `mods` or `settings`
-  globals. `spec/architecture_spec.lua` checks the first rule.
-- Every number of the slice lives in `core/balance.lua`.
+  or `math.random`. `spec/architecture_spec.lua` checks these names.
+  A module in `core/` also never reads the `data`, `mods` or `settings`
+  globals. busted runs the builder without them, so a read fails its
+  tests.
+- Every balance number lives in `core/balance.lua`: spoil times, stack
+  sizes, ratios, the loot range, recipe amounts and times, the pod's
+  stats and the research cost. Tints, icon sizes and box sizes stay in
+  the builder.
+- "Both modes" means the base game alone, and the base game with Space
+  Age. `make ingame` runs both.
 - The mod copies no game files. The prototypes reference graphics and
   icons by `__base__/` or `__space-age__/` paths, with a tint.
 - British English in prose and comments.
@@ -61,28 +68,27 @@ the check `all-checks` passes, squash merge it. Then
 1. Eggs that spoil on the ground, where nest loot lies, must hatch like
    eggs in a chest. Task 6 tests both places.
 2. A spitter egg at evolution 0 must hatch a spitter, never a biter.
-   Tasks 4 and 6 test it.
+   Tasks 5 and 6 test it.
 3. A spawner that dies with no killer force, for example by
    `entity.die()`, must drop nothing and raise no error. Task 8 tests it.
 4. A typo in a unit name in the species table makes `create_entity` fail
    in a player's game. Task 6 checks that every unit name exists.
 5. At evolution 1 and a random number just below 1, the pick must still
-   return a unit. Task 4 tests it.
+   return a unit. Task 5 tests it.
 
 ---
 
 ## Branches and PRs
 
-| PR | Branch | Tasks | Title | Reviewers |
+| PR | Branch | Tasks | Title | `/simplify` reviewers |
 | --- | --- | --- | --- | --- |
 | 0 | `docs/lifecycle-spec` (exists) | 0 | `docs: add the slice 1 lifecycle spec and plan` | 1 |
-| 1 | `feat/lifecycle-content` | 2, 3, 5 | `feat: add eggs, feeds and the breeding pod` | 4 |
-| 2 | `feat/hatching` | 4, 6 | `feat: hatch spoiled eggs by evolution` | 2 |
+| 1 | `feat/lifecycle-content` | 2, 3, 4 | `feat: add eggs, feeds and the breeding pod` | 4 |
+| 2 | `feat/hatching` | 5, 6 | `feat: hatch spoiled eggs by evolution` | 2 |
 | 3 | `feat/nest-loot` | 7, 8 | `feat: drop eggs from native spawners` | 2 |
 
 Task 1 is a throwaway probe on its own branch. It runs after PR 0 and
-before Task 2. Task 4 comes before Task 5 because it is pure code,
-but it belongs to PR 2: PR 1 has no caller for it.
+before Task 2. Do the tasks in their number order.
 
 ---
 
@@ -91,22 +97,22 @@ but it belongs to PR 2: PR 1 has no caller for it.
 **Files:** none new. The branch `docs/lifecycle-spec` holds the spec, the
 EGM reports and this plan.
 
-- [ ] **Step 1: Commit the plan and the spec update**
+- [ ] **Step 1: Commit the review edits**
 
-Follow the commit routine with 1 reviewer (docs only). Message:
-`docs: add the slice 1 lifecycle plan`.
+The plan itself is already committed. If the branch holds uncommitted
+edits, follow the commit routine with 1 reviewer (docs only). Message:
+`docs: apply the Stage 9 review to the lifecycle plan`.
 
 - [ ] **Step 2: Open and merge PR 0**
 
 Follow the PR routine. Title: `docs: add the slice 1 lifecycle spec and
-plan`. The CI changelog rule needs the label `no-changelog`, because the
-PR changes no mod code: `gh pr edit <number> --add-label no-changelog`.
+plan`. The PR changes no mod code, so the changelog rule does not apply.
 
 ---
 
 ### Task 1: Probe the spoil trigger (throwaway)
 
-This task answers the spec's six probe questions. Its code is never
+This task answers the spec's five probe questions. Its code is never
 committed and never pushed.
 
 **Files (throwaway, on branch `probe/spoil-trigger`):**
@@ -211,7 +217,9 @@ end)
 
 test("Q1: 10 eggs on the ground", function()
   surface().spill_item_stack({
-    position = { 320, 300 }, stack = { name = "ao-probe-egg", count = 10 },
+    position = { 320, 300 },
+    stack = { name = "ao-probe-egg", count = 10 },
+    drop_full_stack = true,
   })
   for _, item in pairs(surface().find_entities_filtered({
     name = "item-on-ground", area = { { 315, 295 }, { 325, 305 } },
@@ -250,12 +258,13 @@ end)
 
 Run: `make ingame`
 Expected: every probe test FAILS, and each failure message holds a
-`serpent` dump. Copy the dumps and the time of the Q5 test from the
-output.
+`serpent` dump. Copy the dumps and the Q5 test's time from the output.
+The test time is not the frame time. It only shows if 4,800 eggs cause
+a visible delay.
 
 - [ ] **Step 6: Keep the answers, and act on them**
 
-Save the answers in a scratch file outside the repository. Task 5,
+Save the answers in a scratch file outside the repository. Task 4,
 Step 10 adds them to the spec as a section `### Probe results` under
 `## Delivery`, with one line per question:
 
@@ -263,20 +272,19 @@ Step 10 adds them to the spec as a section `### Probe results` under
 2. The call that forces a spoil: `spoil()` or `spoil_percent = 1`.
 3. What 9 eggs do: one event, or none.
 4. Big biters from 25 `biter-egg` and wrigglers from 1 `pentapod-egg`.
-5. The number of events and the test time for 4,800 eggs.
+5. The number of events and the test time (not frame time) for 4,800
+   eggs.
 
-Then apply the spec's rules:
+Then act on each answer:
 
-- If no position field is set for the chest or the ground, stop the plan
-  and tell the maintainer. The spec says the plan stops before PR 2.
-- If 9 eggs give no event, loot eggs below 10 vanish. Tell the
-  maintainer. Ask them to choose: keep it, or a random hatch per egg with
-  a chance of 1 in 10. Record the answer in the spec.
-- Use the position field that the probe found in Task 6, Step 3. The plan
-  code reads `event.source_position or event.target_position`. If only
-  one is set, keep only that one.
-- Use the spoil call that the probe found in `tests/ingame/helpers.lua`
-  (Task 6).
+| Probe answer | Action |
+| --- | --- |
+| No position field for eggs in a chest, or none for eggs on the ground | Finish PR 1. Tell the maintainer, and stop before PR 2. |
+| The full stack of 10 on the ground gives one event | The ground test in Task 6 expects 1 monster. |
+| A stack of 9 gives no event | Loot eggs (1 to 3) never hatch. Tell the maintainer: this is the open question on loot eggs in the spec. Keeping it needs no plan change. A random hatch per egg means stopping to re-plan. |
+| A stack of 9 gives one event | Each loot pile hatches one monster. Tell the maintainer, for the same open question. |
+| Only one of `source_position` and `target_position` is set | In Task 6, Step 3, read only that field. |
+| `spoil()` fails and `spoil_percent = 1` works | In `tests/ingame/helpers.lua` (Task 4, Step 6), use the second body of `Helpers.spoil`. |
 
 - [ ] **Step 7: Delete the throwaway branch**
 
@@ -380,7 +388,7 @@ return {
 `core/balance.lua`:
 
 ```lua
--- Every number of slice 1. All values are first guesses.
+-- Every balance number of slice 1. All values are first guesses.
 local MINUTE = 60 * 60
 
 return {
@@ -398,7 +406,10 @@ return {
   pod = {
     crafting_speed = 1,
     energy_usage = "150kW",
+    pollution = 4,
     max_health = 350,
+    mining_time = 0.2,
+    stack = 10,
     recipe = { time = 5, iron = 10, steel = 5, pipe = 5, circuit = 5 },
   },
   research = { count = 150, time = 30 },
@@ -464,9 +475,8 @@ Delete `core/.gitkeep`: `git rm core/.gitkeep`.
 Run: `make lua`
 Expected: PASS. luacheck reports 0 warnings.
 
-No commit yet. Tasks 2 to 5 form PR 1 and commit together at the end of
-Task 5, because `make fast` checks the coverage floor of 90% over all of
-`core/`.
+No commit yet. Tasks 2, 3 and 4 form PR 1, with one commit at the end
+of Task 4, because PR 1 is one squash-merged change.
 
 ---
 
@@ -546,7 +556,14 @@ describe("the lifecycle prototypes", function()
       assert.are.equal(1, result.ignored_by_stats)
       assert.are.equal(1, result.ignored_by_productivity)
       assert.is_true(result.reset_freshness_on_craft)
+      assert.is_false(recipe.auto_recycle)
     end
+    assert.is_false(build(true)["recipe/ao-adopt-biter-egg"].auto_recycle)
+  end)
+
+  it("need military and chemical science first", function()
+    assert.are.same({ "military-science-pack", "chemical-science-pack" },
+      build(false)["technology/ao-monster-husbandry"].prerequisites)
   end)
 
   it("hatch one monster per 10 eggs through a script trigger", function()
@@ -677,15 +694,21 @@ local function recipe(name, categories, time, ingredients, results)
   }
 end
 
+-- Space Age's recycler must not turn eggs back into their ingredients.
+local function no_recycling(r)
+  r.auto_recycle = false
+  return r
+end
+
 local function breed(species)
   local b = Balance.breed
-  return recipe("ao-breed-" .. species.name, { Names.CATEGORY }, b.time, {
+  return no_recycling(recipe("ao-breed-" .. species.name, { Names.CATEGORY }, b.time, {
     { type = "item", name = species.egg, amount = 1, ignored_by_stats = 1 },
     { type = "item", name = species.feed, amount = b.chow },
   }, {
     { type = "item", name = species.egg, amount = b.result, ignored_by_stats = 1,
       ignored_by_productivity = 1, reset_freshness_on_craft = true },
-  })
+  }))
 end
 
 local function feed_recipes()
@@ -709,7 +732,7 @@ local function pod(opts)
     type = "assembling-machine", name = Names.POD,
     icons = icon("__base__/graphics/icons/chemical-plant.png", Lifecycle.POD_TINT),
     flags = { "placeable-neutral", "placeable-player", "player-creation" },
-    minable = { mining_time = 0.2, result = Names.POD },
+    minable = { mining_time = b.mining_time, result = Names.POD },
     max_health = b.max_health,
     corpse = "medium-remnants",
     collision_box = { { -1.2, -1.2 }, { 1.2, 1.2 } },
@@ -718,7 +741,7 @@ local function pod(opts)
     crafting_speed = b.crafting_speed,
     energy_source = {
       type = "electric", usage_priority = "secondary-input",
-      emissions_per_minute = { pollution = 4 },
+      emissions_per_minute = { pollution = b.pollution },
     },
     energy_usage = b.energy_usage,
     module_slots = 0,
@@ -731,7 +754,7 @@ end
 local function pod_item_and_recipe()
   local r = Balance.pod.recipe
   local pod_item = item(Names.POD, "__base__/graphics/icons/chemical-plant.png",
-    Lifecycle.POD_TINT, "production-machine", 10)
+    Lifecycle.POD_TINT, "production-machine", Balance.pod.stack)
   pod_item.place_result = Names.POD
   return pod_item, recipe(Names.POD, { "crafting" }, r.time, {
     { type = "item", name = "iron-plate", amount = r.iron },
@@ -742,10 +765,10 @@ local function pod_item_and_recipe()
 end
 
 local function adopt()
-  return recipe(Names.ADOPT, { Names.CATEGORY }, Balance.adopt.time, {
+  return no_recycling(recipe(Names.ADOPT, { Names.CATEGORY }, Balance.adopt.time, {
     { type = "item", name = "biter-egg", amount = 1 },
     { type = "item", name = Names.MONSTER_CHOW, amount = Balance.adopt.chow },
-  }, { { type = "item", name = Species.ALL[1].egg, amount = 1 } })
+  }, { { type = "item", name = Species.ALL[1].egg, amount = 1 } }))
 end
 
 local function technology(recipes)
@@ -756,7 +779,7 @@ local function technology(recipes)
   return {
     type = "technology", name = Names.TECH,
     icons = icon("__base__/graphics/icons/small-biter.png", Lifecycle.POD_TINT),
-    prerequisites = { "military-2", "sulfur-processing", "chemical-science-pack" },
+    prerequisites = { "military-science-pack", "chemical-science-pack" },
     effects = effects,
     unit = {
       count = Balance.research.count, time = Balance.research.time,
@@ -799,11 +822,316 @@ Expected: PASS, and coverage of `core/` at or above 90%.
 
 ---
 
-### Task 4: The hatch pick
+### Task 4: The data-stage shell, locale and in-game content tests (PR 1)
 
-The pure part of hatching. Its unit tests are cheap, so they come before
-the shell. Write the module on branch `feat/hatching` (PR 2), not in
-PR 1: PR 1 has no caller for it.
+**Files:**
+
+- Modify: `data.lua`
+- Modify: `info.json`
+- Modify: `locale/en/locale.cfg`
+- Modify: `control.lua` (test list only)
+- Modify: `spec/locale_spec.lua`
+- Modify: `.ste-allow`
+- Create: `tests/ingame/helpers.lua`
+- Create: `tests/ingame/content_test.lua`
+- Modify: `docs/design.md`, `ROADMAP.md`, `CHANGELOG.md`,
+  `docs/superpowers/specs/2026-11-13-lifecycle-design.md` (probe results
+  from Task 1)
+
+**Interfaces:**
+
+- Consumes: `Lifecycle.prototypes` (Task 3).
+- Produces: `tests/ingame/helpers.lua` with `Helpers.spoil(stack)`,
+  `Helpers.arena(surface, position)`,
+  `Helpers.powered_pod(surface, position)` and
+  `Helpers.count_units(surface, position, names)`. Tasks 6 and 8 use it.
+
+- [ ] **Step 1: Write the failing locale test**
+
+In `spec/locale_spec.lua`, add at the top, below the `require` of
+`spec.support.locale`:
+
+```lua
+local Lifecycle = require("core.prototypes.lifecycle")
+
+local SECTION = {
+  item = "item-name",
+  recipe = "recipe-name",
+  technology = "technology-name",
+  ["assembling-machine"] = "entity-name",
+}
+```
+
+Add this test inside the existing block that reads
+`locale/en/locale.cfg` (use that block's `read` helper):
+
+```lua
+  it("names every prototype of slice 1", function()
+    local text = read("locale/en/locale.cfg")
+    local opts = { space_age = true, graphics_set = {}, working_sound = {} }
+    for _, p in ipairs(Lifecycle.prototypes(opts)) do
+      local section = SECTION[p.type]
+      if section then
+        assert.truthy(L.value(text, section, p.name), section .. "." .. p.name)
+      end
+    end
+  end)
+```
+
+- [ ] **Step 2: Run it to see it fail**
+
+Run: `make lua`
+Expected: FAIL with `item-name.ao-monster-chow`.
+
+- [ ] **Step 3: Add the locale entries**
+
+Append to `locale/en/locale.cfg`:
+
+```ini
+[item-name]
+ao-biter-egg=Biter egg (domesticated)
+ao-spitter-egg=Spitter egg (domesticated)
+ao-monster-chow=Monster chow
+ao-spitter-chow=Spitter chow
+ao-breeding-pod=Breeding pod
+
+[entity-name]
+ao-breeding-pod=Breeding pod
+
+[recipe-name]
+ao-monster-chow=Monster chow
+ao-spitter-chow=Spitter chow
+ao-breed-biter=Breed biters
+ao-breed-spitter=Breed spitters
+ao-adopt-biter-egg=Adopt a biter egg
+ao-breeding-pod=Breeding pod
+
+[technology-name]
+ao-monster-husbandry=Monster husbandry
+
+[technology-description]
+ao-monster-husbandry=Breed biters and spitters from eggs. Native nests drop eggs when you destroy them.
+```
+
+Add this line to `.ste-allow`, below the `docs/design.md` entry, because
+"Breeding pod" is a name:
+
+```text
+ing-form | locale/en/locale.cfg | breeding | the name of the breeding pod
+```
+
+- [ ] **Step 4: Run it to see it pass**
+
+Run: `make fast`
+Expected: PASS.
+
+- [ ] **Step 5: Write the data-stage shell**
+
+Replace `data.lua`:
+
+```lua
+-- The data stage. This file is the shell: it reads the game's data and
+-- passes it to the pure builder in core/.
+local Lifecycle = require("core.prototypes.lifecycle")
+
+local source = mods["space-age"] and data.raw["assembling-machine"]["biochamber"]
+  or data.raw["assembling-machine"]["chemical-plant"]
+
+data:extend(Lifecycle.prototypes({
+  space_age = mods["space-age"] ~= nil,
+  graphics_set = source.graphics_set,
+  working_sound = source.working_sound,
+}))
+```
+
+Add `"feature_flags": ["spoiling"]` to `info.json`, after
+`"dependencies"`.
+
+- [ ] **Step 6: Write the in-game test helpers**
+
+Create `tests/ingame/helpers.lua`:
+
+```lua
+-- Shared set-up for the in-game tests.
+local Helpers = {}
+
+function Helpers.spoil(stack)
+  stack.spoil()
+end
+
+local function area(position, radius)
+  local x, y = position[1], position[2]
+  return { { x - radius, y - radius }, { x + radius, y + radius } }
+end
+
+-- Generates the chunks around a test position and removes every enemy
+-- there, so that native nests cannot change a count.
+function Helpers.arena(surface, position)
+  surface.request_to_generate_chunks(position, 1)
+  surface.force_generate_chunk_requests()
+  for _, entity in pairs(surface.find_entities_filtered({
+    area = area(position, 24), force = "enemy",
+  })) do
+    entity.destroy()
+  end
+end
+
+-- A breeding pod with power from an electric energy interface. The
+-- force has Monster husbandry, so the pod's recipes are enabled.
+function Helpers.powered_pod(surface, position)
+  local x, y = position[1], position[2]
+  game.forces.player.technologies["ao-monster-husbandry"].researched = true
+  local pod = surface.create_entity({
+    name = "ao-breeding-pod", position = { x, y }, force = "player",
+  })
+  surface.create_entity({
+    name = "small-electric-pole", position = { x + 2.5, y }, force = "player",
+  })
+  surface.create_entity({
+    name = "electric-energy-interface", position = { x + 4.5, y }, force = "player",
+  })
+  return pod
+end
+
+function Helpers.count_units(surface, position, names)
+  return surface.count_entities_filtered({
+    area = area(position, 12), name = names, force = "enemy",
+  })
+end
+
+return Helpers
+```
+
+If the probe found that `spoil()` fails and `spoil_percent = 1` works, the
+body of `Helpers.spoil` is `stack.spoil_percent = 1`.
+
+- [ ] **Step 7: Write the failing in-game content test**
+
+Create `tests/ingame/content_test.lua`:
+
+```lua
+local Helpers = require("__abominable-ordnance__/tests/ingame/helpers")
+
+local NAMES = {
+  item = {
+    "ao-biter-egg", "ao-spitter-egg", "ao-monster-chow", "ao-spitter-chow",
+    "ao-breeding-pod",
+  },
+  recipe = {
+    "ao-monster-chow", "ao-spitter-chow", "ao-breed-biter", "ao-breed-spitter",
+    "ao-breeding-pod",
+  },
+}
+
+test("the items, pod, recipes and research exist", function()
+  for _, name in ipairs(NAMES.item) do assert(prototypes.item[name], name) end
+  for _, name in ipairs(NAMES.recipe) do assert(prototypes.recipe[name], name) end
+  assert(prototypes.entity["ao-breeding-pod"], "ao-breeding-pod")
+  assert(prototypes.technology["ao-monster-husbandry"], "ao-monster-husbandry")
+end)
+
+test("a breeding pod makes 2 eggs from 1 egg and 5 chow", function()
+  Helpers.arena(game.surfaces[1], { 400, 400 })
+  local pod = Helpers.powered_pod(game.surfaces[1], { 400, 400 })
+  pod.set_recipe("ao-breed-biter")
+  pod.insert({ name = "ao-biter-egg", count = 1 })
+  pod.insert({ name = "ao-monster-chow", count = 5 })
+  after_ticks(1000, function()
+    assert(pod.get_output_inventory().get_item_count("ao-biter-egg") == 2,
+      "the pod did not make 2 eggs")
+  end)
+end)
+
+tags("space-age")
+test("the adopt recipe turns a biter-egg into a mod egg", function()
+  Helpers.arena(game.surfaces[1], { 420, 400 })
+  local pod = Helpers.powered_pod(game.surfaces[1], { 420, 400 })
+  pod.set_recipe("ao-adopt-biter-egg")
+  pod.insert({ name = "biter-egg", count = 1 })
+  pod.insert({ name = "ao-monster-chow", count = 1 })
+  after_ticks(400, function()
+    assert(pod.get_output_inventory().get_item_count("ao-biter-egg") == 1,
+      "the pod did not adopt the egg")
+  end)
+end)
+```
+
+Add `"tests/ingame/content_test"` to the list in the factorio-test hook
+in `control.lua`.
+
+- [ ] **Step 8: Run the in-game tests**
+
+Run: `make ingame`
+Expected: PASS in both modes.
+
+- [ ] **Step 9: Check the icons in the real game**
+
+The headless server does not load graphics, so `make ingame` cannot find
+a wrong icon path. Ask the maintainer to start the game client with the
+mod, once without and once with Space Age. They check that the pod, the
+eggs and the chow show tinted icons and the pod shows tinted graphics.
+Fix any path they report.
+
+- [ ] **Step 10: Update the docs**
+
+1. `docs/design.md`, Monsters table: replace the rows of Biter, Spitter
+   and Pentapod with:
+
+   ```markdown
+   | Biter | Nauvis | Nest loot and the breeding pod; in Space Age also the captive biter spawner, through the adopt recipe | Fast, cheap melee carrier |
+   | Spitter | Nauvis | Nest loot and the breeding pod | Ranged; payload lands at the target |
+   | Pentapod | Gleba | Space Age's own pentapod eggs and their biochamber recipe | Tanky, long reach, crosses obstacles |
+   ```
+
+2. `docs/design.md`, Technical notes: replace the bullet "Spoiling and
+   hatching" with:
+
+   ```markdown
+   - **Spoiling and hatching.** Use the 2.1 spoilage system (`spoil_ticks`
+     plus a spoil trigger). The trigger runs a `script` effect, and a core
+     module picks the unit from the enemy evolution. Without Space Age,
+     the mod turns spoilage on itself through the `spoiling` feature flag
+     in its info.json.
+   ```
+
+3. `ROADMAP.md`, under 1.0.0: replace the first item with:
+
+   ```markdown
+   - [ ] Breeding pod (slice 1) and incubator (slice 2) for biters and
+     spitters ([design][lifecycle])
+   ```
+
+4. `CHANGELOG.md`, under `## [Unreleased]`, below the existing
+   `### Added` items:
+
+   ```markdown
+   - Biter and spitter eggs, monster chow, spitter chow and the breeding
+     pod, unlocked by the Monster husbandry research.
+   ```
+
+5. The spec: add `### Probe results` under `## Delivery`, with the answers
+   from Task 1.
+
+- [ ] **Step 11: Run all gates**
+
+Run: `make check`
+Expected: PASS.
+
+- [ ] **Step 12: Commit and open PR 1**
+
+Follow the commit routine with 4 reviewers. Stage `core/`, `spec/`,
+`tests/ingame/`, `data.lua`, `control.lua`, `info.json`, `locale/`,
+`.ste-allow`, `docs/design.md`, `ROADMAP.md`, `CHANGELOG.md` and the
+spec. Message:
+`feat: add eggs, feeds and the breeding pod`. Then follow the PR routine
+with that title.
+
+---
+
+### Task 5: The hatch pick
+
+This task writes the pure part of hatching. Its unit tests run without
+the game, so they come before the shell in Task 6. It belongs to PR 2.
 
 **Files:**
 
@@ -888,9 +1216,10 @@ Expected: FAIL with `module 'core.hatching' not found`.
 Create `core/hatching.lua`:
 
 ```lua
--- Picks the unit that hatches from a spoiled egg. The weight rule is the
--- vanilla spawner rule: linear between two points, the end value beyond
--- the ends, and a chance equal to the weight over the sum of weights.
+-- Picks the unit that hatches from a spoiled egg, by the vanilla spawner
+-- rule. A weight is linear between two points. Before the first point it
+-- is the first value, and after the last point the last value. The chance
+-- of a unit is its weight over the sum of weights.
 local Species = require("core.species")
 
 local Hatching = {}
@@ -937,243 +1266,6 @@ Expected: PASS.
 
 ---
 
-### Task 5: The data-stage shell, locale and in-game content tests (PR 1)
-
-**Files:**
-
-- Modify: `data.lua`
-- Modify: `info.json`
-- Modify: `locale/en/locale.cfg`
-- Modify: `control.lua` (test list only)
-- Create: `spec/locale_coverage_spec.lua`
-- Create: `tests/ingame/helpers.lua`
-- Create: `tests/ingame/content_test.lua`
-- Modify: `docs/design.md`, `ROADMAP.md`, `CHANGELOG.md`,
-  `docs/superpowers/specs/2026-11-13-lifecycle-design.md` (probe results
-  from Task 1)
-
-**Interfaces:**
-
-- Consumes: `Lifecycle.prototypes` (Task 3).
-- Produces: `tests/ingame/helpers.lua` with `Helpers.spoil(stack)`,
-  `Helpers.powered_pod(surface, position)` and
-  `Helpers.count_units(surface, position, names)`. Tasks 6 and 8 use it.
-
-- [ ] **Step 1: Write the failing locale test**
-
-Create `spec/locale_coverage_spec.lua`:
-
-```lua
-local L = require("spec.support.locale")
-local Lifecycle = require("core.prototypes.lifecycle")
-
-local SECTION = {
-  item = "item-name",
-  recipe = "recipe-name",
-  technology = "technology-name",
-  ["assembling-machine"] = "entity-name",
-}
-
-describe("the English locale", function()
-  it("names every prototype of slice 1", function()
-    local f = assert(io.open("locale/en/locale.cfg", "r"))
-    local text = f:read("*a")
-    f:close()
-    local opts = { space_age = true, graphics_set = {}, working_sound = {} }
-    for _, p in ipairs(Lifecycle.prototypes(opts)) do
-      local section = SECTION[p.type]
-      if section then
-        assert.truthy(L.value(text, section, p.name), section .. "." .. p.name)
-      end
-    end
-  end)
-end)
-```
-
-- [ ] **Step 2: Run it to see it fail**
-
-Run: `make lua`
-Expected: FAIL with `item-name.ao-monster-chow`.
-
-- [ ] **Step 3: Add the locale entries**
-
-Append to `locale/en/locale.cfg`:
-
-```ini
-[item-name]
-ao-biter-egg=Biter egg (domesticated)
-ao-spitter-egg=Spitter egg (domesticated)
-ao-monster-chow=Monster chow
-ao-spitter-chow=Spitter chow
-ao-breeding-pod=Breeding pod
-
-[entity-name]
-ao-breeding-pod=Breeding pod
-
-[recipe-name]
-ao-monster-chow=Monster chow
-ao-spitter-chow=Spitter chow
-ao-breed-biter=Breed biters
-ao-breed-spitter=Breed spitters
-ao-adopt-biter-egg=Adopt a biter egg
-ao-breeding-pod=Breeding pod
-
-[technology-name]
-ao-monster-husbandry=Monster husbandry
-
-[technology-description]
-ao-monster-husbandry=Breed biters and spitters from eggs. Native nests drop eggs when you destroy them.
-```
-
-- [ ] **Step 4: Run it to see it pass**
-
-Run: `make lua`
-Expected: PASS.
-
-- [ ] **Step 5: Write the data-stage shell**
-
-Replace `data.lua`:
-
-```lua
--- The data stage. This file is the shell: it reads the game's data and
--- passes it to the pure builder in core/.
-local Lifecycle = require("core.prototypes.lifecycle")
-
-local source = mods["space-age"] and data.raw["assembling-machine"]["biochamber"]
-  or data.raw["assembling-machine"]["chemical-plant"]
-
-data:extend(Lifecycle.prototypes({
-  space_age = mods["space-age"] ~= nil,
-  graphics_set = source.graphics_set,
-  working_sound = source.working_sound,
-}))
-```
-
-Add `"feature_flags": ["spoiling"]` to `info.json`, after
-`"dependencies"`.
-
-- [ ] **Step 6: Write the in-game test helpers**
-
-Create `tests/ingame/helpers.lua`. Use the spoil call that the probe
-found (Task 1). This is the code for `spoil()`:
-
-```lua
--- Shared set-up for the in-game tests.
-local Helpers = {}
-
-function Helpers.spoil(stack)
-  stack.spoil()
-end
-
--- A breeding pod with power from an electric energy interface.
-function Helpers.powered_pod(surface, position)
-  local x, y = position[1], position[2]
-  local pod = surface.create_entity({
-    name = "ao-breeding-pod", position = { x, y }, force = "player",
-  })
-  surface.create_entity({ name = "small-electric-pole", position = { x + 2.5, y }, force = "player" })
-  surface.create_entity({ name = "electric-energy-interface", position = { x + 4.5, y }, force = "player" })
-  return pod
-end
-
-function Helpers.count_units(surface, position, names)
-  local x, y = position[1], position[2]
-  return surface.count_entities_filtered({
-    area = { { x - 12, y - 12 }, { x + 12, y + 12 } }, name = names, force = "enemy",
-  })
-end
-
-return Helpers
-```
-
-- [ ] **Step 7: Write the failing in-game content test**
-
-Create `tests/ingame/content_test.lua`:
-
-```lua
-local Helpers = require("__abominable-ordnance__/tests/ingame/helpers")
-
-local NAMES = {
-  item = { "ao-biter-egg", "ao-spitter-egg", "ao-monster-chow", "ao-spitter-chow", "ao-breeding-pod" },
-  recipe = { "ao-monster-chow", "ao-spitter-chow", "ao-breed-biter", "ao-breed-spitter", "ao-breeding-pod" },
-}
-
-test("the items, pod, recipes and research exist", function()
-  for _, name in ipairs(NAMES.item) do assert(prototypes.item[name], name) end
-  for _, name in ipairs(NAMES.recipe) do assert(prototypes.recipe[name], name) end
-  assert(prototypes.entity["ao-breeding-pod"], "ao-breeding-pod")
-  assert(prototypes.technology["ao-monster-husbandry"], "ao-monster-husbandry")
-end)
-
-test("a breeding pod makes 2 eggs from 1 egg and 5 chow", function()
-  local pod = Helpers.powered_pod(game.surfaces[1], { 400, 400 })
-  pod.set_recipe("ao-breed-biter")
-  pod.insert({ name = "ao-biter-egg", count = 1 })
-  pod.insert({ name = "ao-monster-chow", count = 5 })
-  after_ticks(1000, function()
-    assert(pod.get_output_inventory().get_item_count("ao-biter-egg") == 2,
-      "the pod did not make 2 eggs")
-  end)
-end)
-
-tags("space-age")
-test("the adopt recipe turns a biter-egg into a mod egg", function()
-  local pod = Helpers.powered_pod(game.surfaces[1], { 420, 400 })
-  pod.set_recipe("ao-adopt-biter-egg")
-  pod.insert({ name = "biter-egg", count = 1 })
-  pod.insert({ name = "ao-monster-chow", count = 1 })
-  after_ticks(400, function()
-    assert(pod.get_output_inventory().get_item_count("ao-biter-egg") == 1,
-      "the pod did not adopt the egg")
-  end)
-end)
-```
-
-Add `"tests/ingame/content_test"` to the list in the factorio-test hook
-in `control.lua`.
-
-- [ ] **Step 8: Run the in-game tests**
-
-Run: `make ingame`
-Expected: PASS in both modes. A pod with no power fails its test. Then
-put the pole at `x + 2`, and check that its supply area touches both the pod
-and the interface.
-
-- [ ] **Step 9: Check the icons in the real game**
-
-The headless server does not load graphics, so `make ingame` cannot find
-a wrong icon path. Ask the maintainer to start the game client with the
-mod, once without and once with Space Age. They check that the pod, the
-eggs and the chow show tinted icons and the pod shows tinted graphics.
-Fix any path they report.
-
-- [ ] **Step 10: Update the docs**
-
-1. `docs/design.md`: make the four edits in the spec's section "Changes
-   to `docs/design.md`".
-2. `ROADMAP.md`: under 1.0.0, change the first item to
-   `- [ ] Breeding pod (slice 1) and incubator (slice 2) for biters and
-   spitters ([design][lifecycle])`.
-3. `CHANGELOG.md`, under `## [Unreleased]` → `### Added`:
-   `- Biter and spitter eggs, monster chow, spitter chow and the breeding
-   pod, unlocked by the Monster husbandry research.`
-4. The spec: the probe results from Task 1.
-
-- [ ] **Step 11: Run all gates**
-
-Run: `make check`
-Expected: PASS.
-
-- [ ] **Step 12: Commit and open PR 1**
-
-Follow the commit routine with 4 reviewers. Stage `core/`, `spec/`,
-`tests/ingame/`, `data.lua`, `control.lua`, `info.json`, `locale/`,
-`docs/design.md`, `ROADMAP.md`, `CHANGELOG.md` and the spec. Message:
-`feat: add eggs, feeds and the breeding pod`. Then follow the PR routine
-with that title.
-
----
-
 ### Task 6: The hatching shell (PR 2)
 
 **Files:**
@@ -1184,8 +1276,8 @@ with that title.
 
 **Interfaces:**
 
-- Consumes: `Hatching.hatch` (Task 4), `Balance.hatch_search_radius`,
-  `Species.ALL`, `Helpers` (Task 5).
+- Consumes: `Hatching.hatch` (Task 5), `Balance.hatch_search_radius`,
+  `Species.ALL`, `Helpers` (Task 4).
 - Produces: a `random()` function in `control.lua` that Task 8 also
   uses.
 
@@ -1195,7 +1287,7 @@ Create `tests/ingame/hatching_test.lua`:
 
 ```lua
 local Helpers = require("__abominable-ordnance__/tests/ingame/helpers")
-local Species = require("__abominable-ordnance__/core/species")
+local Species = require("core.species")
 
 local function unit_names(species)
   local names = {}
@@ -1219,7 +1311,10 @@ end)
 
 test("10 spitter eggs in a chest hatch one spitter at evolution 0", function()
   local position = { 500, 500 }
-  local chest = surface().create_entity({ name = "steel-chest", position = position, force = "player" })
+  Helpers.arena(surface(), position)
+  local chest = surface().create_entity({
+    name = "steel-chest", position = position, force = "player",
+  })
   chest.insert({ name = "ao-spitter-egg", count = 10 })
   Helpers.spoil(chest.get_inventory(defines.inventory.chest)[1])
   after_ticks(2, function()
@@ -1232,12 +1327,17 @@ end)
 
 test("10 biter eggs on the ground hatch one biter", function()
   local position = { 540, 500 }
-  surface().spill_item_stack({ position = position, stack = { name = "ao-biter-egg", count = 10 } })
-  for _, item in pairs(surface().find_entities_filtered({
+  Helpers.arena(surface(), position)
+  surface().spill_item_stack({
+    position = position,
+    stack = { name = "ao-biter-egg", count = 10 },
+    drop_full_stack = true,
+  })
+  local items = surface().find_entities_filtered({
     name = "item-on-ground", area = { { 535, 495 }, { 545, 505 } },
-  })) do
-    Helpers.spoil(item.stack)
-  end
+  })
+  assert(#items == 1, "the eggs did not land as one stack")
+  Helpers.spoil(items[1].stack)
   after_ticks(2, function()
     assert(Helpers.count_units(surface(), position, unit_names(Species.ALL[1])) == 1,
       "no biter hatched on the ground")
@@ -1255,12 +1355,20 @@ Expected: FAIL with `no spitter hatched`.
 
 - [ ] **Step 3: Write the shell**
 
-Put this at the top of `control.lua`, above the factorio-test hook. Use
-the position field that the probe found (Task 1):
+Replace the header comment of `control.lua` with:
+
+```lua
+-- The control stage. This file is the shell: it reads the game, calls the
+-- pure modules in core/ and writes the result to the game.
+```
+
+Put this below the header, above the factorio-test hook. If the probe
+found only one position field (Task 1, Step 6), read only that field:
 
 ```lua
 local Balance = require("core.balance")
 local Hatching = require("core.hatching")
+local Species = require("core.species")
 
 -- A deterministic random number in [0, 1). storage keeps only the seed.
 local function random()
@@ -1271,6 +1379,8 @@ local function random()
 end
 
 script.on_event(defines.events.on_script_trigger_effect, function(event)
+  -- Other mods' triggers reach this handler too.
+  if not Species.by_effect_id(event.effect_id) then return end
   local surface = game.get_surface(event.surface_index)
   local position = event.source_position or event.target_position
   if not surface or not position or surface.platform then return end
@@ -1291,9 +1401,13 @@ Expected: PASS in both modes.
 
 - [ ] **Step 5: Update the changelog**
 
-Under `## [Unreleased]` → `### Added` in `CHANGELOG.md`:
-`- Eggs hatch when they spoil: every 10 eggs hatch a wild monster of
-their species, sized by enemy evolution.`
+In `CHANGELOG.md`, under `## [Unreleased]`, below the existing
+`### Added` items:
+
+```markdown
+- Eggs hatch when they spoil: every 10 eggs hatch a wild monster of
+  their species, sized by enemy evolution.
+```
 
 - [ ] **Step 6: Run all gates, commit and open PR 2**
 
@@ -1347,7 +1461,8 @@ describe("the nest loot", function()
   it("drops 1 to 3 eggs of the spawner's species", function()
     assert.are.same({ name = "ao-biter-egg", count = 1 }, Loot.drop("biter-spawner", true, 0))
     assert.are.same({ name = "ao-spitter-egg", count = 2 }, Loot.drop("spitter-spawner", true, 0.5))
-    assert.are.same({ name = "ao-biter-egg", count = 3 }, Loot.drop("biter-spawner", true, 0.999999))
+    assert.are.same({ name = "ao-biter-egg", count = 3 },
+      Loot.drop("biter-spawner", true, 0.999999))
   end)
 end)
 ```
@@ -1415,8 +1530,13 @@ local function eggs_near(position)
   return count
 end
 
+local Helpers = require("__abominable-ordnance__/tests/ingame/helpers")
+
 local function spawner(position)
-  return surface().create_entity({ name = "biter-spawner", position = position, force = "enemy" })
+  Helpers.arena(surface(), position)
+  return surface().create_entity({
+    name = "biter-spawner", position = position, force = "enemy",
+  })
 end
 
 local function research(done)
@@ -1468,7 +1588,10 @@ script.on_event(defines.events.on_entity_died, function(event)
   local entity = event.entity
   local drop = Loot.drop(entity.name, tech ~= nil and tech.researched, random())
   if drop then
-    entity.surface.spill_item_stack({ position = entity.position, stack = drop })
+    entity.surface.spill_item_stack({
+      position = entity.position, stack = drop,
+      drop_full_stack = true, enable_looted = true,
+    })
   end
 end, { { filter = "type", type = "unit-spawner" } })
 ```
@@ -1480,13 +1603,22 @@ Expected: PASS in both modes.
 
 - [ ] **Step 5: Update the changelog and the roadmap**
 
-`CHANGELOG.md`, under `## [Unreleased]` → `### Added`:
-`- Native biter and spitter spawners drop 1 to 3 eggs when a force with
-Monster husbandry destroys them.`
+`CHANGELOG.md`, under `## [Unreleased]`, below the existing `### Added`
+items:
 
-`ROADMAP.md`: no item ticks yet. The breeding pod item ticks in slice 2
-with the incubator, and "Spoil outcomes" ticks when slice 2 adds larvae.
-Leave a note under 1.0.0: `Slice 1 (lifecycle) is done.`
+```markdown
+- Native biter and spitter spawners drop 1 to 3 eggs when a force with
+  Monster husbandry destroys them.
+```
+
+`ROADMAP.md`: no item ticks yet. "Breeding pod (slice 1) and incubator
+(slice 2)" ticks in slice 2, and "Spoil outcomes" ticks when slice 2 adds
+larvae. Add this line directly below the heading `## 1.0.0: design
+version 1`, with a blank line on each side:
+
+```markdown
+Slice 1 (lifecycle) is done.
+```
 
 - [ ] **Step 6: Run all gates, commit and open PR 3**
 

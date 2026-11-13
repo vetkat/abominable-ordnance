@@ -152,13 +152,16 @@ both modes.
 The two breeding recipes use the same flags as `pentapod-egg`. The egg
 ingredient has `ignored_by_stats = 1`. The egg result has
 `ignored_by_stats = 1`, `ignored_by_productivity = 1` and
-`reset_freshness_on_craft = true`. So a bred egg starts fresh.
+`reset_freshness_on_craft = true`. So a bred egg starts fresh. The
+breeding and adopt recipes also set `auto_recycle = false`, as both
+vanilla egg recipes do, so Space Age's recycler cannot turn eggs back into
+their ingredients.
 
 ### Research
 
 Monster husbandry (`ao-monster-husbandry`) uses automation, logistic,
-military and chemical science packs. Its prerequisites are Military 2,
-Sulfur processing and Chemical science pack. It unlocks the breeding pod
+military and chemical science packs. Its prerequisites are Military
+science pack and Chemical science pack. It unlocks the breeding pod
 and every recipe above. It also turns on egg loot from native spawners
 for the force that researches it.
 
@@ -217,7 +220,7 @@ only a number.
    name. A spawner of no species drops nothing.
 4. `core/loot.lua` turns a random number into a count from 1 to 3.
 5. The shell spills that many eggs of the species at the spawner's
-   position.
+   position, as one stack that a player picks up by walking over it.
 
 ### Core modules
 
@@ -337,6 +340,17 @@ this, because only the slice as a whole has to be playable.
 | A stack of 100 eggs that spoils at high evolution hatches 10 monsters, most of them big or behemoth. | This is the intended risk. The ratio lives in `core/balance.lua`. |
 | Fewer than 10 eggs may never hatch. | The probe measures it. The fallback is a random hatch per egg. |
 | A warehouse of eggs that spoils at once causes a frame spike. | The probe measures the frame time. 10 eggs per trigger already cuts the events by ten. |
+
+## Open questions
+
+- **Do loot eggs ever hatch?** Nest loot is always 1 to 3 eggs, one
+  stack below the ratio of 10. The probe finds what a stack below 10
+  does when it spoils. With no hatch, loot eggs that a player leaves
+  behind vanish. With one hatch, every loot pile hatches one monster.
+
+  The maintainer decides after the probe. If the maintainer wants
+  neither result, the fallback is a random hatch per egg, with a chance
+  of 1 in 10.
 
 ## Out of scope
 

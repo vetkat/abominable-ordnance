@@ -397,4 +397,7 @@ The ticked questions have answers:
 - [ ] PvP rules: can loaded monsters be re-tamed by the enemy player, and do
   facehuggers work on enemy players?
 - [ ] Facehugger catalyst: which item, and does it differ per planet?
+- [ ] Loot eggs: nest loot is 1 to 3 eggs, below the hatch ratio of 10.
+  Should left-behind loot eggs hatch? See the open question in
+  `docs/superpowers/specs/2026-11-13-lifecycle-design.md`.
 - [ ] Vanilla launcher: a new building, or long-range ammo for the gun turret?
