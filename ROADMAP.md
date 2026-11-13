@@ -7,9 +7,9 @@ date.
 ## 0.1.0: repository and CI
 
 - [x] The design document in Markdown
-- [ ] An empty mod that loads in Factorio 2.1, with and without Space Age
-- [ ] Every gate runs locally and in CI
-- [ ] A release dry run builds a zip that loads
+- [x] An empty mod that loads in Factorio 2.1, with and without Space Age
+- [x] Every gate runs locally and in CI
+- [x] A release dry run builds a zip that loads
 
 ## 1.0.0: design version 1
 
