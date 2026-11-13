@@ -59,8 +59,9 @@ call of its own:
 
 **PR routine.** Push the branch. Open a PR whose title is the
 Conventional Commit given in the task. End the body with
-`🤖 Generated with [Claude Code](https://claude.com/claude-code)`. When
-the check `all-checks` passes, squash merge it. Then
+`🤖 Generated with [Claude Code](https://claude.com/claude-code)`. Run
+`gh pr merge --auto --squash`, so GitHub squash merges the PR when the
+check `all-checks` passes. Wait for the merge, then run
 `git switch main && git pull` before the next branch.
 
 ## Review Focus
