@@ -64,14 +64,17 @@ Conventional Commit given in the task. End the body with
 check `all-checks` passes. Wait for the merge, then run
 `git switch main && git pull` before the next branch.
 
+If `all-checks` fails, fix the cause on the same branch, follow the
+commit routine and push. Auto-merge stays on.
+
 ## Review Focus
 
 1. Eggs that spoil on the ground, where nest loot lies, must hatch like
    eggs in a chest. Task 6 tests both places.
 2. A spitter egg at evolution 0 must hatch a spitter, never a biter.
    Tasks 5 and 6 test it.
-3. A spawner that dies with no killer force, for example by
-   `entity.die()`, must drop nothing and raise no error. Task 8 tests it.
+3. A spawner that dies by `entity.die()` with no force must drop nothing
+   and raise no error. Task 8 tests it.
 4. A typo in a unit name in the species table makes `create_entity` fail
    in a player's game. Task 6 checks that every unit name exists.
 5. At evolution 1 and a random number just below 1, the pick must still
@@ -102,7 +105,7 @@ EGM reports and this plan.
 
 The plan itself is already committed. If the branch holds uncommitted
 edits, follow the commit routine with 1 reviewer (docs only). Message:
-`docs: apply the Stage 9 review to the lifecycle plan`.
+`docs: apply the Stage 9 re-audit to the lifecycle plan`.
 
 - [ ] **Step 2: Open and merge PR 0**
 
@@ -202,7 +205,11 @@ local function report(label, extra)
   error(label .. ": " .. serpent.line({ events = storage.probe, extra = extra }))
 end
 
-before_each(function() storage.probe = {} end)
+before_each(function()
+  storage.probe = {}
+  surface().request_to_generate_chunks({ 330, 300 }, 2)
+  surface().force_generate_chunk_requests()
+end)
 
 test("Q1 Q2 Q3: 10 eggs in a chest", function()
   local chest = chest_with("ao-probe-egg", 10, 300)
@@ -227,14 +234,21 @@ test("Q1: 10 eggs on the ground", function()
   })) do
     spoil(item.stack)
   end
-  after_ticks(2, function() report("ground-10") end)
+  local found = #surface().find_entities_filtered({
+    name = "item-on-ground", area = { { 315, 295 }, { 325, 305 } },
+  })
+  after_ticks(2, function() report("ground-10", { stacks_on_ground = found }) end)
 end)
 
 test("Q5: a full steel chest", function()
   local chest = chest_with("ao-probe-egg", 4800, 330)
   local inventory = chest.get_inventory(defines.inventory.chest)
   for i = 1, #inventory do spoil(inventory[i]) end
-  after_ticks(2, function() report("chest-4800", { events = #storage.probe }) end)
+  after_ticks(2, function()
+    error("chest-4800: " .. serpent.line({
+      events = #storage.probe, first = storage.probe[1],
+    }))
+  end)
 end)
 
 tags("space-age")
@@ -257,17 +271,23 @@ end)
 
 - [ ] **Step 5: Run the probe**
 
-Run: `make ingame`
-Expected: every probe test FAILS, and each failure message holds a
-`serpent` dump. Copy the dumps and the Q5 test's time from the output.
-The test time is not the frame time. It only shows if 4,800 eggs cause
-a visible delay.
+Run the two modes as separate commands, because `tools/ingame.sh` stops
+after the first failing mode:
+
+```bash
+make ingame MODE=base
+make ingame MODE=space-age
+```
+
+Expected: every probe test that runs FAILS, and each failure message
+holds a `serpent` dump. Q4 runs only with Space Age. Copy the dumps, and
+the Q5 test's time if factorio-test prints one. Otherwise record "no time
+printed". The test time is not the frame time.
 
 - [ ] **Step 6: Keep the answers, and act on them**
 
 Save the answers in a scratch file outside the repository. Task 4,
-Step 10 adds them to the spec as a section `### Probe results` under
-`## Delivery`, with one line per question:
+Step 11 adds them to the spec, with one line per question:
 
 1. The event fields that are set, for a chest and for the ground.
 2. The call that forces a spoil: `spoil()` or `spoil_percent = 1`.
@@ -280,12 +300,16 @@ Then act on each answer:
 
 | Probe answer | Action |
 | --- | --- |
-| No position field for eggs in a chest, or none for eggs on the ground | Finish PR 1. Tell the maintainer, and stop before PR 2. |
-| The full stack of 10 on the ground gives one event | The ground test in Task 6 expects 1 monster. |
-| A stack of 9 gives no event | Loot eggs (1 to 3) never hatch. Tell the maintainer: this is the open question on loot eggs in the spec. Keeping it needs no plan change. A random hatch per egg means stopping to re-plan. |
-| A stack of 9 gives one event | Each loot pile hatches one monster. Tell the maintainer, for the same open question. |
-| Only one of `source_position` and `target_position` is set | In Task 6, Step 3, read only that field. |
-| `spoil()` fails and `spoil_percent = 1` works | In `tests/ingame/helpers.lua` (Task 4, Step 6), use the second body of `Helpers.spoil`. |
+| 10 eggs in a chest give no event, or more than one | Finish PR 1. Tell the maintainer, and stop before PR 2. |
+| 10 eggs on the ground give no event, or `stacks_on_ground` is not 1 | Finish PR 1. Tell the maintainer, and stop before PR 2. |
+| 10 eggs on the ground give more than one event | Finish PR 1. In the Task 6 ground test, expect the measured count, and tell the maintainer. |
+| An event has no position field | Finish PR 1. Tell the maintainer, and stop before PR 2. |
+| Neither `spoil()` nor `spoil_percent = 1` forces a spoil | Stop. Tell the maintainer. |
+| `spoil()` fails and `spoil_percent = 1` works | In `tests/ingame/helpers.lua` (Task 4, Step 5), use the second body of `Helpers.spoil`. |
+| A stack of 9 gives no event | Loot eggs (1 to 3) never hatch. This is the open question on loot eggs in the spec. Continue with PR 1. Do not start Task 5 until the maintainer answers. A random hatch per egg means re-planning PR 2. |
+| A stack of 9 gives one event | Each loot pile hatches one monster. Same open question: continue with PR 1, and do not start Task 5 until the maintainer answers. |
+| Q4 (Space Age eggs) | Record only. |
+| Q5 (4,800 eggs) | Record the number of events and the time. Tell the maintainer if the test took longer than 5 seconds. No plan change. |
 
 - [ ] **Step 7: Delete the throwaway branch**
 
@@ -310,7 +334,7 @@ git restore . && git clean -fd tests/ingame && git switch main && git branch -D 
 - Produces:
    - `Names` (table of strings): `TECH`, `POD`, `CATEGORY`,
      `MONSTER_CHOW`, `SPITTER_CHOW`, `ADOPT`.
-   - `Balance` (table of numbers), fields as in Step 3.
+   - `Balance` (table of balance values), fields as in Step 4.
    - `Species.ALL`: list of species records, biter first. A record has
      `name`, `egg`, `feed`, `spawner`, `effect_id`, `units`. `units` is a
      list of `{ unit_name, { {evolution, weight}, ... } }`.
@@ -863,12 +887,11 @@ local SECTION = {
 }
 ```
 
-Add this test inside the existing block that reads
-`locale/en/locale.cfg` (use that block's `read` helper):
+Add this test inside the existing block `describe("locale/en/locale.cfg")`.
+It uses that block's local `text`, so it declares no `text` of its own:
 
 ```lua
   it("names every prototype of slice 1", function()
-    local text = read("locale/en/locale.cfg")
     local opts = { space_age = true, graphics_set = {}, working_sound = {} }
     for _, p in ipairs(Lifecycle.prototypes(opts)) do
       local section = SECTION[p.type]
@@ -926,29 +949,7 @@ ing-form | locale/en/locale.cfg | breeding | the name of the breeding pod
 Run: `make fast`
 Expected: PASS.
 
-- [ ] **Step 5: Write the data-stage shell**
-
-Replace `data.lua`:
-
-```lua
--- The data stage. This file is the shell: it reads the game's data and
--- passes it to the pure builder in core/.
-local Lifecycle = require("core.prototypes.lifecycle")
-
-local source = mods["space-age"] and data.raw["assembling-machine"]["biochamber"]
-  or data.raw["assembling-machine"]["chemical-plant"]
-
-data:extend(Lifecycle.prototypes({
-  space_age = mods["space-age"] ~= nil,
-  graphics_set = source.graphics_set,
-  working_sound = source.working_sound,
-}))
-```
-
-Add `"feature_flags": ["spoiling"]` to `info.json`, after
-`"dependencies"`.
-
-- [ ] **Step 6: Write the in-game test helpers**
+- [ ] **Step 5: Write the in-game test helpers**
 
 Create `tests/ingame/helpers.lua`:
 
@@ -978,7 +979,7 @@ function Helpers.arena(surface, position)
 end
 
 -- A breeding pod with power from an electric energy interface. The
--- force has Monster husbandry, so the pod's recipes are enabled.
+-- force gets Monster husbandry, so it can use the pod's recipes.
 function Helpers.powered_pod(surface, position)
   local x, y = position[1], position[2]
   game.forces.player.technologies["ao-monster-husbandry"].researched = true
@@ -1006,7 +1007,7 @@ return Helpers
 If the probe found that `spoil()` fails and `spoil_percent = 1` works, the
 body of `Helpers.spoil` is `stack.spoil_percent = 1`.
 
-- [ ] **Step 7: Write the failing in-game content test**
+- [ ] **Step 6: Write the failing in-game content test**
 
 Create `tests/ingame/content_test.lua`:
 
@@ -1057,23 +1058,61 @@ test("the adopt recipe turns a biter-egg into a mod egg", function()
 end)
 ```
 
-Add `"tests/ingame/content_test"` to the list in the factorio-test hook
-in `control.lua`.
+Replace the factorio-test hook at the end of `control.lua`, so the test
+list has one entry per line:
 
-- [ ] **Step 8: Run the in-game tests**
+```lua
+if script.active_mods["factorio-test"] then
+  require("__factorio-test__/init")({
+    "tests/ingame/smoke_test",
+    "tests/ingame/content_test",
+  })
+end
+```
+
+- [ ] **Step 7: Run it to see it fail**
+
+Run: `make ingame MODE=base`
+Expected: FAIL, because `data.lua` makes no prototype yet:
+`ao-biter-egg` is missing.
+
+- [ ] **Step 8: Write the data-stage shell**
+
+Replace `data.lua`:
+
+```lua
+-- The data stage. This file is the shell: it reads the game's data and
+-- passes it to the pure builder in core/.
+local Lifecycle = require("core.prototypes.lifecycle")
+
+local source = mods["space-age"] and data.raw["assembling-machine"]["biochamber"]
+  or data.raw["assembling-machine"]["chemical-plant"]
+
+data:extend(Lifecycle.prototypes({
+  space_age = mods["space-age"] ~= nil,
+  graphics_set = source.graphics_set,
+  working_sound = source.working_sound,
+}))
+```
+
+Add `"feature_flags": ["spoiling"]` to `info.json`, after
+`"dependencies"`.
+
+- [ ] **Step 9: Run the in-game tests**
 
 Run: `make ingame`
 Expected: PASS in both modes.
 
-- [ ] **Step 9: Check the icons in the real game**
+- [ ] **Step 10: Check the icons in the real game**
 
 The headless server does not load graphics, so `make ingame` cannot find
 a wrong icon path. Ask the maintainer to start the game client with the
 mod, once without and once with Space Age. They check that the pod, the
 eggs and the chow show tinted icons and the pod shows tinted graphics.
-Fix any path they report.
+Fix any path they report. Do not commit in Step 13 until the maintainer
+confirms the icons.
 
-- [ ] **Step 10: Update the docs**
+- [ ] **Step 11: Update the docs**
 
 1. `docs/design.md`, Monsters table: replace the rows of Biter, Spitter
    and Pentapod with:
@@ -1110,15 +1149,16 @@ Fix any path they report.
      pod, unlocked by the Monster husbandry research.
    ```
 
-5. The spec: add `### Probe results` under `## Delivery`, with the answers
-   from Task 1.
+5. The spec: add `### Probe results` directly after `### Probe` and
+   before `### Pull requests`, with the answers from Task 1. Update the
+   open question on loot eggs and the Risks rows with those answers.
 
-- [ ] **Step 11: Run all gates**
+- [ ] **Step 12: Run all gates**
 
 Run: `make check`
 Expected: PASS.
 
-- [ ] **Step 12: Commit and open PR 1**
+- [ ] **Step 13: Commit and open PR 1**
 
 Follow the commit routine with 4 reviewers. Stage `core/`, `spec/`,
 `tests/ingame/`, `data.lua`, `control.lua`, `info.json`, `locale/`,
@@ -1150,6 +1190,11 @@ the game, so they come before the shell in Task 6. It belongs to PR 2.
      for an effect ID of no species.
 
 - [ ] **Step 1: Make the branch (after the merge of PR 1)**
+
+Start only when both are true:
+
+- The table in Task 1, Step 6 allows PR 2.
+- The maintainer answered the open question on loot eggs.
 
 ```bash
 git switch main && git pull && git switch -c feat/hatching
@@ -1346,8 +1391,8 @@ test("10 biter eggs on the ground hatch one biter", function()
 end)
 ```
 
-Add `"tests/ingame/hatching_test"` to the list in the factorio-test
-hook in `control.lua`.
+Add the line `"tests/ingame/hatching_test",` to the test list of the
+factorio-test hook in `control.lua`, below `"tests/ingame/content_test",`.
 
 - [ ] **Step 2: Run it to see it fail**
 
@@ -1388,7 +1433,8 @@ script.on_event(defines.events.on_script_trigger_effect, function(event)
   local evolution = game.forces.enemy.get_evolution_factor(surface)
   local unit = Hatching.hatch(event.effect_id, evolution, random())
   if not unit then return end
-  local spot = surface.find_non_colliding_position(unit, position, Balance.hatch_search_radius, 0.5)
+  local spot = surface.find_non_colliding_position(
+    unit, position, Balance.hatch_search_radius, 0.5)
   if spot then
     surface.create_entity({ name = unit, position = spot, force = "enemy" })
   end
@@ -1461,7 +1507,8 @@ describe("the nest loot", function()
 
   it("drops 1 to 3 eggs of the spawner's species", function()
     assert.are.same({ name = "ao-biter-egg", count = 1 }, Loot.drop("biter-spawner", true, 0))
-    assert.are.same({ name = "ao-spitter-egg", count = 2 }, Loot.drop("spitter-spawner", true, 0.5))
+    assert.are.same({ name = "ao-spitter-egg", count = 2 },
+      Loot.drop("spitter-spawner", true, 0.5))
     assert.are.same({ name = "ao-biter-egg", count = 3 },
       Loot.drop("biter-spawner", true, 0.999999))
   end)
@@ -1511,7 +1558,8 @@ Expected: PASS.
 
 **Interfaces:**
 
-- Consumes: `Loot.drop` (Task 7), `Names.TECH`, `random()` (Task 6).
+- Consumes: `Loot.drop` (Task 7), `Names.TECH`, `random()` (Task 6),
+  `Helpers.arena` (Task 4).
 
 - [ ] **Step 1: Write the failing in-game test**
 
@@ -1567,8 +1615,8 @@ test("a spawner that dies with no force drops none", function()
 end)
 ```
 
-Add `"tests/ingame/loot_test"` to the list in the factorio-test hook in
-`control.lua`.
+Add the line `"tests/ingame/loot_test",` to the test list of the
+factorio-test hook in `control.lua`, below `"tests/ingame/hatching_test",`.
 
 - [ ] **Step 2: Run it to see it fail**
 
@@ -1618,7 +1666,7 @@ larvae. Add this line directly below the heading `## 1.0.0: design
 version 1`, with a blank line on each side:
 
 ```markdown
-Slice 1 (lifecycle) is done.
+Slice 1 (lifecycle) ships in this release.
 ```
 
 - [ ] **Step 6: Run all gates, commit and open PR 3**

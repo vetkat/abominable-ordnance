@@ -304,7 +304,8 @@ questions, and the spec records the answers:
 3. What happens when fewer than 10 eggs spoil: one hatch, or none?
 4. In the Space Age run, what hatches when 25 `biter-egg` items and 1
    `pentapod-egg` spoil in a chest?
-5. What is the frame time when a full chest of eggs spoils at once?
+5. How long does a test take when a full chest of eggs spoils at once?
+   This is test time, not frame time.
 
 If the probe shows that eggs below 10 never hatch, eggs left on the
 ground vanish without a monster. The maintainer then chooses between that
@@ -332,6 +333,9 @@ this, because only the slice as a whole has to be playable.
 - The item "Spoil outcomes" stays open until slice 2 adds larvae. This
   slice delivers egg hatching.
 
+PR 3 adds the line "Slice 1 (lifecycle) ships in this release." below
+the 1.0.0 heading of `ROADMAP.md`.
+
 ## Risks
 
 | Risk | Answer |
@@ -339,7 +343,7 @@ this, because only the slice as a whole has to be playable.
 | The `script` trigger gives no usable position. | The probe checks it first. Without a position, nothing hatches, and the plan stops before PR 2. |
 | A stack of 100 eggs that spoils at high evolution hatches 10 monsters, most of them big or behemoth. | This is the intended risk. The ratio lives in `core/balance.lua`. |
 | Fewer than 10 eggs may never hatch. | The probe measures it. The fallback is a random hatch per egg. |
-| A warehouse of eggs that spoils at once causes a frame spike. | The probe measures the frame time. 10 eggs per trigger already cuts the events by ten. |
+| A warehouse of eggs that spoils at once causes a frame spike. | The probe measures the test time, as a rough sign. 10 eggs per trigger already cuts the events by ten. |
 
 ## Open questions
 
