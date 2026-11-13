@@ -14,6 +14,10 @@ local function random()
   return r
 end
 
+local function unit_exists(name)
+  return prototypes.entity[name] ~= nil
+end
+
 script.on_event(defines.events.on_script_trigger_effect, function(event)
   -- Other mods' triggers reach this handler too.
   local species = Species.by_effect_id(event.effect_id)
@@ -26,17 +30,16 @@ script.on_event(defines.events.on_script_trigger_effect, function(event)
     return
   end
   local evolution = game.forces["enemy"].get_evolution_factor(surface)
-  local unit = Hatching.pick(species.units, evolution, random())
+  local units = Hatching.available(species.units, unit_exists)
+  if #units == 0 then
+    return
+  end
+  local unit = Hatching.pick(units, evolution, random())
   local spot = surface.find_non_colliding_position(unit, position, Balance.hatch_search_radius, 0.5)
   if spot then
     surface.create_entity({ name = unit, position = spot, force = "enemy" })
   end
 end)
-
-local spawner_filters = {}
-for _, species in ipairs(Species.ALL) do
-  spawner_filters[#spawner_filters + 1] = { filter = "name", name = species.spawner }
-end
 
 script.on_event(defines.events.on_entity_died, function(event)
   local researched = event.force ~= nil and event.force.technologies[Names.TECH].researched
@@ -50,7 +53,7 @@ script.on_event(defines.events.on_entity_died, function(event)
       enable_looted = true,
     })
   end
-end, spawner_filters)
+end, { { filter = "type", type = "unit-spawner" } })
 
 -- factorio-test runs the in-game tests. The hook does nothing unless the
 -- factorio-test mod is active.
