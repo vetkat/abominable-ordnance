@@ -21,7 +21,7 @@ setting, players can fire them at other players' bases in multiplayer.
   factory has to keep them at a distance.
 - **Biology as a production chain.** Capture, breed, load and crossbreed are
   machines and recipes, so you can automate the whole thing.
-- **Absurd on purpose.** Smooth jazz in the breeding pods, an "Expand
+- **Absurd on purpose.** Smooth jazz in the jazz pods, an "Expand
   Orifices" research, facehuggers. The tone is a joke, but the systems are
   played straight.
 
@@ -296,8 +296,7 @@ It proves the core loop before adding planets.
 
 ### Version 1 (MVP)
 
-- [ ] Breeding pod (eggs, with the smooth jazz sound) and incubator (larvae)
-  for biters and spitters
+- [ ] Breeding pod (eggs) and incubator (larvae) for biters and spitters
 - [ ] Loading chamber with three payloads: explosive rocket, sulfuric acid,
   poison capsule
 - [ ] Generated item and entity prototypes for each species × payload larva
@@ -380,6 +379,9 @@ The ticked questions have answers:
 - Re-taming: through the pacifier facehugger.
 - Support: both vanilla and Space Age.
 - The name stays.
+- Jazz: Sascha Ende's "Sexy Scene Instrumentals" volumes 4, 9 and 10
+  (CC BY 4.0), one track per machine. The music starts with the jazz pods
+  in version 2.
 
 - [x] ~~Final hybrid benefits: are the proposals in Crossbreeding the right
   direction?~~
@@ -388,11 +390,14 @@ The ticked questions have answers:
 - [x] ~~Is the mod Space Age-only, or should a Nauvis-only mode work without
   the expansion?~~
 - [x] ~~Mod name: "Abominable Ordnance" is a working title.~~
-- [ ] Jazz: commission or find a royalty-free track (license must allow
-  redistribution in a mod).
+- [x] ~~Jazz: commission or find a royalty-free track (license must allow
+  redistribution in a mod).~~
 - [ ] Extractor egg-return chance: what value for x (20 to 30% as a
   starting point)?
 - [ ] PvP rules: can loaded monsters be re-tamed by the enemy player, and do
   facehuggers work on enemy players?
 - [ ] Facehugger catalyst: which item, and does it differ per planet?
+- [ ] Loot eggs: nest loot is 1 to 3 eggs, below the hatch ratio of 10.
+  Should left-behind loot eggs hatch? See the open question in
+  `docs/superpowers/specs/2026-11-13-lifecycle-design.md`.
 - [ ] Vanilla launcher: a new building, or long-range ammo for the gun turret?

@@ -23,8 +23,9 @@ stay under about 10 seconds.
       refuses an agent commit without a current stamp.
 4. Push the branch and open a PR. The PR title is a Conventional Commit,
    for example `feat: add larvae`.
-5. When `all-checks` passes, squash merge the PR. Nothing goes to `main`
-   in any other way.
+5. Enable auto-merge with `gh pr merge --auto --squash`. GitHub squash
+   merges the PR when `all-checks` passes. Nothing goes to `main` in any
+   other way.
 
 | Change | Reviewers for `/simplify` and code review |
 | --- | --- |

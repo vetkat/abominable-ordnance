@@ -6,6 +6,7 @@
 # (Breeding pod, heating towers, Packing). Renaming them would change the
 # design.
 ing-form | docs/design.md | | names of game parts and actions in the design
+ing-form | docs/superpowers/specs/*-lifecycle-design.md | | names of game parts and research (Breeding pod, Sulfur processing)
 
 # The review reports record what reviewers said and quote the old spec,
 # including its American spellings.
@@ -16,6 +17,8 @@ passive | docs/superpowers/reviews/*.md | | records the reviewers' wording
 perfect-tense | docs/superpowers/reviews/*.md | | records the reviewers' wording
 sentence-length | docs/superpowers/reviews/*.md | | records the reviewers' wording
 word | docs/superpowers/reviews/*.md | | records the reviewers' wording
+paragraph-length | docs/superpowers/reviews/*.md | | records the reviewers' wording
+modal-passive | docs/superpowers/reviews/*.md | | records the reviewers' wording
 
 # The plan follows the writing-plans format ("Modify:" in file lists) and
 # the functional-core work loop, which defines "attempt".
