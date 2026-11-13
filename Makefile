@@ -22,10 +22,7 @@ ifneq ($(shell command -v luarocks 2>/dev/null),)
   export PATH          := $(HOME)/.luarocks/bin:$(PATH)
 endif
 
-# The git hook may pass the staged files in FILES (see Task 15, Step 5).
-# Without FILES, the text checks cover every tracked file, as in CI.
-MARKDOWN   = $(if $(FILES),$(filter %.md,$(FILES)),$(shell git ls-files '*.md'))
-TEXT_FILES = $(if $(FILES),$(filter %.md %.lua locale/%.cfg,$(FILES)),)
+MARKDOWN = $(shell git ls-files '*.md')
 
 .PHONY: setup fast check text lua tools ingame stamp package
 
@@ -40,9 +37,9 @@ fast: text lua tools
 check: fast ingame
 
 text:
-	$(if $(MARKDOWN),mdl $(MARKDOWN))
-	python3 -m tools.text_check $(TEXT_FILES)
-	$(if $(MARKDOWN),lychee --offline --no-progress $(MARKDOWN))
+	mdl $(MARKDOWN)
+	python3 -m tools.text_check
+	lychee --offline --no-progress $(MARKDOWN)
 
 lua:
 	mkdir -p build

@@ -33,6 +33,7 @@ files["spec"] = { std = "+busted" }
 local ingame = {
   "test", "describe", "it", "before_each", "after_each", "before_all",
   "after_all", "async", "done", "after_ticks", "on_tick", "ticks_between_tests",
+  "tags",
 }
 for _, name in ipairs(factorio) do ingame[#ingame + 1] = name end
 files["tests/ingame"] = { read_globals = ingame }

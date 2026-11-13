@@ -11,27 +11,30 @@ import subprocess
 import pytest
 
 ROOT = pathlib.Path(__file__).resolve().parents[2]
+CSPELL = ROOT / "node_modules/.bin/cspell"
+CONFIG = ROOT / "cspell.json"
 
 
 def need(tool):
     return pytest.mark.skipif(shutil.which(tool) is None, reason=f"{tool} is not installed")
 
 
-needs_cspell = pytest.mark.skipif(
-    not (ROOT / "node_modules/.bin/cspell").exists(), reason="run npm ci first")
+needs_cspell = pytest.mark.skipif(not CSPELL.exists(), reason="run npm ci first")
 
 
 @needs_cspell
 def test_cspell_flags_an_american_spelling():
     from tools import text_check
-    found = text_check.spelling(ROOT, {"bad.md": "The color is red.\n"})
+    found = text_check.spelling(CSPELL, CONFIG, {"bad.md": "The color is red.\n"})
     assert [(f.path, f.line, f.excerpt) for f in found] == [("bad.md", 1, "color")]
 
 
 @needs_cspell
 def test_cspell_accepts_the_british_spelling():
     from tools import text_check
-    assert text_check.spelling(ROOT, {"good.md": "The colour is red.\n"}) == []
+    assert text_check.spelling(CSPELL, CONFIG, {"good.md": "The colour is red.\n"}) == []
+
+
 def run(args, cwd=ROOT):
     return subprocess.run(args, cwd=cwd, capture_output=True, text=True)
 
@@ -66,3 +69,10 @@ def test_lychee_passes_a_good_local_link(tmp_path):
     good = tmp_path / "good.md"
     good.write_text("[there](there.md)\n")
     assert run(["lychee", "--offline", "--no-progress", str(good)]).returncode == 0
+
+
+def test_missing_cspell_says_what_to_do(tmp_path):
+    from tools import text_check
+    assert text_check.missing_tools(tmp_path) == [
+        "cspell is missing: run `npm ci`, then try again"]
+    assert text_check.missing_tools(ROOT) == [] or not CSPELL.exists()

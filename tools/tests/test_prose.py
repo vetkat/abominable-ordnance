@@ -67,3 +67,8 @@ def test_markdown_drops_link_definitions():
 def test_lua_comment_code_spans_and_annotations_are_not_prose():
     out = prose.lua_prose("-- the `color` field is read\n---@param color Color\n")
     assert lines(out)[:2] == ["the field is read", ""]
+
+
+def test_markdown_drops_reference_labels():
+    out = prose.markdown_prose("See [the design][color-section] and [it][].\n")
+    assert "color" not in out and "the design" in out

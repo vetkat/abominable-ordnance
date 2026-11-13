@@ -32,6 +32,7 @@ EXTRACT = {
     "lua": prose.lua_prose,
     "locale": prose.locale_prose,
 }
+CSPELL_BIN = "node_modules/.bin/cspell"
 CSPELL = re.compile(r"^(?P<file>.+?):(?P<line>\d+):\d+ - Unknown word \((?P<word>[^)]+)\)")
 
 
@@ -128,7 +129,17 @@ def spelling_findings(output: str) -> list[Finding]:
             found.append(Finding(path, int(match["line"]), "spelling",
                                  "not in the en-GB dictionary", match["word"]))
     return found
-def spelling(root: pathlib.Path, prose_by_path: dict[str, str]) -> list[Finding]:
+
+
+def missing_tools(root: pathlib.Path) -> list[str]:
+    """The tools that the text check needs and cannot find under root."""
+    if not (root / CSPELL_BIN).exists():
+        return ["cspell is missing: run `npm ci`, then try again"]
+    return []
+
+
+def spelling(cspell: pathlib.Path, config: pathlib.Path,
+             prose_by_path: dict[str, str]) -> list[Finding]:
     """Run cspell once over copies of the prose, named <path>.txt."""
     names = []
     with tempfile.TemporaryDirectory() as tmp:
@@ -140,8 +151,8 @@ def spelling(root: pathlib.Path, prose_by_path: dict[str, str]) -> list[Finding]
         if not names:
             return []
         result = subprocess.run(
-            [str(root / "node_modules/.bin/cspell"), "--no-progress", "--no-summary",
-             "--no-color", "--dot", "--config", str(root / "cspell.json"), *names],
+            [str(cspell), "--no-progress", "--no-summary",
+             "--no-color", "--dot", "--config", str(config), *names],
             cwd=tmp, capture_output=True, text=True)
     if result.returncode not in (0, 1):
         raise SystemExit(f"text check: cspell failed:\n{result.stdout}{result.stderr}")
@@ -159,13 +170,19 @@ def relative(path: str) -> str:
 
 
 def main(argv: list[str]) -> int:
+    missing = missing_tools(ROOT)
+    for tool in missing:
+        print(f"text check: {tool}", file=sys.stderr)
+    if missing:
+        return 1
     paths = [relative(p) for p in argv[1:]] or tracked(ROOT)
     texts = {p: (ROOT / p).read_text(encoding="utf-8") for p in paths if kind(p)}
     allow_file = ROOT / ".ste-allow"
     allow_text = allow_file.read_text(encoding="utf-8") if allow_file.exists() else ""
     allows, problems = parse_allow(allow_text)
     findings = check_files(texts) + spelling(
-        ROOT, {p: prose_of(p, t) for p, t in texts.items()})
+        ROOT / CSPELL_BIN, ROOT / "cspell.json",
+        {p: prose_of(p, t) for p, t in texts.items()})
     left = sorted(f for f in findings if not allowed(f, allows))
     for problem in problems:
         print(f"text check: {problem}", file=sys.stderr)
