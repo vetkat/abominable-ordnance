@@ -4,7 +4,9 @@ local Balance = require("core.balance")
 local Hatching = require("core.hatching")
 local Loot = require("core.loot")
 local Names = require("core.names")
+local Payloads = require("core.payloads")
 local Species = require("core.species")
+local Tamed = require("shell.tamed")
 
 -- A deterministic random number in [0, 1). storage keeps only the seed.
 local function random()
@@ -44,9 +46,27 @@ local function spawn(surface, position, units, force)
   return monster
 end
 
+script.on_init(Tamed.ensure)
+script.on_configuration_changed(function()
+  Tamed.ensure()
+end)
+script.on_event(defines.events.on_force_created, function(event)
+  Tamed.on_force_created(event.force)
+end)
+
+-- A loaded monster fights the natives. The engine must not destroy it
+-- when a command fails, or its payload would never go off.
+local function load_monster(monster, payload)
+  monster.ai_settings.allow_destroy_when_commands_fail = false
+  monster.ai_settings.allow_try_return_to_spawner = false
+  storage.loaded[monster.unit_number] = { unit = monster, payloads = { payload.name } }
+  script.register_on_object_destroyed(monster)
+end
+
 script.on_event(defines.events.on_script_trigger_effect, function(event)
   -- Other mods' triggers reach this handler too.
-  local species = Species.by_effect_id(event.effect_id)
+  local loaded, payload = Payloads.decode(event.effect_id)
+  local species = loaded or Species.by_effect_id(event.effect_id)
   if not species then
     return
   end
@@ -55,7 +75,10 @@ script.on_event(defines.events.on_script_trigger_effect, function(event)
   if not surface or not position or surface.platform then
     return
   end
-  spawn(surface, position, species.units, "enemy")
+  local monster = spawn(surface, position, species.units, loaded and Names.TAMED or "enemy")
+  if monster and loaded then
+    load_monster(monster, payload)
+  end
 end)
 
 script.on_event(defines.events.on_entity_died, function(event)
@@ -93,5 +116,6 @@ if script.active_mods["factorio-test"] then
     "tests/ingame/content_test",
     "tests/ingame/hatching_test",
     "tests/ingame/loot_test",
+    "tests/ingame/ordnance_test",
   })
 end

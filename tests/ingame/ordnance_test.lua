@@ -1,0 +1,73 @@
+local Helpers = require("__abominable-ordnance__/tests/ingame/helpers")
+local Names = require("core.names")
+local Species = require("core.species")
+local Tamed = require("shell.tamed")
+
+local BITER = Species.ALL[1]
+
+local surface = function()
+  return game.surfaces[1]
+end
+
+local function tamed_units(position)
+  return surface().find_entities_filtered({
+    area = { { position[1] - 12, position[2] - 12 }, { position[1] + 12, position[2] + 12 } },
+    type = "unit",
+    force = Names.TAMED,
+  })
+end
+
+test("the tamed force fights the natives and spares the players", function()
+  local tamed = game.forces[Names.TAMED]
+  assert(tamed, "no tamed force")
+  assert(not tamed.get_cease_fire("enemy"), "the tamed force spares the natives")
+  assert(not game.forces["enemy"].get_cease_fire(tamed), "the natives spare the tamed force")
+  assert(tamed.get_cease_fire("player"), "the tamed force attacks players")
+  assert(game.forces["player"].get_cease_fire(tamed), "players attack the tamed force")
+end)
+
+test("a force made later gets cease-fire with the tamed force", function()
+  local other = game.create_force("ao-test-force")
+  after_ticks(1, function()
+    local tamed = game.forces[Names.TAMED]
+    assert(tamed.get_cease_fire(other) and other.get_cease_fire(tamed), "no cease-fire")
+  end)
+end)
+
+test("the tamed force setup can run twice", function()
+  Tamed.ensure()
+  Tamed.ensure()
+  assert(game.forces[Names.TAMED].get_cease_fire("player"))
+  assert(storage.loaded, "no loaded table")
+end)
+
+test("a loaded larva that spoils in a character's inventory becomes a loaded monster", function()
+  local position = { 700, 700 }
+  Helpers.arena(surface(), position)
+  local character =
+    surface().create_entity({ name = "character", position = position, force = "player" })
+  character.insert({ name = "ao-biter-larva-explosive", count = 1 })
+  character.get_main_inventory()[1].spoil()
+  after_ticks(2, function()
+    local units = tamed_units(position)
+    assert(#units == 1, #units .. " tamed units")
+    local entry = storage.loaded[units[1].unit_number]
+    assert(entry and entry.payloads[1] == "explosive", "no loaded entry")
+  end)
+end)
+
+test("a loaded monster attacks a nearby spawner", function()
+  local position = { 740, 700 }
+  Helpers.arena(surface(), position)
+  local spawner = surface().create_entity({
+    name = BITER.spawner,
+    position = { position[1] + 10, position[2] },
+    force = "enemy",
+  })
+  -- A working spawner sends defenders, which kill one small monster fast.
+  spawner.disabled_by_script = true
+  Helpers.spoil(Helpers.spill(surface(), position, "ao-biter-larva-poison", 1))
+  after_ticks(20 * 60, function()
+    assert(not spawner.valid or spawner.health < spawner.max_health, "the spawner is untouched")
+  end)
+end)

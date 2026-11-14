@@ -11,4 +11,5 @@ return {
   CHAMBER = "ao-loading-chamber",
   LOADING = "ao-loading",
   ORDNANCE_TECH = "ao-ordnance-loading",
+  TAMED = "ao-tamed",
 }
