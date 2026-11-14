@@ -5,14 +5,16 @@ local surface = function()
   return game.surfaces[1]
 end
 
--- Fires one larva rocket from a spot to a target by hand.
-local function fire(from, to, projectile)
+-- Fires one larva rocket from a spot to a target by hand. With a
+-- launcher, the rocket's source is that launcher, as in a real shot.
+local function fire(from, to, projectile, launcher)
   surface().create_entity({
     name = projectile,
     position = from,
     target = to,
     force = "player",
     speed = 1,
+    source = launcher,
   })
 end
 
@@ -34,9 +36,14 @@ test("a larva rocket lands as its loaded monster at full health", function()
   end)
 end)
 
-test("the blast hurts a native, and not a tamed monster or a player chest", function()
+test("the blast hurts a native, and not a tamed monster, a player chest or a rock", function()
   local from, to = { 1100, 760 }, { 1120, 760 }
   Helpers.arena(surface(), to)
+  local launcher = surface().create_entity({
+    name = Names.LAUNCHER,
+    position = from,
+    force = "player",
+  })
   local native = surface().create_entity({
     name = "medium-biter",
     position = { to[1] + 1, to[2] },
@@ -54,10 +61,45 @@ test("the blast hurts a native, and not a tamed monster or a player chest", func
     position = { to[1], to[2] + 1.5 },
     force = "player",
   })
+  local rock = surface().create_entity({ name = "big-rock", position = { to[1], to[2] - 2 } })
+  -- A control: this kind of rock does take explosion damage.
+  local control = surface().create_entity({ name = "big-rock", position = { to[1] + 10, to[2] } })
+  control.damage(35, "player", "explosion")
+  fire(from, to, "ao-larva-projectile-spitter-acid", launcher)
+  -- The monster hatches in the tick of the landing. Its own bites and
+  -- its payload come later, so at that tick only the blast hurt the native.
+  local function check()
+    if #tamed_units(to) < 2 then
+      after_ticks(1, check)
+      return
+    end
+    assert(native.valid and native.health < native.max_health, "the blast missed the native")
+    assert(control.valid and control.health < control.max_health, "the rock shrugs off explosions")
+    assert(tamed.valid and tamed.health == tamed.max_health, "the tamed monster is hurt")
+    assert(chest.valid and chest.health == chest.max_health, "the player chest is hurt")
+    assert(rock.valid and rock.health == rock.max_health, "the neutral rock is hurt")
+    launcher.destroy()
+  end
+  after_ticks(1, check)
+end)
+
+test("the blast of a rocket without a launcher hurts only the natives", function()
+  local from, to = { 1100, 780 }, { 1120, 780 }
+  Helpers.arena(surface(), to)
+  local native = surface().create_entity({
+    name = "medium-biter",
+    position = { to[1] + 1, to[2] },
+    force = "enemy",
+  })
+  native.disabled_by_script = true
+  local chest = surface().create_entity({
+    name = "wooden-chest",
+    position = { to[1], to[2] + 1.5 },
+    force = "player",
+  })
   fire(from, to, "ao-larva-projectile-spitter-acid")
   after_ticks(120, function()
     assert(not native.valid or native.health < native.max_health, "the native is untouched")
-    assert(tamed.valid and tamed.health == tamed.max_health, "the tamed monster is hurt")
     assert(chest.valid and chest.health == chest.max_health, "the player chest is hurt")
   end)
 end)
@@ -151,7 +193,7 @@ local function flare_pair(y, flare)
   )
   local target = { position[1] + 40, position[2] + 3 }
   Helpers.arena(surface(), target)
-  surface().create_entity({
+  local lit = surface().create_entity({
     name = flare,
     position = target,
     force = "player",
@@ -160,45 +202,34 @@ local function flare_pair(y, flare)
     vertical_speed = 0,
     frame_speed = 1,
   })
-  return larva, vanilla
+  return larva, vanilla, lit
+end
+
+-- Reads which of the two fired, then removes all three entities, so a
+-- failed assert cannot leave a flare or a turret for the next test.
+local function settle(larva, vanilla, lit)
+  local larva_fired, vanilla_fired = Helpers.ammo(larva) == 0, Helpers.ammo(vanilla) == 0
+  for _, entity in pairs({ larva, vanilla, lit }) do
+    entity.destroy()
+  end
+  return larva_fired, vanilla_fired
 end
 
 test("a larva flare fires a larva launcher and not vanilla artillery", function()
-  local larva, vanilla = flare_pair(1060, Names.FLARE)
+  local larva, vanilla, lit = flare_pair(1060, Names.FLARE)
   after_ticks(10 * 60, function()
-    local larva_fired, vanilla_fired = Helpers.ammo(larva) == 0, Helpers.ammo(vanilla) == 0
-    larva.destroy()
-    vanilla.destroy()
+    local larva_fired, vanilla_fired = settle(larva, vanilla, lit)
     assert(larva_fired, "the larva launcher did not fire")
     assert(not vanilla_fired, "vanilla artillery fired at a larva flare")
   end)
 end)
 
 test("a vanilla flare fires vanilla artillery and not a larva launcher", function()
-  local larva, vanilla = flare_pair(1140, "artillery-flare")
+  local larva, vanilla, lit = flare_pair(1140, "artillery-flare")
   after_ticks(10 * 60, function()
-    local vanilla_fired, larva_fired = Helpers.ammo(vanilla) == 0, Helpers.ammo(larva) == 0
-    larva.destroy()
-    vanilla.destroy()
+    local larva_fired, vanilla_fired = settle(larva, vanilla, lit)
     assert(vanilla_fired, "vanilla artillery did not fire")
     assert(not larva_fired, "the larva launcher fired at a vanilla flare")
-  end)
-end)
-
-test("the blast does not hurt a neutral rock, and does hurt a native beside it", function()
-  local from, to = { 1300, 700 }, { 1320, 700 }
-  Helpers.arena(surface(), to)
-  local rock = surface().create_entity({ name = "big-rock", position = { to[1], to[2] + 2 } })
-  local native = surface().create_entity({
-    name = "medium-biter",
-    position = { to[1] + 1, to[2] },
-    force = "enemy",
-  })
-  native.disabled_by_script = true
-  fire(from, to, "ao-larva-projectile-spitter-acid")
-  after_ticks(120, function()
-    assert(not native.valid or native.health < native.max_health, "the blast missed the native")
-    assert(rock.valid and rock.health == rock.max_health, "the neutral rock is hurt")
   end)
 end)
 

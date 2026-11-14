@@ -103,7 +103,8 @@ end
 
 -- An artillery turret of the player force with some ammo, at a
 -- position. The force sees the area, because artillery only fires on
--- its own at what the force can see.
+-- its own at what the force can see. The chart covers only 96 tiles
+-- around the turret.
 function Helpers.launcher(surface, position, name, ammo)
   local turret = surface.create_entity({ name = name, position = position, force = "player" })
   if ammo then
