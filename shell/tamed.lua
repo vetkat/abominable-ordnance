@@ -5,29 +5,25 @@ local Names = require("core.names")
 
 local Tamed = {}
 
-local function befriend(tamed, force)
-  tamed.set_cease_fire(force, true)
-  force.set_cease_fire(tamed, true)
-end
-
--- Creates the tamed force and the loaded table if they are missing, and
--- sets every force relation. A second call changes nothing.
-function Tamed.ensure()
-  local tamed = game.forces[Names.TAMED] or game.create_force(Names.TAMED)
-  for _, force in pairs(game.forces) do
-    if Forces.peaceful(force.name) then
-      befriend(tamed, force)
-    end
-  end
-  tamed.set_cease_fire("enemy", false)
-  game.forces["enemy"].set_cease_fire(tamed, false)
-  storage.loaded = storage.loaded or {}
-end
-
-function Tamed.on_force_created(force)
+-- Sets the cease-fire between the tamed force and one force, both ways,
+-- by the rule in core/forces.lua.
+function Tamed.relate(force)
   local tamed = game.forces[Names.TAMED]
-  if tamed and Forces.peaceful(force.name) then
-    befriend(tamed, force)
+  local rule = Forces.cease_fire(force.name)
+  if tamed and rule ~= nil then
+    tamed.set_cease_fire(force, rule)
+    force.set_cease_fire(tamed, rule)
+  end
+end
+
+-- Creates the tamed force if it is missing and relates it to every
+-- force. A second call changes nothing.
+function Tamed.ensure()
+  if not game.forces[Names.TAMED] then
+    game.create_force(Names.TAMED)
+  end
+  for _, force in pairs(game.forces) do
+    Tamed.relate(force)
   end
 end
 

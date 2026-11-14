@@ -2,6 +2,7 @@
 -- pure modules in core/ and writes the result to the game.
 local Balance = require("core.balance")
 local Hatching = require("core.hatching")
+local Forces = require("core.forces")
 local Loot = require("core.loot")
 local Names = require("core.names")
 local Payloads = require("core.payloads")
@@ -16,7 +17,7 @@ local function random()
   return r
 end
 
-local function unit_exists(name)
+local function entity_exists(name)
   return prototypes.entity[name] ~= nil
 end
 
@@ -25,7 +26,7 @@ end
 -- command stands still until something provokes it. Returns the unit, or
 -- nil when no unit or no free spot exists.
 local function spawn(surface, position, units, force)
-  units = Hatching.available(units, unit_exists)
+  units = Hatching.available(units, entity_exists)
   if #units == 0 then
     return nil
   end
@@ -46,12 +47,17 @@ local function spawn(surface, position, units, force)
   return monster
 end
 
-script.on_init(Tamed.ensure)
-script.on_configuration_changed(function()
+-- Sets up storage and the tamed force, for a new game and for a save
+-- that gains or updates the mod.
+local function setup()
+  storage.loaded = storage.loaded or {}
   Tamed.ensure()
-end)
+end
+
+script.on_init(setup)
+script.on_configuration_changed(setup)
 script.on_event(defines.events.on_force_created, function(event)
-  Tamed.on_force_created(event.force)
+  Tamed.relate(event.force)
 end)
 
 -- A loaded monster fights the natives. The engine must not destroy it
@@ -59,7 +65,13 @@ end)
 local function load_monster(monster, payload)
   monster.ai_settings.allow_destroy_when_commands_fail = false
   monster.ai_settings.allow_try_return_to_spawner = false
-  storage.loaded[monster.unit_number] = { unit = monster, payloads = { payload.name } }
+  local payloads = { payload.name }
+  local trail = Payloads.trail(payloads)
+  storage.loaded[monster.unit_number] = {
+    unit = monster,
+    payloads = payloads,
+    trail = trail and entity_exists(trail) and trail or nil,
+  }
   script.register_on_object_destroyed(monster)
 end
 
@@ -83,10 +95,9 @@ end)
 
 -- A dead native spawner drops eggs beside its corpse.
 local function nest_loot(event)
-  -- The tamed force has no research, but its kills feed the egg supply.
   local force = event.force
   local researched = force ~= nil
-    and (force.name == Names.TAMED or force.technologies[Names.TECH].researched)
+    and Forces.earns_loot(force.name, force.technologies[Names.TECH].researched)
   local entity = event.entity
   local drop = Loot.drop(entity.name, researched, random())
   if not drop then
@@ -118,7 +129,7 @@ local function set_off(entity)
   if not entry then
     return
   end
-  for _, effect in ipairs(Payloads.on_death(entry.payloads, entity.position, unit_exists)) do
+  for _, effect in ipairs(Payloads.on_death(entry.payloads, entity.position, entity_exists)) do
     effect.force = Names.TAMED
     effect.cause = entity
     entity.surface.create_entity(effect)
@@ -134,19 +145,17 @@ script.on_event(defines.events.on_entity_died, function(event)
 end, { { filter = "type", type = "unit-spawner" }, { filter = "type", type = "unit" } })
 
 -- Runs after on_entity_died, and also when a unit leaves without dying.
+-- The mod registers only loaded monsters, so useful_id is a unit number.
 script.on_event(defines.events.on_object_destroyed, function(event)
-  if event.type == defines.target_type.entity then
-    storage.loaded[event.useful_id] = nil
-  end
+  storage.loaded[event.useful_id] = nil
 end)
 
 -- An acid-loaded monster leaves a small acid puddle where it walks.
 script.on_nth_tick(Balance.acid_trail_ticks, function()
   for _, entry in pairs(storage.loaded) do
-    local trail = entry.unit.valid and Payloads.trail(entry.payloads)
-    if trail and unit_exists(trail) then
+    if entry.trail and entry.unit.valid then
       entry.unit.surface.create_entity({
-        name = trail,
+        name = entry.trail,
         position = entry.unit.position,
         force = Names.TAMED,
       })

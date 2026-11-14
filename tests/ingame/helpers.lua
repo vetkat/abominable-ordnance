@@ -75,12 +75,15 @@ function Helpers.spill(surface, position, name, count)
   return piles[1].stack
 end
 
+-- The units of some names, or of a force, near a position.
+function Helpers.find_units(surface, position, filter)
+  filter.area = area(position, 12)
+  filter.type = "unit"
+  return surface.find_entities_filtered(filter)
+end
+
 function Helpers.count_units(surface, position, names)
-  return surface.count_entities_filtered({
-    area = area(position, 12),
-    name = names,
-    force = "enemy",
-  })
+  return #Helpers.find_units(surface, position, { name = names, force = "enemy" })
 end
 
 -- The number of items of one name on the ground near a position.

@@ -10,11 +10,7 @@ local surface = function()
 end
 
 local function tamed_units(position)
-  return surface().find_entities_filtered({
-    area = { { position[1] - 12, position[2] - 12 }, { position[1] + 12, position[2] + 12 } },
-    type = "unit",
-    force = Names.TAMED,
-  })
+  return Helpers.find_units(surface(), position, { force = Names.TAMED })
 end
 
 test("the tamed force fights the natives and spares the players", function()
@@ -37,8 +33,8 @@ end)
 test("the tamed force setup can run twice", function()
   Tamed.ensure()
   Tamed.ensure()
-  assert(game.forces[Names.TAMED].get_cease_fire("player"))
-  assert(storage.loaded, "no loaded table")
+  local tamed = game.forces[Names.TAMED]
+  assert(tamed.get_cease_fire("player") and not tamed.get_cease_fire("enemy"))
 end)
 
 test("a loaded larva that spoils in a character's inventory becomes a loaded monster", function()
@@ -47,7 +43,7 @@ test("a loaded larva that spoils in a character's inventory becomes a loaded mon
   local character =
     surface().create_entity({ name = "character", position = position, force = "player" })
   character.insert({ name = "ao-biter-larva-explosive", count = 1 })
-  character.get_main_inventory()[1].spoil()
+  Helpers.spoil(character.get_main_inventory()[1])
   after_ticks(2, function()
     local units = tamed_units(position)
     assert(#units == 1, #units .. " tamed units")

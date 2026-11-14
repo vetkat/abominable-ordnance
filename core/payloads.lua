@@ -11,34 +11,21 @@ Payloads.ALL = {
     item = "explosive-rocket",
     icon = "__base__/graphics/icons/explosive-rocket.png",
     -- A rocket made at its own target explodes at once.
-    death = function(p)
-      return { { name = "explosive-rocket", position = p, target = p, speed = 1 } }
-    end,
+    death = { name = "explosive-rocket", aimed = true },
   },
   {
     name = "acid",
     item = "sulfuric-acid-barrel",
     icon = "__base__/graphics/icons/fluid/sulfuric-acid.png",
     -- One puddle hurts only what stands in it, so the death spreads five.
-    death = function(p)
-      local d, name = Balance.acid_spread, "acid-splash-fire-spitter-big"
-      return {
-        { name = name, position = { x = p.x, y = p.y } },
-        { name = name, position = { x = p.x + d, y = p.y } },
-        { name = name, position = { x = p.x - d, y = p.y } },
-        { name = name, position = { x = p.x, y = p.y + d } },
-        { name = name, position = { x = p.x, y = p.y - d } },
-      }
-    end,
+    death = { name = "acid-splash-fire-spitter-big", spread = true },
     trail = "acid-splash-fire-spitter-small",
   },
   {
     name = "poison",
     item = "poison-capsule",
     icon = "__base__/graphics/icons/poison-capsule.png",
-    death = function(p)
-      return { { name = "poison-cloud", position = p } }
-    end,
+    death = { name = "poison-cloud" },
   },
 }
 
@@ -78,16 +65,33 @@ for _, payload in ipairs(Payloads.ALL) do
   BY_NAME[payload.name] = payload
 end
 
+-- The death spot and, for a spread effect, four spots around it.
+local SPREAD = { { 0, 0 }, { 1, 0 }, { -1, 0 }, { 0, 1 }, { 0, -1 } }
+
+-- The create_entity tables for one death effect at a position.
+local function effects(death, position)
+  local out = {}
+  for _, o in ipairs(death.spread and SPREAD or { { 0, 0 } }) do
+    local d = Balance.acid_spread
+    local spot = { x = position.x + o[1] * d, y = position.y + o[2] * d }
+    out[#out + 1] = { name = death.name, position = spot, target = death.aimed and spot or nil }
+    if death.aimed then
+      out[#out].speed = 1
+    end
+  end
+  return out
+end
+
 -- The entities to create where a monster with these payloads dies, as
 -- create_entity tables without force or cause. It leaves out every
 -- entity whose name fails exists(name), for example one another mod
--- removed.
+-- removed, and every unknown payload.
 function Payloads.on_death(names, position, exists)
   local out = {}
   for _, name in ipairs(names) do
     local payload = BY_NAME[name]
-    for _, effect in ipairs(payload and payload.death(position) or {}) do
-      if exists(effect.name) then
+    if payload and exists(payload.death.name) then
+      for _, effect in ipairs(effects(payload.death, position)) do
         out[#out + 1] = effect
       end
     end

@@ -51,13 +51,22 @@ describe("the payload effects", function()
 
   it("spread five acid puddles for an acid payload", function()
     local d = Balance.acid_spread
-    assert.are.same({
-      { name = "acid-splash-fire-spitter-big", position = { x = 10, y = 20 } },
-      { name = "acid-splash-fire-spitter-big", position = { x = 10 + d, y = 20 } },
-      { name = "acid-splash-fire-spitter-big", position = { x = 10 - d, y = 20 } },
-      { name = "acid-splash-fire-spitter-big", position = { x = 10, y = 20 + d } },
-      { name = "acid-splash-fire-spitter-big", position = { x = 10, y = 20 - d } },
-    }, Payloads.on_death({ "acid" }, p, all))
+    local spots = {}
+    for _, e in ipairs(Payloads.on_death({ "acid" }, p, all)) do
+      assert.are.equal("acid-splash-fire-spitter-big", e.name)
+      spots[#spots + 1] = (e.position.x - 10) / d .. "," .. (e.position.y - 20) / d
+    end
+    table.sort(spots)
+    assert.are.same({ "-1,0", "0,-1", "0,0", "0,1", "1,0" }, spots)
+  end)
+
+  it("give each effect its own position table", function()
+    local rocket = Payloads.on_death({ "explosive" }, p, all)[1]
+    assert.are_not.equal(p, rocket.position)
+  end)
+
+  it("skip an unknown payload", function()
+    assert.are.same({}, Payloads.on_death({ "glitter" }, p, all))
   end)
 
   it("leave out an effect whose prototype is missing", function()
