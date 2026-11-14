@@ -5,9 +5,24 @@ local lfs = require("lfs")
 
 local M = {}
 
--- A core module never names these. docs_spec.lua checks that
--- docs/architecture.md names the same list.
-M.GAME_API = { "game", "storage", "script", "defines" }
+-- A core module never names these. They are Factorio globals that plain
+-- Lua 5.2 lacks. docs_spec.lua checks that docs/architecture.md names the
+-- same list.
+M.GAME_API = {
+  "game",
+  "storage",
+  "script",
+  "defines",
+  "prototypes",
+  "rendering",
+  "helpers",
+  "remote",
+  "commands",
+  "rcon",
+  "settings",
+  "mods",
+  "data",
+}
 
 -- Returns the source without comments and string literals, so that a
 -- name in a comment or a string does not count.
@@ -46,8 +61,18 @@ function M.code_only(src)
   return table.concat(out)
 end
 
+-- True when the code uses name as a global. A field (t.name) or a method
+-- (t:name) with the same name does not count, but the concat operator
+-- (x .. name) does.
 local function names(code, name)
-  return code:find("%f[%w_]" .. name .. "%f[^%w_]") ~= nil
+  for pos in code:gmatch("()%f[%w_]" .. name .. "%f[^%w_]") do
+    local before = code:sub(1, pos - 1)
+    local dots = before:match("(%.+)%s*$")
+    if dots ~= "." and not before:match(":%s*$") then
+      return true
+    end
+  end
+  return false
 end
 
 function M.core_problems(path, src)
@@ -65,7 +90,7 @@ end
 
 function M.random_problems(path, src)
   if M.code_only(src):find("%f[%w_]math%s*%.%s*random%f[^%w_]") then
-    return { path .. " uses math.random, which desyncs multiplayer games" }
+    return { path .. " uses math.random, which shares the map's generator with every mod" }
   end
   return {}
 end
