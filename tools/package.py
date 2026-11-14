@@ -23,7 +23,7 @@ ROOT = pathlib.Path(__file__).resolve().parents[1]
 REQUIRED = ("info.json", "LICENSE", "data.lua", "control.lua", "locale/")
 OPTIONAL = ("thumbnail.png", "data-updates.lua", "data-final-fixes.lua",
             "settings.lua", "settings-updates.lua", "settings-final-fixes.lua",
-            "core/", "prototypes/", "graphics/", "tests/ingame/")
+            "core/", "shell/", "prototypes/", "graphics/", "tests/ingame/")
 SHIP = REQUIRED + OPTIONAL
 
 

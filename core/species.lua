@@ -1,4 +1,4 @@
--- The two species of slice 1. The units and evolution points are each
+-- The two species of version 1. The units and evolution points are each
 -- species' own units from the vanilla spawners in Factorio 2.1.24.
 local Names = require("core.names")
 

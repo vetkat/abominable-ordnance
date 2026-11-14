@@ -157,8 +157,9 @@ the command.
 
 ### Larva hatch
 
-The slice 1 hatch handler also handles the larva effect IDs. It picks
-the unit by evolution, as for eggs, and spawns it on `enemy`.
+A larva uses its species' egg effect ID, with one item per trigger. So
+the slice 1 hatch handler hatches it as it hatches eggs (changed during
+the build, after the simplify review).
 
 ### Loaded hatch
 
@@ -198,7 +199,7 @@ At a fixed interval, the shell creates a small acid puddle on
 
 | File | Content |
 | --- | --- |
-| `core/species.lua` | Each species gets its larva name and larva effect ID. |
+| `core/species.lua` | Each species gets its larva name. |
 | `core/payloads.lua` | The three payloads and their effects. Pure data and lookups. |
 | `core/prototypes/ordnance.lua` | Builds the prototypes of this slice from the species and payload lists. |
 | `core/balance.lua` | The numbers of this slice. |

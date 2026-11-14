@@ -9,6 +9,10 @@ Event handlers, `storage`, and the calls to `game.*` and `surface.*` are
 the shell. Keep each handler short: read from the game, call the core,
 then write the result to the game.
 
+Shell code that the in-game tests must also call goes in `shell/`, for
+example the setup of a force. A `shell/` module may use the game API,
+because it is not core.
+
 ## The core
 
 Pure modules make the decisions, for example feral checks, payload
