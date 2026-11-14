@@ -126,8 +126,8 @@ local function launcher_kit()
   return item, recipe
 end
 
--- The larva flare: the vanilla flare's looks, answered only by larva
--- rockets.
+-- The larva flare. It looks like the vanilla flare, and only larva
+-- launchers fire at it.
 local function flare(looks)
   local p = Common.pick(looks, FLARE_LOOKS)
   p.type = "artillery-flare"
