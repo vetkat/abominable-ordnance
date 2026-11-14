@@ -1,3 +1,4 @@
+local Balance = require("core.balance")
 local Payloads = require("core.payloads")
 local Species = require("core.species")
 
@@ -26,5 +27,49 @@ describe("the payload table", function()
     assert.are.equal("poison", payload.name)
     assert.is_nil(Payloads.decode("ao-hatch-biter"))
     assert.is_nil(Payloads.decode("ao-hatch-worm-poison"))
+  end)
+end)
+describe("the payload effects", function()
+  local p = { x = 10, y = 20 }
+  local function all()
+    return true
+  end
+
+  it("fire a rocket at the death spot for an explosive payload", function()
+    assert.are.same(
+      { { name = "explosive-rocket", position = p, target = p, speed = 1 } },
+      Payloads.on_death({ "explosive" }, p, all)
+    )
+  end)
+
+  it("leave a poison cloud for a poison payload", function()
+    assert.are.same(
+      { { name = "poison-cloud", position = p } },
+      Payloads.on_death({ "poison" }, p, all)
+    )
+  end)
+
+  it("spread five acid puddles for an acid payload", function()
+    local d = Balance.acid_spread
+    assert.are.same({
+      { name = "acid-splash-fire-spitter-big", position = { x = 10, y = 20 } },
+      { name = "acid-splash-fire-spitter-big", position = { x = 10 + d, y = 20 } },
+      { name = "acid-splash-fire-spitter-big", position = { x = 10 - d, y = 20 } },
+      { name = "acid-splash-fire-spitter-big", position = { x = 10, y = 20 + d } },
+      { name = "acid-splash-fire-spitter-big", position = { x = 10, y = 20 - d } },
+    }, Payloads.on_death({ "acid" }, p, all))
+  end)
+
+  it("leave out an effect whose prototype is missing", function()
+    local function no_rocket(name)
+      return name ~= "explosive-rocket"
+    end
+    assert.are.same({}, Payloads.on_death({ "explosive" }, p, no_rocket))
+  end)
+
+  it("give acid a trail and no other payload one", function()
+    assert.are.equal("acid-splash-fire-spitter-small", Payloads.trail({ "acid" }))
+    assert.are.equal("acid-splash-fire-spitter-small", Payloads.trail({ "poison", "acid" }))
+    assert.is_nil(Payloads.trail({ "poison" }))
   end)
 end)

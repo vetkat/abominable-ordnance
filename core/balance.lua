@@ -49,4 +49,6 @@ return {
     recipe = { time = 5, steel = 10, advanced = 5, gear = 10 },
   },
   ordnance_research = { count = 250, time = 30 },
+  acid_spread = 1.5,
+  acid_trail_ticks = 60,
 }
