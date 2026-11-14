@@ -10,6 +10,8 @@ return {
   hatch_attack_radius = 32,
   loot_min = 1,
   loot_max = 3,
+  loot_offset = 1.5,
+  loot_label_ticks = 5 * 60,
   monster_chow = { time = 2, coal = 1, sulfur = 1, water = 20, result = 2 },
   spitter_chow = { time = 2, chow = 1, acid = 10, result = 1 },
   breed = { time = 15, chow = 5, result = 2 },

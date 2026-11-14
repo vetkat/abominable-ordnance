@@ -41,3 +41,22 @@ test("a spawner that dies with no force drops none", function()
   spawner(position).die()
   assert(eggs_near(position) == 0, "eggs dropped with no killer force")
 end)
+
+test("a spawner drops its eggs beside its corpse, with a label", function()
+  Helpers.research(true)
+  local position = { 660, 600 }
+  spawner(position).die(game.forces["player"])
+  local under = surface().find_entities_filtered({
+    name = "item-on-ground",
+    area = { { 657.5, 597.5 }, { 662.5, 602.5 } },
+  })
+  assert(#under == 0, "eggs dropped under the corpse")
+  assert(eggs_near(position) >= 1, "no eggs dropped")
+  local texts = 0
+  for _, object in pairs(rendering.get_all_objects("abominable-ordnance")) do
+    if object.type == "text" then
+      texts = texts + 1
+    end
+  end
+  assert(texts >= 1, "no label")
+end)
