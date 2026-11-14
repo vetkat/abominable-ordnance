@@ -62,6 +62,7 @@ return {
     min_range = 8,
     ammo = 5,
     max_health = 1000,
+    heating_energy = "200kW",
     mining_time = 0.5,
     stack = 10,
     recipe = { time = 10, steel = 20, gear = 10, advanced = 10, pipe = 5 },

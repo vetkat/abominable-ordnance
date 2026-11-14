@@ -101,7 +101,10 @@ describe("the ordnance prototypes", function()
     local p = all["artillery-projectile/ao-larva-projectile-biter-acid"]
     assert.are.same(opts.projectile.picture, p.picture)
     assert.are_not.equal(opts.projectile.picture, p.picture)
-    assert.is_nil(opts.projectile.action)
+    local vanilla_action = Stubs.ordnance_opts().projectile.action
+    assert.are.same(vanilla_action, opts.projectile.action)
+    assert.are_not.equal(opts.projectile.action, p.action)
+    assert.are_not.same(vanilla_action, p.action)
   end)
 
   it("load a larva with one payload item and one casing", function()

@@ -28,6 +28,7 @@ function Stubs.ordnance_opts()
       shadow = { filename = "shell-shadow.png", draw_as_shadow = true },
       map_color = { r = 1, g = 1, b = 0 },
       height_from_ground = 1,
+      action = { type = "direct", action_delivery = { type = "instant" } },
     },
   }
 end
@@ -54,6 +55,19 @@ function Stubs.launcher_opts(levels)
       collision_box = { { -1.2, -1.2 }, { 1.2, 1.2 } },
       selection_box = { { -1.5, -1.5 }, { 1.5, 1.5 } },
       rotating_sound = { sound = { filename = "turn.ogg" } },
+      circuit_connector = { points = { wire = { red = { 0, 1 } } } },
+      circuit_wire_max_distance = 9,
+      alert_when_attacking = false,
+      open_sound = { filename = "open.ogg" },
+      close_sound = { filename = "close.ogg" },
+      mined_sound = { filename = "mined.ogg" },
+      damaged_trigger_effect = { type = "create-entity", entity_name = "hit" },
+    },
+    cannon = {
+      sound = { filename = "shoot.ogg", volume = 0.7 },
+      projectile_center = { -0.15625, -0.07812 },
+      projectile_creation_parameters = { { "direction", { 0, 1 } } },
+      projectile_creation_distance = 1.6,
     },
     flare = {
       pictures = { { filename = "flare.png" } },
@@ -61,7 +75,10 @@ function Stubs.launcher_opts(levels)
       map_color = { r = 1, g = 0.5, b = 0 },
       shots_per_flare = 1,
     },
-    remote = { flags = { "only-in-cursor", "not-stackable", "spawnable" } },
+    remote = {
+      flags = { "only-in-cursor", "not-stackable", "spawnable", "always-show" },
+      pick_sound = { filename = "pick.ogg" },
+    },
   }
 end
 

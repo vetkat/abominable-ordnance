@@ -43,5 +43,7 @@ data:extend(LauncherPrototypes.prototypes({
   turret = vanilla("artillery-turret", "artillery-turret"),
   flare = vanilla("artillery-flare", "artillery-flare"),
   remote = vanilla("capsule", "artillery-targeting-remote"),
+  cannon = vanilla("gun", "artillery-wagon-cannon").attack_parameters,
+  space_age = space_age,
   levels = { 0 },
 }))

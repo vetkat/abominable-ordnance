@@ -39,6 +39,21 @@ local TURRET_LOOKS = {
   "dying_explosion",
   "resistances",
   "water_reflection",
+  "circuit_connector",
+  "circuit_wire_max_distance",
+  "alert_when_attacking",
+  "open_sound",
+  "close_sound",
+  "mined_sound",
+  "damaged_trigger_effect",
+}
+-- The vanilla cannon's attack fields the hidden gun copies, so that a
+-- shot sounds and looks like an artillery shot.
+local CANNON_LOOKS = {
+  "sound",
+  "projectile_center",
+  "projectile_creation_parameters",
+  "projectile_creation_distance",
 }
 local FLARE_LOOKS = {
   "pictures",
@@ -60,7 +75,9 @@ local FLARE_LOOKS = {
   "selection_priority",
   "flags",
 }
-local REMOTE_LOOKS = { "flags", "inventory_move_sound", "pick_sound", "drop_sound", "radius_color" }
+-- The remote has a recipe, so it does not copy the vanilla flags: an
+-- only-in-cursor item would vanish when the cursor clears.
+local REMOTE_LOOKS = { "inventory_move_sound", "pick_sound", "drop_sound", "radius_color" }
 
 local function icons(path)
   return Common.icon(path, LauncherPrototypes.TINT)
@@ -69,26 +86,25 @@ end
 local LAUNCHER_ICON = "__base__/graphics/icons/artillery-turret.png"
 
 -- The hidden gun of one level: its range and its fire rate.
-local function gun(level)
+local function gun(level, cannon)
   local b = Balance.launcher
   local p = Common.item(Launcher.gun(level), icons(LAUNCHER_ICON), "gun", 1)
   p.type = "gun"
   p.hidden = true
-  p.attack_parameters = {
-    type = "projectile",
-    ammo_category = Names.AMMO,
-    cooldown = b.cooldown,
-    range = Launcher.range(level),
-    min_range = b.min_range,
-    projectile_creation_distance = 1.6,
-  }
+  local a = Common.pick(cannon, CANNON_LOOKS)
+  a.type = "projectile"
+  a.ammo_category = Names.AMMO
+  a.cooldown = b.cooldown
+  a.range = Launcher.range(level)
+  a.min_range = b.min_range
+  p.attack_parameters = a
   return p
 end
 
 -- The turret of one level. Levels above 0 are hidden, and the launcher
 -- item builds their ghosts. No level is a fast replace or an upgrade of
 -- another: the script swaps them.
-local function turret(level, looks)
+local function turret(level, looks, space_age)
   local b = Balance.launcher
   local p = Common.pick(looks, TURRET_LOOKS)
   for _, field in ipairs(PICTURES) do
@@ -105,6 +121,11 @@ local function turret(level, looks)
   p.ammo_stack_limit = b.ammo
   p.automated_ammo_count = b.ammo
   p.manual_range_modifier = b.manual_range_modifier
+  if space_age then
+    -- Space Age gives the vanilla turret this in a later stage, so the
+    -- copy would miss it.
+    p.heating_energy = b.heating_energy
+  end
   if level > 0 then
     p.hidden = true
     p.placeable_by = { item = Names.LAUNCHER, count = 1 }
@@ -134,6 +155,7 @@ local function flare(looks)
   p.name = Names.FLARE
   p.icons = icons("__base__/graphics/icons/artillery-targeting-remote.png")
   p.shot_category = Names.AMMO
+  p.hidden = true
   return p
 end
 
@@ -149,6 +171,7 @@ local function remote_kit(looks)
     item[k] = v
   end
   item.type = "capsule"
+  item.flags = { "not-stackable" }
   item.capsule_action = { type = "artillery-remote", flare = Names.FLARE }
   local recipe = Common.recipe(Names.REMOTE, { "crafting" }, r.time, {
     { type = "item", name = "electronic-circuit", amount = r.circuit },
@@ -189,14 +212,19 @@ local function upgrade(prefix, level, effects)
   return tech
 end
 
--- Returns the prototypes. opts.turret, opts.flare and opts.remote are the
--- vanilla artillery turret, flare and remote. The launcher copies their
--- looks. opts.levels lists the launcher levels to build.
+-- Returns the prototypes. The launcher copies the looks of vanilla
+-- artillery. These options hold the vanilla prototypes:
+--   turret: the artillery turret.
+--   flare: the artillery flare.
+--   remote: the artillery targeting remote.
+--   cannon: the attack of the artillery wagon cannon.
+-- The option levels lists the launcher levels to build. The option
+-- space_age is true when Space Age is active.
 function LauncherPrototypes.prototypes(opts)
   local out = {}
   for _, level in ipairs(opts.levels) do
-    out[#out + 1] = gun(level)
-    out[#out + 1] = turret(level, opts.turret)
+    out[#out + 1] = gun(level, opts.cannon)
+    out[#out + 1] = turret(level, opts.turret, opts.space_age)
   end
   local item, recipe = launcher_kit()
   local kit, kit_recipe = remote_kit(opts.remote)

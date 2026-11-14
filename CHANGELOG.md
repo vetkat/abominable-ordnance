@@ -37,7 +37,9 @@ mod uses [semantic versioning](https://semver.org/spec/v2.0.0.html).
 - The larva launcher, an artillery turret that holds 5 larva rockets and
   reaches 64 tiles. The larva targeting remote marks targets for it.
   Both come from the Larva rockets research, and three Larva launcher
-  fire rate researches follow.
+  fire rate researches follow. The launcher has a circuit connector,
+  its shots sound like artillery, and with Space Age it stays warm on
+  cold planets. The remote stays in the inventory when you clear the cursor.
 
 ### Fixed
 

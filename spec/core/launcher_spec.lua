@@ -13,6 +13,16 @@ describe("the launcher levels", function()
     assert.are.equal(64, Launcher.range(-1))
   end)
 
+  it("treat a fractional or non-number level as level 0", function()
+    for _, level in ipairs({ 1.5, "2" }) do
+      assert.are.equal("ao-larva-launcher", Launcher.name(level))
+      assert.are.equal(64, Launcher.range(level))
+      assert.are.equal("ao-larva-launcher-gun-0", Launcher.gun(level))
+    end
+    assert.are.equal("ao-larva-launcher-gun-0", Launcher.gun(7))
+    assert.are.equal("ao-larva-launcher-gun-0", Launcher.gun(nil))
+  end)
+
   it("list all four names", function()
     assert.are.same({
       "ao-larva-launcher",
