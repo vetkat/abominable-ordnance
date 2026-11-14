@@ -161,4 +161,15 @@ function Common.names(recipes)
   return names
 end
 
+-- The graphics and sound of a machine in machines (the data.raw table of
+-- its type), for a new machine to copy. Another mod can remove a machine,
+-- so this falls back to a second name, and gives nil when neither exists.
+function Common.looks(machines, name, fallback)
+  local machine = machines[name] or machines[fallback]
+  if not machine then
+    return nil
+  end
+  return { graphics_set = machine.graphics_set, working_sound = machine.working_sound }
+end
+
 return Common
