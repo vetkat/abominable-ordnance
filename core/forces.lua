@@ -21,4 +21,11 @@ function Forces.earns_loot(name, researched)
   return researched or name == Names.TAMED
 end
 
+-- True if the landing blast hurts an entity of this force. at_war is true
+-- when the launcher's force is at war with it. The tamed force is never
+-- hit, so a landing can't hurt the loaded monsters near it.
+function Forces.blast_hits(name, at_war)
+  return at_war and name ~= Names.TAMED
+end
+
 return Forces

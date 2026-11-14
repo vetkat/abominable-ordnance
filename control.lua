@@ -74,8 +74,65 @@ local function load_monster(monster, payload)
   script.register_on_object_destroyed(monster)
 end
 
+-- True if the attacker is at war with a force. Without a launcher (the
+-- rocket outlived it), only the natives count.
+local function at_war(attacker, force)
+  if not attacker then
+    return force.name == "enemy"
+  end
+  return force ~= attacker and not attacker.get_cease_fire(force) and not attacker.get_friend(force)
+end
+
+-- The landing blast. The launcher's force deals the damage, so kills
+-- count for it.
+local function blast(surface, position, launcher)
+  local attacker = launcher and launcher.valid and launcher.force or nil
+  local targets = surface.find_entities_filtered({
+    position = position,
+    radius = Balance.blast.radius,
+  })
+  for _, target in pairs(targets) do
+    if
+      target.valid
+      and target.is_entity_with_health
+      and Forces.blast_hits(target.force.name, at_war(attacker, target.force))
+    then
+      local cause = attacker and launcher or nil
+      target.damage(Balance.blast.damage, attacker or "neutral", "explosion", nil, cause)
+    end
+  end
+end
+
+-- A larva rocket lands. The blast goes first, then the loaded monster
+-- takes the nearest free spot, so the blast can't hurt it. With no free
+-- spot, for example in water, the payload goes off where the rocket
+-- landed. A projectile's source is the launcher, so the landing reads
+-- the target position.
+local function land(event, species, payload)
+  local surface = game.get_surface(event.surface_index)
+  local position = event.target_position
+  if not surface or not position or surface.platform then
+    return
+  end
+  blast(surface, position, event.source_entity)
+  local monster = spawn(surface, position, species.units, Names.TAMED)
+  if monster then
+    load_monster(monster, payload)
+    return
+  end
+  for _, effect in ipairs(Payloads.on_death({ payload.name }, position, entity_exists)) do
+    effect.force = Names.TAMED
+    surface.create_entity(effect)
+  end
+end
+
 script.on_event(defines.events.on_script_trigger_effect, function(event)
   -- Other mods' triggers reach this handler too.
+  local landed, landed_payload = Payloads.decode_land(event.effect_id)
+  if landed then
+    land(event, landed, landed_payload)
+    return
+  end
   local loaded, payload = Payloads.decode(event.effect_id)
   local species = loaded or Species.by_effect_id(event.effect_id)
   if not species then
