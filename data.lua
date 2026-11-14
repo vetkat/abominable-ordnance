@@ -5,9 +5,15 @@ local Ordnance = require("core.prototypes.ordnance")
 
 local space_age = mods["space-age"] ~= nil
 
+local Common = require("core.prototypes.common")
+
+-- Every machine borrows the looks of a vanilla machine. Another mod can
+-- remove it, so the assembler is the fallback.
 local function looks(name)
-  local machine = data.raw["assembling-machine"][name]
-  return { graphics_set = machine.graphics_set, working_sound = machine.working_sound }
+  return assert(
+    Common.looks(data.raw["assembling-machine"], name, "assembling-machine-2"),
+    "Abominable Ordnance needs the " .. name .. " or the assembling machine 2"
+  )
 end
 
 local ordnance, husbandry = Ordnance.prototypes({
