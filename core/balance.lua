@@ -51,4 +51,5 @@ return {
   ordnance_research = { count = 250, time = 30 },
   acid_spread = 1.5,
   acid_trail_ticks = 60,
+  trail_batch = 5,
 }
