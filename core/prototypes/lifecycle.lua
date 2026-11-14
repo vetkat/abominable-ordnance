@@ -96,10 +96,13 @@ local function adopt(species)
   }, { { type = "item", name = species.egg, amount = 1 } }))
 end
 
-local function technology(recipes)
+local function technology(recipes, extra_unlocks)
   local effects = {}
   for _, r in ipairs(recipes) do
     effects[#effects + 1] = { type = "unlock-recipe", recipe = r.name }
+  end
+  for _, name in ipairs(extra_unlocks) do
+    effects[#effects + 1] = { type = "unlock-recipe", recipe = name }
   end
   return {
     type = "technology",
@@ -145,7 +148,7 @@ function Lifecycle.prototypes(opts)
   for _, r in ipairs(recipes) do
     out[#out + 1] = r
   end
-  out[#out + 1] = technology(recipes)
+  out[#out + 1] = technology(recipes, opts.extra_unlocks or {})
   return out
 end
 

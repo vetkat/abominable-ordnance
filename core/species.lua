@@ -11,6 +11,8 @@ Species.ALL = {
     feed = Names.MONSTER_CHOW,
     spawner = "biter-spawner",
     effect_id = "ao-hatch-biter",
+    larva = "ao-biter-larva",
+    larva_effect_id = "ao-hatch-biter-larva",
     tint = { r = 0.9, g = 0.75, b = 0.5, a = 1 },
     -- With Space Age, the adopt recipe turns this vanilla item into the egg.
     adopts = "biter-egg",
@@ -27,6 +29,8 @@ Species.ALL = {
     feed = Names.SPITTER_CHOW,
     spawner = "spitter-spawner",
     effect_id = "ao-hatch-spitter",
+    larva = "ao-spitter-larva",
+    larva_effect_id = "ao-hatch-spitter-larva",
     tint = { r = 0.6, g = 0.9, b = 0.5, a = 1 },
     units = {
       { "small-spitter", { { 0.25, 0.0 }, { 0.5, 0.3 }, { 0.7, 0.0 } } },
@@ -46,8 +50,9 @@ local function find(field, value)
   return nil
 end
 
+-- The species of an egg or larva hatch effect.
 function Species.by_effect_id(id)
-  return find("effect_id", id)
+  return find("effect_id", id) or find("larva_effect_id", id)
 end
 
 function Species.by_spawner(name)
