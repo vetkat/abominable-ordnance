@@ -164,7 +164,7 @@ data:extend({
 })
 ```
 
-Also add `"feature_flags": ["spoiling"]` to `info.json`.
+Also add `"spoiling_required": true` to `info.json`.
 
 - [ ] **Step 3: Record each trigger event in `control.lua`**
 
@@ -1104,7 +1104,7 @@ data:extend(Lifecycle.prototypes({
 }))
 ```
 
-Add `"feature_flags": ["spoiling"]` to `info.json`, after
+Add `"spoiling_required": true` to `info.json`, after
 `"dependencies"`.
 
 - [ ] **Step 9: Run the in-game tests**
@@ -1139,8 +1139,8 @@ confirms the icons.
    - **Spoiling and hatching.** Use the 2.1 spoilage system (`spoil_ticks`
      plus a spoil trigger). The trigger runs a `script` effect, and a core
      module picks the unit from the enemy evolution. Without Space Age,
-     the mod turns spoilage on itself through the `spoiling` feature flag
-     in its info.json.
+     the mod turns spoilage on itself with `"spoiling_required": true` in
+     its info.json.
    ```
 
 3. `ROADMAP.md`, under 1.0.0: replace the first item with:

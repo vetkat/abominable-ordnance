@@ -123,8 +123,9 @@ does not give.
 
 A spoiled egg leaves no item behind.
 
-`info.json` gets `"feature_flags": ["spoiling"]`, so items spoil in the
-base game too.
+`info.json` gets `"spoiling_required": true`, so items spoil in the
+base game too. The probe showed that `"feature_flags": ["spoiling"]`
+does not load.
 
 ### Breeding pod
 
@@ -313,6 +314,25 @@ and a random hatch per egg with a chance of 1 in 10 in the core. If the
 probe shows that the trigger gives no usable position, the plan stops
 before PR 2 and the spec changes.
 
+### Probe results
+
+The probe ran on 2026-11-13 in Factorio 2.1.24, with and without Space
+Age.
+
+1. Eggs in a chest and on the ground each give one event per 10 eggs.
+   Both `source_position` and `target_position` are set. A chest also
+   sets `source_entity` and `target_entity`.
+2. `LuaItemStack.spoil()` forces a spoil.
+3. A stack of 9 eggs gives one event. A part stack rounds up.
+4. With Space Age, 25 `biter-egg` items hatch 1 `big-biter`, and 1
+   `pentapod-egg` hatches 1 `big-wriggler-pentapod-premature`.
+5. 4,800 eggs in a steel chest give 480 events. The test took 2.6 ms.
+   This is test time, not frame time.
+
+A spill with `drop_full_stack = true` lands as one entity with all the
+eggs. The base game refuses to load with `"feature_flags": ["spoiling"]`,
+so `info.json` uses `"spoiling_required": true`.
+
 ### Pull requests
 
 The slice ships in three PRs. Each PR title is a Conventional Commit, and
@@ -340,21 +360,20 @@ the 1.0.0 heading of `ROADMAP.md`.
 
 | Risk | Answer |
 | --- | --- |
-| The `script` trigger gives no usable position. | The probe checks it first. Without a position, nothing hatches, and the plan stops before PR 2. |
+| The `script` trigger gives no usable position. | The probe found both position fields set, in a chest and on the ground. |
 | A stack of 100 eggs that spoils at high evolution hatches 10 monsters, most of them big or behemoth. | This is the intended risk. The ratio lives in `core/balance.lua`. |
-| Fewer than 10 eggs may never hatch. | The probe measures it. The fallback is a random hatch per egg. |
+| A part stack of eggs hatches one monster. | The probe found that a part stack rounds up. The maintainer keeps this: every loot pile hatches one monster. |
 | A warehouse of eggs that spoils at once causes a frame spike. | The probe measures the test time, as a rough sign. 10 eggs per trigger already cuts the events by ten. |
 
 ## Open questions
 
-- **Do loot eggs ever hatch?** Nest loot is always 1 to 3 eggs, one
-  stack below the ratio of 10. The probe finds what a stack below 10
-  does when it spoils. With no hatch, loot eggs that a player leaves
-  behind vanish. With one hatch, every loot pile hatches one monster.
+None. The loot-egg question has an answer:
 
-  The maintainer decides after the probe. If the maintainer wants
-  neither result, the fallback is a random hatch per egg, with a chance
-  of 1 in 10.
+- **Do loot eggs ever hatch?** Yes. Nest loot is always 1 to 3 eggs, one
+  stack below the ratio of 10. The probe found that a part stack rounds
+  up, so every loot pile that a player leaves behind hatches one monster.
+  On 2026-11-14 the maintainer chose to keep this, because eggs are
+  dangerous to handle.
 
 ## Out of scope
 

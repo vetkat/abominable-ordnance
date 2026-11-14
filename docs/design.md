@@ -105,10 +105,10 @@ base role that carries over into hybrids.
 
 | Species | Planet | How you get it | Base role |
 | --- | --- | --- | --- |
-| Biter | Nauvis | Captive biter spawner (vanilla Space Age) | Fast, cheap melee carrier |
-| Spitter | Nauvis | Captive spawner with a spitter-feed recipe | Ranged; payload lands at the target |
+| Biter | Nauvis | Nest loot and the breeding pod; in Space Age also the captive biter spawner, through the adopt recipe | Fast, cheap melee carrier |
+| Spitter | Nauvis | Nest loot and the breeding pod | Ranged; payload lands at the target |
 | Worm | Nauvis | Capture net on a small worm, then a worm pit | Stationary; becomes a turret where it lands |
-| Pentapod | Gleba | Pentapod eggs from Gleba nests | Tanky, long reach, crosses obstacles |
+| Pentapod | Gleba | Space Age's own pentapod eggs and their biochamber recipe | Tanky, long reach, crosses obstacles |
 | Demolisher hatchling | Vulcanus | Capture a hatchling near a demolisher territory | Heavy, slow, huge payload capacity |
 
 Full-size demolishers are too large to launch, so the mod adds a small
@@ -339,10 +339,11 @@ hard parts are prototype count, demolishers and the player transformation.
   allowed, or use a single `item-with-tags` per species and have the script
   record the payloads in the tags. Tags don't stack, and normal recipes
   can't make them, so the first option is simpler for version 1.
-- **Spoiling and hatching.** Use the 2.1 spoilage system (`spoil_ticks` plus a
-  spoil trigger that creates the unit), the same way Space Age biter eggs
-  hatch. Without Space Age, the mod turns spoilage on itself through the
-  `spoiling` feature flag in its info.json.
+- **Spoiling and hatching.** Use the 2.1 spoilage system (`spoil_ticks`
+  plus a spoil trigger). The trigger runs a `script` effect, and a core
+  module picks the unit from the enemy evolution. Without Space Age, the
+  mod turns spoilage on itself with `"spoiling_required": true` in its
+  info.json.
 - **Launching.** Turret ammo and artillery shells whose projectile has a
   `create-entity` trigger on impact, spawning the loaded unit at the landing
   spot.
@@ -382,6 +383,7 @@ The ticked questions have answers:
 - Jazz: Sascha Ende's "Sexy Scene Instrumentals" volumes 4, 9 and 10
   (CC BY 4.0), one track per machine. The music starts with the jazz pods
   in version 2.
+- Loot eggs: every left-behind loot pile hatches one monster.
 
 - [x] ~~Final hybrid benefits: are the proposals in Crossbreeding the right
   direction?~~
@@ -392,12 +394,11 @@ The ticked questions have answers:
 - [x] ~~Mod name: "Abominable Ordnance" is a working title.~~
 - [x] ~~Jazz: commission or find a royalty-free track (license must allow
   redistribution in a mod).~~
+- [x] ~~Loot eggs: nest loot is 1 to 3 eggs, below the hatch ratio of 10.
+  Should left-behind loot eggs hatch?~~
 - [ ] Extractor egg-return chance: what value for x (20 to 30% as a
   starting point)?
 - [ ] PvP rules: can loaded monsters be re-tamed by the enemy player, and do
   facehuggers work on enemy players?
 - [ ] Facehugger catalyst: which item, and does it differ per planet?
-- [ ] Loot eggs: nest loot is 1 to 3 eggs, below the hatch ratio of 10.
-  Should left-behind loot eggs hatch? See the open question in
-  `docs/superpowers/specs/2026-11-13-lifecycle-design.md`.
 - [ ] Vanilla launcher: a new building, or long-range ammo for the gun turret?
