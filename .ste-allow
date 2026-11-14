@@ -29,6 +29,9 @@ word | docs/superpowers/plans/*.md | modify | the writing-plans file-list format
 word | docs/superpowers/plans/*.md | attempt | a term the work loop defines
 word | docs/superpowers/plans/*.md | utilize | the planted mistake for the checker test
 ing-form | docs/superpowers/plans/*-ordnance.md | | names of game parts and research (Loading chamber, Ordnance loading)
+ing-form | docs/superpowers/plans/*-launcher.md | | names of game parts and steps (Mining, Spawning, landing, casing, Ruling)
+perfect-tense | docs/superpowers/plans/*-launcher.md | | test notes about a projectile in flight
+word | docs/superpowers/plans/*-launcher.md | unlock | quotes a test name from spec/core/prototypes/ordnance_spec.lua
 ing-form | locale/en/locale.cfg | loading | the names of the Loading chamber and Ordnance loading
 phrasal-verb | docs/superpowers/reviews/*.md | | records the reviewers' wording
 progressive | docs/superpowers/reviews/*.md | | records the reviewers' wording

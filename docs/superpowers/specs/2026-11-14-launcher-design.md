@@ -98,6 +98,12 @@ fallback if the probe shows otherwise:
 | Moving a larva rocket through a script inventory with `transfer_stack` keeps its spoil progress | Copy `spoil_percent` by hand |
 | The trigger force `enemy` skips forces with a cease-fire, such as the tamed force | Give the blast an explicit force list in the script instead |
 
+The probe ran on 2026-11-14, with results in
+`docs/superpowers/plans/2026-11-14-launcher.md` (Task 0). Five facts
+held. The trigger force `enemy` hurt the tamed force, so the landing
+script deals the blast damage. The vanilla remote did not fire the probe
+launcher, even without the change in "Separate remotes".
+
 ## Answers
 
 The maintainer chose these on 2026-11-14:
@@ -142,9 +148,10 @@ The agent made these calls. The maintainer can change any of them:
 - A rocket that lands where no monster fits (water, cliffs) sets off its
   payload's death effects on the spot. The search radius is the slice 2
   `hatch_search_radius` of 8 tiles.
-- The blast only hurts forces at war with the launcher's force (trigger
-  force `enemy`). It can't hit a loaded monster that is already near the
-  spot, or the player's own buildings. In PvP, it also hurts players at
+- The blast only hurts forces at war with the launcher's force, and
+  never the tamed force. The landing script deals it. It can't hit a
+  loaded monster that is already near the spot, or the player's own
+  buildings. In PvP, it also hurts players at
   war with the launcher's force. The design wants that.
 - On a space platform a landing does nothing, as in slice 2, and the
   rocket is lost. Platforms have no natives, so a player has no reason to
@@ -166,9 +173,11 @@ All numbers go in `core/balance.lua`, as in slices 1 and 2.
 Each larva rocket fires its own hidden projectile,
 `ao-larva-projectile-<species>-<payload>`. The projectile's action lists:
 
-1. Area damage at the target: 35 explosion damage in a 3.5-tile radius,
-   only to forces at war with the launcher's force.
-2. A `script` effect with the ID `ao-land-<species>-<payload>`.
+1. An explosion picture at the target (`grenade-explosion`).
+2. A `script` effect with the ID `ao-land-<species>-<payload>`. The
+   script deals 35 explosion damage in a 3.5-tile radius, only to forces
+   at war with the launcher's force and never to the tamed force. Then
+   it spawns the monster.
 
 ### Machines
 
@@ -284,6 +293,11 @@ busted can test every branch. The swap clears the undo history for that
 launcher. The design accepts that.
 
 ### Separate remotes
+
+On 2026-11-14 the maintainer dropped the change below, after the probe
+showed that the vanilla remote already does not fire larva launchers.
+The in-game tests still check that each remote fires only its own
+artillery.
 
 The vanilla artillery flare has no `shot_category`, so it would make
 larva launchers fire too. In `data-final-fixes.lua`, the mod sets
