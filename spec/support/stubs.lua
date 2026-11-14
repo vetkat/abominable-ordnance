@@ -41,4 +41,28 @@ function Stubs.by_name(prototypes)
   return by_name
 end
 
+-- Stand-ins for the vanilla artillery turret, flare and remote.
+function Stubs.launcher_opts(levels)
+  return {
+    levels = levels or { 0 },
+    turret = {
+      base_picture = { layers = { { filename = "base.png" } } },
+      cannon_barrel_pictures = { layers = { { filename = "barrel.png" } } },
+      cannon_base_pictures = { layers = { { filename = "cannon.png" } } },
+      cannon_base_shift = { 0, 0, 0 },
+      turret_rotation_speed = 0.001,
+      collision_box = { { -1.2, -1.2 }, { 1.2, 1.2 } },
+      selection_box = { { -1.5, -1.5 }, { 1.5, 1.5 } },
+      rotating_sound = { sound = { filename = "turn.ogg" } },
+    },
+    flare = {
+      pictures = { { filename = "flare.png" } },
+      life_time = 3600,
+      map_color = { r = 1, g = 0.5, b = 0 },
+      shots_per_flare = 1,
+    },
+    remote = { flags = { "only-in-cursor", "not-stackable", "spawnable" } },
+  }
+end
+
 return Stubs

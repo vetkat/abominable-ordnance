@@ -85,6 +85,7 @@ describe("the ordnance prototypes", function()
   it("land with an explosion picture, then the landing effect", function()
     local p = build()["artillery-projectile/ao-larva-projectile-spitter-acid"]
     assert.is_false(p.reveal_map)
+    assert.is_true(p.hidden)
     assert.truthy(p.map_color)
     local effects = p.action.action_delivery.target_effects
     -- The probe showed that an area trigger with force "enemy" also hurts

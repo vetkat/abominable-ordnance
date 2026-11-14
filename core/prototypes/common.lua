@@ -2,6 +2,18 @@
 -- game globals: only its parameters.
 local Common = {}
 
+-- A deep copy of a value. Plain values come back as they are.
+function Common.copy(value)
+  if type(value) ~= "table" then
+    return value
+  end
+  local copy = {}
+  for k, v in pairs(value) do
+    copy[k] = Common.copy(v)
+  end
+  return copy
+end
+
 -- Returns a copy of a graphics table. Every sprite that is not a shadow,
 -- a light or a glow gets the tint.
 function Common.tinted(value, tint)

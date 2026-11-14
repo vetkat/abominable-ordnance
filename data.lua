@@ -1,5 +1,6 @@
 -- The data stage. This file is the shell: it reads the game's data and
 -- passes it to the pure builders in core/.
+local LauncherPrototypes = require("core.prototypes.launcher")
 local Lifecycle = require("core.prototypes.lifecycle")
 local Ordnance = require("core.prototypes.ordnance")
 
@@ -37,3 +38,10 @@ data:extend(Lifecycle.prototypes({
   extra_unlocks = husbandry,
 }))
 data:extend(ordnance)
+
+data:extend(LauncherPrototypes.prototypes({
+  turret = vanilla("artillery-turret", "artillery-turret"),
+  flare = vanilla("artillery-flare", "artillery-flare"),
+  remote = vanilla("capsule", "artillery-targeting-remote"),
+  levels = { 0 },
+}))

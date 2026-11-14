@@ -24,6 +24,15 @@ describe("the shared prototype helpers", function()
     assert.is_nil(g.layers[1].tint)
   end)
 
+  it("copy a table all the way down", function()
+    local t = { a = { b = { 1, 2 } }, c = "x" }
+    local c = Common.copy(t)
+    assert.are.same(t, c)
+    assert.are_not.equal(t.a, c.a)
+    assert.are_not.equal(t.a.b, c.a.b)
+    assert.are.equal(3, Common.copy(3))
+  end)
+
   it("make an item from an icons list", function()
     local icons = Common.icon("x.png", { r = 1 })
     local i = Common.item("ao-x", icons, "intermediate-product", 20)

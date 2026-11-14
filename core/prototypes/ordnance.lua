@@ -84,9 +84,10 @@ end
 -- damage, because an area trigger with force "enemy" also hurts the
 -- tamed force (probe, fact 6).
 local function projectile(species, payload, looks)
-  -- A tint of nil makes a deep copy, so the vanilla tables stay whole.
-  local p = Common.tinted(Common.pick(looks, PROJECTILE_LOOKS), nil)
+  -- A deep copy, so the vanilla tables stay whole.
+  local p = Common.copy(Common.pick(looks, PROJECTILE_LOOKS))
   p.type = "artillery-projectile"
+  p.hidden = true
   p.name = Payloads.projectile_name(species, payload)
   p.reveal_map = false
   p.map_color = p.map_color or { r = 1, g = 0.5, b = 0 }
