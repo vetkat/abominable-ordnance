@@ -1,19 +1,20 @@
 -- The launcher level and the swap. This module is shell: it reads and
 -- writes the game. control.lua calls it, and so do the in-game tests.
 local Launcher = require("core.launcher")
+local Names = require("core.names")
 
 local LauncherShell = {}
 
 -- The launcher has one ammo slot (core/prototypes/launcher.lua).
 local AMMO = defines.inventory.artillery_turret_ammo
 
--- The control behaviour settings that a swap copies.
 -- True while a swap runs. A swap that falls back to the old level
 -- raises a built event for it, and on_built must not swap that launcher
 -- again, or the swap would recurse. The flag is false outside a swap, so
 -- it holds no state between events and cannot desync.
 local swapping = false
 
+-- The control behaviour settings that a swap copies.
 local SETTINGS = {
   "circuit_enable_disable",
   "circuit_condition",
@@ -31,13 +32,13 @@ function LauncherShell.level(force)
 end
 
 -- Everything the new launcher must keep. The record holds each wire as
--- its connector ID and the connector at the other end.
+-- its connector ID, the connector at the other end and the wire's origin.
 ---@param old LuaEntity
 local function read(old)
   local wires = {}
   for id, connector in pairs(old.get_wire_connectors(false)) do
     for _, connection in pairs(connector.connections) do
-      wires[#wires + 1] = { id = id, target = connection.target }
+      wires[#wires + 1] = { id = id, target = connection.target, origin = connection.origin }
     end
   end
   local behaviour
@@ -64,8 +65,11 @@ local function read(old)
   }
 end
 
+-- Other mods' handlers of the built event run inside create_entity and
+-- can destroy the new launcher, so a create counts only when the
+-- launcher is still valid.
 local function create(state, name)
-  return state.surface.create_entity({
+  local new = state.surface.create_entity({
     name = name,
     position = state.position,
     direction = state.direction,
@@ -73,9 +77,11 @@ local function create(state, name)
     quality = state.quality,
     raise_built = true,
   })
+  return new and new.valid and new or nil
 end
 
 -- Gives the new launcher the old one's state and the ammo from temp.
+-- Ammo that does not fit stays in temp.
 ---@param new LuaEntity
 ---@param temp LuaInventory
 local function restore(new, state, temp)
@@ -89,7 +95,7 @@ local function restore(new, state, temp)
     if wire.target.valid then
       local connector = new.get_wire_connector(wire.id, true)
       if connector then
-        connector.connect_to(wire.target, false)
+        connector.connect_to(wire.target, false, wire.origin)
       end
     end
   end
@@ -99,6 +105,34 @@ local function restore(new, state, temp)
     for key, value in pairs(state.behaviour) do
       b[key] = value
     end
+  end
+end
+
+-- Spills what a swap could not place at place.position. That is the
+-- ammo left in temp. If the swap lost the launcher, it is also one
+-- launcher item of the given quality. A spill writes a log line.
+---@param temp LuaInventory
+---@param place {surface: LuaSurface, position: MapPosition, force: LuaForce}
+---@param lost_quality LuaQualityPrototype|string|nil
+function LauncherShell.spill_leftovers(temp, place, lost_quality)
+  local stacks = {}
+  if temp[1].valid_for_read then
+    stacks[#stacks + 1] = temp[1]
+  end
+  if lost_quality then
+    stacks[#stacks + 1] = { name = Names.LAUNCHER, count = 1, quality = lost_quality }
+  end
+  for _, stack in ipairs(stacks) do
+    place.surface.spill_item_stack({
+      position = place.position,
+      stack = stack,
+      force = place.force,
+      allow_belts = false,
+    })
+  end
+  if #stacks > 0 then
+    temp.clear()
+    log("Abominable Ordnance: a larva launcher swap left items on the ground")
   end
 end
 
@@ -114,6 +148,7 @@ function LauncherShell.swap(old, name)
   local ammo = old.get_inventory(AMMO) --[[@as LuaInventory]]
   temp[1].transfer_stack(ammo[1])
   local new
+  local lost = false
   swapping = true
   local ok = old.destroy({ raise_destroy = true })
   local step = Launcher.after("destroy", ok)
@@ -122,16 +157,10 @@ function LauncherShell.swap(old, name)
       new = create(state, name)
     elseif step == "create_old" then
       new = create(state, state.name)
-    elseif step == "give_back" then
+    elseif step == "give_back" and ammo.valid then
       ammo[1].transfer_stack(temp[1])
     elseif step == "spill" then
-      state.surface.spill_item_stack({
-        position = state.position,
-        stack = temp[1],
-        force = state.force,
-        allow_belts = false,
-      })
-      log("Abominable Ordnance: a larva launcher could not be rebuilt, its ammo lies on the ground")
+      lost = true
     end
     step = Launcher.after(step, new ~= nil)
   end
@@ -139,6 +168,7 @@ function LauncherShell.swap(old, name)
   if new then
     restore(new, state, temp)
   end
+  LauncherShell.spill_leftovers(temp, state, lost and state.quality or nil)
   temp.destroy()
   return new
 end

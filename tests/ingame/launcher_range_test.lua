@@ -2,6 +2,7 @@ local Helpers = require("__abominable-ordnance__/tests/ingame/helpers")
 local Launcher = require("core.launcher")
 local LauncherShell = require("shell.launcher")
 local Names = require("core.names")
+local Setup = require("shell.setup")
 
 local ROCKET = "ao-biter-larva-explosive"
 local AMMO = defines.inventory.artillery_turret_ammo
@@ -219,9 +220,9 @@ test("the level reads the force's research", function()
   assert(LauncherShell.level(game.forces["player"]) == 2, "level")
 end)
 
--- The remote has no only-in-cursor flag, so it can sit in an inventory
--- and a cleared cursor does not take it away.
-test("a larva targeting remote stays in the inventory when the cursor clears", function()
+-- The busted test of the remote's flags is the main guard. This test
+-- checks the result in the game.
+test("a larva targeting remote can sit in a character's main inventory", function()
   local character = surface().create_entity({
     name = "character",
     position = { 1340, 1600 },
@@ -240,4 +241,73 @@ test("a larva targeting remote stays in the inventory when the cursor clears", f
   assert(inserted == 1, "the remote did not go into the inventory")
   assert(had_cursor, "the character has no cursor")
   assert(kept == 1, kept .. " remotes left after the cursor cleared")
+end)
+
+test("a configuration change swaps a launcher to its force's level", function()
+  local position = { 1380, 1600 }
+  Helpers.arena(surface(), position)
+  -- create_entity without raise_built raises no event, so this launcher
+  -- keeps level 2 on a level 0 force until the sync.
+  surface().create_entity({ name = Launcher.name(2), position = position, force = "player" })
+  Setup.on_configuration_changed()
+  assert(one(settle(position), 0), "not level 0")
+end)
+
+-- A script inventory with some rockets, and the place a swap spills at.
+local function leftovers(position, count)
+  Helpers.arena(surface(), position)
+  local temp = game.create_inventory(1)
+  if count > 0 then
+    temp.insert({ name = ROCKET, count = count })
+  end
+  return temp, { surface = surface(), position = position, force = game.forces["player"] }
+end
+
+-- Reads the items on the ground near a position, then removes them.
+local function ground(position)
+  local got = {
+    rockets = Helpers.count_items(surface(), position, ROCKET),
+    launchers = Helpers.count_items(surface(), position, Names.LAUNCHER),
+  }
+  for _, pile in
+    pairs(surface().find_entities_filtered({
+      name = "item-on-ground",
+      position = position,
+      radius = 8,
+    }))
+  do
+    pile.destroy()
+  end
+  return got
+end
+
+test("ammo that a swap could not place lands on the ground", function()
+  local position = { 1420, 1600 }
+  local temp, place = leftovers(position, 2)
+  LauncherShell.spill_leftovers(temp, place, nil)
+  local empty = temp.is_empty()
+  temp.destroy()
+  local got = ground(position)
+  assert(got.rockets == 2, got.rockets .. " rockets on the ground")
+  assert(got.launchers == 0, got.launchers .. " launcher items on the ground")
+  assert(empty, "the rockets stayed in the script inventory too")
+end)
+
+test("a launcher that a swap lost lands on the ground as an item", function()
+  local position = { 1460, 1600 }
+  local temp, place = leftovers(position, 0)
+  LauncherShell.spill_leftovers(temp, place, "normal")
+  temp.destroy()
+  local got = ground(position)
+  assert(got.launchers == 1, got.launchers .. " launcher items on the ground")
+  assert(got.rockets == 0, got.rockets .. " rockets on the ground")
+end)
+
+test("a swap with nothing left over spills nothing", function()
+  local position = { 1500, 1600 }
+  local temp, place = leftovers(position, 0)
+  LauncherShell.spill_leftovers(temp, place, nil)
+  temp.destroy()
+  local got = ground(position)
+  assert(got.rockets == 0 and got.launchers == 0, "items on the ground")
 end)
