@@ -105,7 +105,7 @@ branch off it for hybrids and facehuggers.
 | Egg | Breeding pod (egg + feed), native nests, captive spawners (Space Age) | Breeding more eggs, extractor input, incubator input | Hatches a wild, unloaded, hostile monster |
 | Embryo | Extractor: uses up one egg, with an x% chance of an egg back | Crossbreeding in jazz pods, the facehugger lab, shipping a species between planets | Dies. Safe to put on a rocket |
 | Hybrid egg | Jazz pod: two embryos of different species | Incubator, or the Abomination fusion. It can't breed, so every hybrid needs a fresh cross | Hatches a wild hybrid |
-| Larva | Incubator: ten eggs (see Open questions for hybrid eggs) | Loading chamber input | Becomes a wild, unloaded monster |
+| Larva | Incubator: ten eggs, also for hybrid eggs | Loading chamber input | Becomes a wild, unloaded monster |
 | Loaded larva | Loading chamber: larva + 1 to 3 ordnance | Larva rockets and artillery shells | Becomes its full loaded monster on the spot |
 | Facehugger | Facehugger lab: embryo + catalyst | Converting enemies. The embryo's species decides what the host becomes | Dies |
 
@@ -488,11 +488,11 @@ Answered:
   one monster.
 - [x] Vanilla launcher: a new building, or long-range ammo for the gun
   turret? A new building, the larva launcher, used in both modes.
+- [x] Hybrid larvae: how many hybrid eggs make one larva? Ten, the same as
+  for plain eggs. A hybrid larva then costs 20 embryos.
 
 Open:
 
-- [ ] Hybrid larvae: how many hybrid eggs make one larva? Ten makes a hybrid
-  larva cost 20 embryos. One makes it cheaper than a plain larva.
 - [ ] Spoiled loaded larvae: does the monster start on your side, as
   slice 2 builds it, or start feral?
 - [ ] Captive spawners: do they give the mod's own biter egg or Space Age's
