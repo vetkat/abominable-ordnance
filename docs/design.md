@@ -281,12 +281,15 @@ launcher and artillery fire loaded larvae.
   into its warded version, and another recipe unpacks it. A recipe's output
   keeps its ingredients' freshness, so the spoil timer continues where it
   stopped. Warded items stack and travel by belt, train or rocket.
-- **Larva launcher.** A new artillery turret that fires loaded larvae as
-  ammo. The loading chamber packs each larva with a shared larva rocket
-  casing, so no larva needs a separate rocket item. It fires on its own at
-  nests and worms, and at spots that the larva targeting remote marks. The
-  vanilla artillery remote does not fire it (checked in 2.1.24). The mod
-  uses this one launcher with and without Space Age.
+- **Larva launcher.** One new artillery turret fires loaded larvae as
+  ammo, with and without Space Age. The loading chamber packs each larva
+  with a shared larva rocket casing, so no larva needs a separate rocket
+  item. It fires at nests and worms, and at spots that the larva targeting
+  remote marks. The vanilla artillery remote does not fire it (checked in
+  2.1.24). On 2026-11-14 the maintainer dropped the planned
+  `data-final-fixes` change to the vanilla flare, after the probe showed
+  this (see "Separate remotes" in the
+  [launcher spec](superpowers/specs/2026-11-14-launcher-design.md)).
 - **Artillery shells.** Loaded larvae packed into an artillery shell for long
   range. Every species except the Abomination fits.
 - **Abomination launcher.** A large dedicated launcher for the final form,
@@ -366,8 +369,8 @@ It proves the core loop before adding planets. Ticked items are in the mod.
   close, when they stay idle, or by a chance per payload
 - [x] Spoil outcomes: eggs hatch wild, loaded larvae become loaded monsters
 - [ ] Stasis ward that pauses and resumes the spoil timer
-- [ ] First four research techs (Monster husbandry and Ordnance loading are
-  and Larva rockets are in the mod, Stasis ward is not)
+- [ ] First four research techs (Monster husbandry, Ordnance
+  loading and Larva rockets are in the mod, Stasis ward is not)
 - [ ] Runs on vanilla Factorio 2.1 and with Space Age
 
 ### Version 2
