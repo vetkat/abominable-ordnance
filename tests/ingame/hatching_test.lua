@@ -48,17 +48,7 @@ end)
 test("10 biter eggs on the ground hatch one biter", function()
   local position = { 540, 500 }
   Helpers.arena(surface(), position)
-  surface().spill_item_stack({
-    position = position,
-    stack = { name = BITER.egg, count = 10 },
-    drop_full_stack = true,
-  })
-  local items = surface().find_entities_filtered({
-    name = "item-on-ground",
-    area = { { 535, 495 }, { 545, 505 } },
-  })
-  assert(#items == 1, "the eggs did not land as one stack")
-  Helpers.spoil(items[1].stack)
+  Helpers.spoil(Helpers.spill(surface(), position, BITER.egg, 10))
   after_ticks(2, function()
     local biters = Helpers.count_units(surface(), position, unit_names(BITER))
     assert(biters == 1, "no biter hatched on the ground")
@@ -73,17 +63,18 @@ test("a hatched biter attacks a building near the hatch spot", function()
     position = { position[1] + 12, position[2] },
     force = "player",
   })
-  surface().spill_item_stack({
-    position = position,
-    stack = { name = BITER.egg, count = 10 },
-    drop_full_stack = true,
-  })
-  local items = surface().find_entities_filtered({
-    name = "item-on-ground",
-    area = { { 575, 495 }, { 585, 505 } },
-  })
-  Helpers.spoil(items[1].stack)
+  Helpers.spoil(Helpers.spill(surface(), position, BITER.egg, 10))
   after_ticks(20 * 60, function()
     assert(not target.valid or target.health < target.max_health, "the biter left the chest alone")
+  end)
+end)
+
+test("a spoiled larva hatches one wild biter", function()
+  local position = { 620, 540 }
+  Helpers.arena(surface(), position)
+  Helpers.spoil(Helpers.spill(surface(), position, BITER.larva, 1))
+  after_ticks(2, function()
+    local biters = Helpers.count_units(surface(), position, unit_names(BITER))
+    assert(biters == 1, "the larva hatched " .. biters .. " biters")
   end)
 end)

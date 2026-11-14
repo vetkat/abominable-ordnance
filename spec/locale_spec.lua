@@ -5,6 +5,8 @@
 local L = require("spec.support.locale")
 
 local Lifecycle = require("core.prototypes.lifecycle")
+local Ordnance = require("core.prototypes.ordnance")
+local Stubs = require("spec.support.stubs")
 
 local SECTION = {
   item = "item-name",
@@ -46,9 +48,12 @@ end)
 describe("locale/en/locale.cfg", function()
   local text = read("locale/en/locale.cfg")
 
-  it("names every prototype of slice 1", function()
-    local opts = { space_age = true, graphics_set = {}, working_sound = {} }
-    for _, p in ipairs(Lifecycle.prototypes(opts)) do
+  it("names every prototype", function()
+    local all = Lifecycle.prototypes(Stubs.lifecycle_opts(true))
+    for _, p in ipairs((Ordnance.prototypes(Stubs.ordnance_opts()))) do
+      all[#all + 1] = p
+    end
+    for _, p in ipairs(all) do
       local section = SECTION[p.type]
       if section then
         assert.truthy(L.value(text, section, p.name), section .. "." .. p.name)

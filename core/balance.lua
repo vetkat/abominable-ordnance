@@ -1,4 +1,4 @@
--- Every balance number of slice 1. All values are first guesses.
+-- Every balance number of the mod. All values are first guesses.
 local MINUTE = 60 * 60
 
 return {
@@ -26,4 +26,15 @@ return {
     recipe = { time = 5, iron = 10, steel = 5, pipe = 5, circuit = 5 },
   },
   research = { count = 150, time = 30 },
+  larva = { stack = 20, spoil_ticks = 10 * MINUTE },
+  incubate = { time = 10, eggs = 10 },
+  incubator = {
+    crafting_speed = 1,
+    energy_usage = "200kW",
+    pollution = 4,
+    max_health = 350,
+    mining_time = 0.2,
+    stack = 10,
+    recipe = { time = 5, steel = 10, circuit = 10, pipe = 10 },
+  },
 }

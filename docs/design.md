@@ -34,7 +34,7 @@ step is a machine, so you can automate it.
    demolisher hatchlings caught in the field, or steal them from native nests.
 2. **Breed.** Breeding pods turn eggs and feed into more eggs. An extractor
    turns one egg into an embryo, with an x% chance of an egg back.
-3. **Load.** An incubator turns an egg into a larva. A loading chamber then
+3. **Load.** An incubator turns ten eggs into a larva. A loading chamber then
    fills the larva with one to three ordnance items. Only larvae can be
    loaded.
 4. **Crossbreed (optional).** Jazz pods combine two embryos of different
@@ -44,7 +44,7 @@ step is a machine, so you can automate it.
 6. **Fire.** Rocket turrets and artillery fire loaded larvae as special
    long-range ammo. The larva turns into its full monster where it lands.
 7. **Detonate.** The monster fights while it lives, applies its live effect
-   (such as an acid cloud), and triggers its payload on death.
+   (such as an acid trail), and triggers its payload on death.
 
 ## Lifecycle: eggs, embryos and larvae
 
@@ -91,7 +91,7 @@ launcher. Embryos branch off to the left for hybrids and facehuggers.
 | Egg | Breeding pod (egg + feed), captive spawners, stolen from native nests | Breeding more eggs; extractor input; incubator input | Hatches a wild, unloaded, hostile monster |
 | Embryo | Extractor: uses up one egg, with an x% chance of an egg back | Crossbreeding in jazz pods; facehugger lab; shipping a species between planets | Dies (maybe into biomass); safe to put on a rocket |
 | Hybrid egg | Jazz pod: two embryos of different species | Incubator only; it can't breed, so every hybrid needs a fresh cross | Hatches a wild hybrid |
-| Larva | Incubator: one egg | Loading chamber input | Becomes a wild, unloaded monster |
+| Larva | Incubator: ten eggs | Loading chamber input | Becomes a wild, unloaded monster |
 | Loaded larva | Loading chamber: larva + 1 to 3 ordnance | Long-range rocket ammo and artillery shells | Becomes its full loaded monster on the spot |
 | Facehugger | Facehugger lab: embryo + catalyst | Converting enemies; the embryo's species decides what the host becomes | Dies |
 
@@ -127,7 +127,7 @@ can serve as a payload.
 | --- | --- | --- |
 | Explosive rocket | None | Rocket-sized explosion |
 | Grenade / cluster grenade | None | Grenade blast / cluster scatter |
-| Sulfuric acid (barrel) | Poison cloud that follows it | Large acid pool |
+| Sulfuric acid (barrel) | Acid trail: small acid puddles under it | Large acid pool |
 | Poison capsule | Small poison aura | Poison cloud |
 | Slowdown capsule | Slows nearby enemies | Slowdown burst |
 | Flamethrower ammo | Leaves a fire trail | Fire burst |
@@ -259,7 +259,7 @@ flowchart TD
         husbandry --> worm --> pentapod --> interbreeding --> hatchlings
     end
     subgraph loading [Loading]
-        ordnance["Ordnance loading<br/>Loading chamber<br/>Military + chemical"]
+        ordnance["Ordnance loading<br/>Loading chamber<br/>Needs Explosive rocketry"]
         payloads["More payloads<br/>Grenade, fire, slow<br/>+ Utility science"]
         orifices1["Expand Orifices I<br/>2nd payload slot<br/>+ Utility science"]
         nuclear["Nuclear payload<br/>Atomic bomb loading<br/>needs Atomic bomb"]
@@ -299,9 +299,10 @@ It proves the core loop before adding planets.
 - [ ] Breeding pod (eggs) and incubator (larvae) for biters and spitters
 - [ ] Loading chamber with three payloads: explosive rocket, sulfuric acid,
   poison capsule
-- [ ] Generated item and entity prototypes for each species × payload larva
-- [ ] Death effects for all three payloads, plus the acid poison cloud while
-  alive
+- [ ] Generated items for each species × payload larva. Loaded monsters are
+  vanilla units that the script tracks, so the mod generates no entity
+  prototypes for them.
+- [ ] Death effects for all three payloads, plus the acid trail while alive
 - [ ] Long-range rocket ammo that fires loaded larvae. The monster appears
   where it lands. Vanilla gets a simple launcher.
 - [ ] Feral behaviour: monsters attack players inside a fixed radius
@@ -334,19 +335,21 @@ Ordinary prototypes plus a small control script can do most of the mod. The
 hard parts are prototype count, demolishers and the player transformation.
 
 - **Loaded larvae as items.** Generate one item per species × payload in
-  `data-final-fixes`. With one slot that is 5 × 8 = 40 items. With three
-  slots it grows to hundreds. Two options: limit which combinations are
-  allowed, or use a single `item-with-tags` per species and have the script
-  record the payloads in the tags. Tags don't stack, and normal recipes
-  can't make them, so the first option is simpler for version 1.
+  `data.lua`, where recipes may name the base game's barrels. With one slot
+  that is 5 × 8 = 40 items. With three slots it grows to hundreds. Two
+  options: limit the combinations the mod allows, or use a single
+  `item-with-tags` per species and have the script record the payloads in
+  the tags. Tags don't stack, and normal recipes can't make them, so the
+  first option is simpler for version 1.
 - **Spoiling and hatching.** Use the 2.1 spoilage system (`spoil_ticks`
   plus a spoil trigger). The trigger runs a `script` effect, and a core
   module picks the unit from the enemy evolution. Without Space Age, the
   mod turns spoilage on itself with `"spoiling_required": true` in its
   info.json.
-- **Launching.** Turret ammo and artillery shells whose projectile has a
-  `create-entity` trigger on impact, spawning the loaded unit at the landing
-  spot.
+- **Launching.** Turret ammo and artillery shells whose projectile runs
+  the loaded larva's `script` effect on impact. The script then spawns the
+  loaded unit at the landing spot and records its payload. A `create-entity`
+  trigger cannot record the payload.
 - **Live and death effects.** Track loaded units in `storage`. Live effects
   run from `on_nth_tick`. Death effects come from `on_entity_died`, which
   spawns the matching explosion or cloud.

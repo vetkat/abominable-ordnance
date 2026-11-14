@@ -18,3 +18,5 @@ mod uses [semantic versioning](https://semver.org/spec/v2.0.0.html).
 - Native biter and spitter spawners drop 1 to 3 eggs when a force with
   Monster husbandry destroys them.
   The eggs land beside the corpse, under a floating label.
+- Biter and spitter larvae, and the incubator that makes 1 larva from 10
+  eggs. A larva that spoils hatches a wild monster.

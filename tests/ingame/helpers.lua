@@ -32,13 +32,13 @@ function Helpers.research(done)
   game.forces["player"].technologies[Names.TECH].researched = done
 end
 
--- A breeding pod with power from an electric energy interface. The
--- force gets Monster husbandry, so it can use the pod's recipes.
-function Helpers.powered_pod(surface, position)
+-- A machine with power from an electric energy interface. The force
+-- gets Monster husbandry, so it can use the mod's recipes.
+function Helpers.powered_machine(surface, position, name)
   local x, y = position[1], position[2]
   Helpers.research(true)
-  local pod = surface.create_entity({
-    name = "ao-breeding-pod",
+  local machine = surface.create_entity({
+    name = name,
     position = { x, y },
     force = "player",
   })
@@ -52,7 +52,26 @@ function Helpers.powered_pod(surface, position)
     position = { x + 4.5, y },
     force = "player",
   })
-  return pod
+  return machine
+end
+
+function Helpers.powered_pod(surface, position)
+  return Helpers.powered_machine(surface, position, Names.POD)
+end
+
+-- Spills a stack on the ground as one pile and returns the pile's stack.
+function Helpers.spill(surface, position, name, count)
+  surface.spill_item_stack({
+    position = position,
+    stack = { name = name, count = count },
+    drop_full_stack = true,
+  })
+  local piles = surface.find_entities_filtered({
+    name = "item-on-ground",
+    area = area(position, 5),
+  })
+  assert(#piles == 1, "the items did not land as one pile")
+  return piles[1].stack
 end
 
 function Helpers.count_units(surface, position, names)

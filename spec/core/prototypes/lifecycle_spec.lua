@@ -1,28 +1,8 @@
 local Lifecycle = require("core.prototypes.lifecycle")
-
-local function stub()
-  return {
-    space_age = false,
-    graphics_set = {
-      animation = {
-        layers = {
-          { filename = "body.png" },
-          { filename = "shadow.png", draw_as_shadow = true },
-        },
-      },
-    },
-    working_sound = { sound = { filename = "hum.ogg" } },
-  }
-end
+local Stubs = require("spec.support.stubs")
 
 local function build(space_age)
-  local opts = stub()
-  opts.space_age = space_age
-  local by_name = {}
-  for _, p in ipairs(Lifecycle.prototypes(opts)) do
-    by_name[p.type .. "/" .. p.name] = p
-  end
-  return by_name
+  return Stubs.by_name(Lifecycle.prototypes(Stubs.lifecycle_opts(space_age)))
 end
 
 describe("the lifecycle prototypes", function()
@@ -32,18 +12,13 @@ describe("the lifecycle prototypes", function()
   end)
 
   it("tint the pod's own copy of the graphics, but not shadows", function()
-    local opts = stub()
-    local pod
-    for _, p in ipairs(Lifecycle.prototypes(opts)) do
-      if p.type == "assembling-machine" then
-        pod = p
-      end
-    end
+    local opts = Stubs.lifecycle_opts()
+    local pod = Stubs.by_name(Lifecycle.prototypes(opts))["assembling-machine/ao-breeding-pod"]
     local layers = pod.graphics_set.animation.layers
     assert.are.same(Lifecycle.POD_TINT, layers[1].tint)
     assert.is_nil(layers[2].tint)
-    assert.is_nil(opts.graphics_set.animation.layers[1].tint)
-    assert.are.same(opts.working_sound, pod.working_sound)
+    assert.is_nil(opts.pod.graphics_set.animation.layers[1].tint)
+    assert.are.same(opts.pod.working_sound, pod.working_sound)
   end)
 
   it("give the pod no module or beacon effects", function()

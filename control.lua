@@ -18,6 +18,32 @@ local function unit_exists(name)
   return prototypes.entity[name] ~= nil
 end
 
+-- Creates one of the units near a position, sized by the
+-- evolution there, and sends it to attack the area. A unit with no
+-- command stands still until something provokes it. Returns the unit, or
+-- nil when no unit or no free spot exists.
+local function spawn(surface, position, units, force)
+  units = Hatching.available(units, unit_exists)
+  if #units == 0 then
+    return nil
+  end
+  local evolution = game.forces["enemy"].get_evolution_factor(surface)
+  local unit = Hatching.pick(units, evolution, random())
+  local spot = surface.find_non_colliding_position(unit, position, Balance.hatch_search_radius, 0.5)
+  if not spot then
+    return nil
+  end
+  local monster = surface.create_entity({ name = unit, position = spot, force = force })
+  if monster and monster.commandable then
+    monster.commandable.set_command({
+      type = defines.command.attack_area,
+      destination = spot,
+      radius = Balance.hatch_attack_radius,
+    })
+  end
+  return monster
+end
+
 script.on_event(defines.events.on_script_trigger_effect, function(event)
   -- Other mods' triggers reach this handler too.
   local species = Species.by_effect_id(event.effect_id)
@@ -29,25 +55,7 @@ script.on_event(defines.events.on_script_trigger_effect, function(event)
   if not surface or not position or surface.platform then
     return
   end
-  local evolution = game.forces["enemy"].get_evolution_factor(surface)
-  local units = Hatching.available(species.units, unit_exists)
-  if #units == 0 then
-    return
-  end
-  local unit = Hatching.pick(units, evolution, random())
-  local spot = surface.find_non_colliding_position(unit, position, Balance.hatch_search_radius, 0.5)
-  if not spot then
-    return
-  end
-  local monster = surface.create_entity({ name = unit, position = spot, force = "enemy" })
-  -- A unit with no command stands still until something provokes it.
-  if monster and monster.commandable then
-    monster.commandable.set_command({
-      type = defines.command.attack_area,
-      destination = spot,
-      radius = Balance.hatch_attack_radius,
-    })
-  end
+  spawn(surface, position, species.units, "enemy")
 end)
 
 script.on_event(defines.events.on_entity_died, function(event)
