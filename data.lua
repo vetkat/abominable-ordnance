@@ -16,9 +16,19 @@ local function looks(name)
   )
 end
 
+-- The larva launcher copies vanilla artillery. Another mod can remove
+-- it, and the mod can't work without it.
+local function vanilla(kind, name)
+  return assert(
+    (data.raw[kind] or {})[name],
+    "Abominable Ordnance needs the vanilla " .. kind .. " " .. name
+  )
+end
+
 local ordnance, husbandry = Ordnance.prototypes({
   incubator = looks("centrifuge"),
   chamber = looks("assembling-machine-3"),
+  projectile = vanilla("artillery-projectile", "artillery-projectile"),
 })
 
 data:extend(Lifecycle.prototypes({

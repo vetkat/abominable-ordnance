@@ -85,4 +85,12 @@ describe("the shared prototype helpers", function()
   it("give nil when both machines are gone", function()
     assert.is_nil(Common.looks({}, "a", "b"))
   end)
+
+  it("pick copies only the named fields, and leaves out missing ones", function()
+    local source = { a = 1, b = { 2 }, c = 3 }
+    local copy = Common.pick(source, { "a", "b", "d" })
+    assert.are.same({ a = 1, b = { 2 } }, copy)
+    copy.a = 9
+    assert.are.equal(1, source.a)
+  end)
 end)

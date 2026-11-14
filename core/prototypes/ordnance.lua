@@ -11,6 +11,12 @@ local Ordnance = {}
 
 Ordnance.INCUBATOR_TINT = { r = 0.7, g = 0.85, b = 0.6, a = 1 }
 Ordnance.CHAMBER_TINT = { r = 0.85, g = 0.6, b = 0.5, a = 1 }
+Ordnance.ROCKET_TINT = { r = 0.8, g = 0.55, b = 0.4, a = 1 }
+
+-- The fields of the vanilla artillery projectile that a larva rocket
+-- copies: how it looks in flight and on the map.
+local PROJECTILE_LOOKS =
+  { "picture", "shadow", "chart_picture", "map_color", "height_from_ground", "rotatable" }
 
 local function larva_icon(species)
   return Common.icon("__base__/graphics/icons/medium-" .. species.name .. ".png", species.tint)
@@ -43,6 +49,75 @@ local function loaded_icon(species, payload)
   local icons = larva_icon(species)
   icons[#icons + 1] = { icon = payload.icon, icon_size = 64, scale = 0.25, shift = { 8, 8 } }
   return icons
+end
+
+-- A larva rocket: the loaded larva as ammo for the larva launcher. It
+-- still spoils into its loaded monster.
+local function rocket(species, payload)
+  local p = spoiling(
+    Payloads.loaded_name(species, payload),
+    loaded_icon(species, payload),
+    Balance.loaded,
+    Payloads.effect_id(species, payload)
+  )
+  p.type = "ammo"
+  p.subgroup = "ammo"
+  p.ammo_category = Names.AMMO
+  p.ammo_type = {
+    target_type = "position",
+    action = {
+      type = "direct",
+      action_delivery = {
+        type = "artillery",
+        projectile = Payloads.projectile_name(species, payload),
+        starting_speed = 1,
+        direction_deviation = 0,
+        range_deviation = 0,
+      },
+    },
+  }
+  return p
+end
+
+-- The projectile of a larva rocket. Where it lands it shows an
+-- explosion and runs the landing effect. The script deals the blast
+-- damage, because an area trigger with force "enemy" also hurts the
+-- tamed force (probe, fact 6).
+local function projectile(species, payload, looks)
+  -- A tint of nil makes a deep copy, so the vanilla tables stay whole.
+  local p = Common.tinted(Common.pick(looks, PROJECTILE_LOOKS), nil)
+  p.type = "artillery-projectile"
+  p.name = Payloads.projectile_name(species, payload)
+  p.reveal_map = false
+  p.map_color = p.map_color or { r = 1, g = 0.5, b = 0 }
+  p.action = {
+    type = "direct",
+    action_delivery = {
+      type = "instant",
+      target_effects = {
+        { type = "create-entity", entity_name = "grenade-explosion" },
+        { type = "script", effect_id = Payloads.land_id(species, payload) },
+      },
+    },
+  }
+  return p
+end
+
+-- The shared casing that every larva rocket uses up, and its recipe.
+local function casing()
+  local c = Balance.casing
+  local item = Common.item(
+    Names.CASING,
+    Common.icon("__base__/graphics/icons/rocket.png", Ordnance.ROCKET_TINT),
+    "intermediate-product",
+    c.stack
+  )
+  local recipe = Common.recipe(Names.CASING, { "crafting" }, c.time, {
+    { type = "item", name = "steel-plate", amount = c.steel },
+    { type = "item", name = "explosives", amount = c.explosives },
+    { type = "item", name = "electronic-circuit", amount = c.circuit },
+  }, { { type = "item", name = Names.CASING, amount = 1 } })
+  return item, recipe
 end
 
 local function ordnance_loading(recipes)
@@ -97,25 +172,26 @@ local function incubation(graphics)
   return out, recipes
 end
 
--- Loaded larvae, the chamber, their recipes and their technology.
--- Returns the prototypes and the recipes.
-local function loading(graphics)
-  local out = { { type = "recipe-category", name = Names.LOADING } }
-  local recipes = {}
+-- Larva rockets, their projectiles, the casing, the chamber, their
+-- recipes and their technology. Returns the prototypes and the recipes.
+local function loading(graphics, projectile_looks)
+  local out = {
+    { type = "recipe-category", name = Names.LOADING },
+    { type = "ammo-category", name = Names.AMMO },
+  }
+  local casing_item, casing_recipe = casing()
+  out[#out + 1] = casing_item
+  local recipes = { casing_recipe }
   for _, species in ipairs(Species.ALL) do
     for _, payload in ipairs(Payloads.ALL) do
-      local name = Payloads.loaded_name(species, payload)
-      out[#out + 1] = spoiling(
-        name,
-        loaded_icon(species, payload),
-        Balance.loaded,
-        Payloads.effect_id(species, payload)
-      )
+      out[#out + 1] = rocket(species, payload)
+      out[#out + 1] = projectile(species, payload, projectile_looks)
       recipes[#recipes + 1] =
         fresh_recipe(Payloads.load_recipe(species, payload), Names.LOADING, Balance.load.time, {
           { type = "item", name = species.larva, amount = 1 },
           { type = "item", name = payload.item, amount = 1 },
-        }, name)
+          { type = "item", name = Names.CASING, amount = 1 },
+        }, Payloads.loaded_name(species, payload))
     end
   end
   local r = Balance.chamber.recipe
@@ -145,13 +221,14 @@ local function append(out, list)
   end
 end
 
--- Returns the prototypes and the names of the recipes that Monster
--- husbandry unlocks. opts.incubator and opts.chamber hold the
--- graphics_set and working_sound to copy.
+-- Returns the prototypes, and the names of the recipes that Monster
+-- husbandry unlocks. The opts hold the graphics_set and working_sound
+-- to copy for the incubator and the chamber. They also hold the vanilla
+-- artillery projectile, whose looks the larva rockets copy.
 function Ordnance.prototypes(opts)
   local out = {}
   local incubation_protos, husbandry = incubation(opts.incubator)
-  local loading_protos, loading_recipes = loading(opts.chamber)
+  local loading_protos, loading_recipes = loading(opts.chamber, opts.projectile)
   for _, list in ipairs({ incubation_protos, husbandry, loading_protos, loading_recipes }) do
     append(out, list)
   end

@@ -53,33 +53,80 @@ describe("the ordnance prototypes", function()
     end
   end)
 
-  it("make six loaded larvae that spoil into their loaded effect", function()
+  it("make six larva rockets that spoil into their loaded effect", function()
     local all = build()
     local count = 0
     for key, p in pairs(all) do
-      if key:match("^item/ao%-%a+%-larva%-%a+$") then
+      if key:match("^ammo/ao%-%a+%-larva%-%a+$") then
         count = count + 1
         assert.are.equal(10, p.stack_size, key)
         assert.are.equal(5 * 60 * 60, p.spoil_ticks, key)
         assert.are.equal(1, p.spoil_to_trigger_result.items_per_trigger, key)
+        assert.are.equal("ao-larva-rocket", p.ammo_category, key)
       end
     end
     assert.are.equal(6, count)
-    local acid = all["item/ao-spitter-larva-acid"]
+    local acid = all["ammo/ao-spitter-larva-acid"]
     local effect = acid.spoil_to_trigger_result.trigger.action_delivery.source_effects[1]
     assert.are.equal("ao-hatch-spitter-acid", effect.effect_id)
   end)
 
-  it("load a larva with one payload item in the loading chamber", function()
+  it("fire each larva rocket as its own artillery projectile", function()
+    local all = build()
+    local rocket = all["ammo/ao-biter-larva-poison"]
+    assert.are.equal("position", rocket.ammo_type.target_type)
+    local delivery = rocket.ammo_type.action.action_delivery
+    assert.are.equal("artillery", delivery.type)
+    assert.are.equal("ao-larva-projectile-biter-poison", delivery.projectile)
+    assert.truthy(all["artillery-projectile/ao-larva-projectile-biter-poison"])
+    assert.truthy(all["ammo-category/ao-larva-rocket"])
+  end)
+
+  it("land with an explosion picture, then the landing effect", function()
+    local p = build()["artillery-projectile/ao-larva-projectile-spitter-acid"]
+    assert.is_false(p.reveal_map)
+    assert.truthy(p.map_color)
+    local effects = p.action.action_delivery.target_effects
+    -- The probe showed that an area trigger with force "enemy" also hurts
+    -- the tamed force, so the script deals the blast damage instead.
+    assert.are.same({ type = "create-entity", entity_name = "grenade-explosion" }, effects[1])
+    assert.are.same({ type = "script", effect_id = "ao-land-spitter-acid" }, effects[2])
+    assert.are.equal(2, #effects)
+  end)
+
+  it("keep the vanilla projectile's looks without changing it", function()
+    local opts = Stubs.ordnance_opts()
+    local all = Stubs.by_name((Ordnance.prototypes(opts)))
+    local p = all["artillery-projectile/ao-larva-projectile-biter-acid"]
+    assert.are.same(opts.projectile.picture, p.picture)
+    assert.are_not.equal(opts.projectile.picture, p.picture)
+    assert.is_nil(opts.projectile.action)
+  end)
+
+  it("load a larva with one payload item and one casing", function()
     local r = build()["recipe/ao-load-biter-explosive"]
     assert.are.same({ "ao-loading" }, r.categories)
     assert.are.same({
       { type = "item", name = "ao-biter-larva", amount = 1 },
       { type = "item", name = "explosive-rocket", amount = 1 },
+      { type = "item", name = "ao-larva-rocket-casing", amount = 1 },
     }, r.ingredients)
     assert.are.equal("ao-biter-larva-explosive", r.results[1].name)
     assert.is_true(r.results[1].reset_freshness_on_craft)
     assert.is_false(r.auto_recycle)
+  end)
+
+  it("make the casing from steel, explosives and a circuit", function()
+    local all = build()
+    assert.are.equal(50, all["item/ao-larva-rocket-casing"].stack_size)
+    local r = all["recipe/ao-larva-rocket-casing"]
+    assert.are.same({ "crafting" }, r.categories)
+    assert.are.equal(5, r.energy_required)
+    assert.are.same({
+      { type = "item", name = "steel-plate", amount = 2 },
+      { type = "item", name = "explosives", amount = 1 },
+      { type = "item", name = "electronic-circuit", amount = 1 },
+    }, r.ingredients)
   end)
 
   it("make the loading chamber a machine of the loading category", function()
@@ -98,6 +145,7 @@ describe("the ordnance prototypes", function()
       unlocked[effect.recipe] = true
     end
     assert.truthy(unlocked["ao-loading-chamber"])
+    assert.truthy(unlocked["ao-larva-rocket-casing"])
     for _, species in ipairs({ "biter", "spitter" }) do
       for _, payload in ipairs({ "explosive", "acid", "poison" }) do
         assert.truthy(unlocked["ao-load-" .. species .. "-" .. payload])

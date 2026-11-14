@@ -31,6 +31,9 @@ mod uses [semantic versioning](https://semver.org/spec/v2.0.0.html).
 - An acid-loaded monster leaves an acid trail, at most 5 monsters per
   tick. With more than 300 acid monsters, each one leaves puddles less
   often.
+- Loaded larvae are now larva rockets, which use artillery ammo slots.
+  Loading one takes a larva rocket casing as well: 2 steel plates, 1
+  explosives and 1 electronic circuit.
 
 ### Fixed
 

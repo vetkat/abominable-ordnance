@@ -20,7 +20,16 @@ function Stubs.lifecycle_opts(space_age)
 end
 
 function Stubs.ordnance_opts()
-  return { incubator = graphics(), chamber = graphics() }
+  return {
+    incubator = graphics(),
+    chamber = graphics(),
+    projectile = {
+      picture = { filename = "shell.png" },
+      shadow = { filename = "shell-shadow.png", draw_as_shadow = true },
+      map_color = { r = 1, g = 1, b = 0 },
+      height_from_ground = 1,
+    },
+  }
 end
 
 -- Indexes prototypes by "type/name".
