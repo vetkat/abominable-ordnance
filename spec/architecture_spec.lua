@@ -20,6 +20,15 @@ describe("the architecture checks", function()
     assert.truthy(problems[1]:find("game", 1, true))
   end)
 
+  it("catch the other runtime globals", function()
+    local problems = check(A.core_problems, "spec/fixtures/bad_core_globals.lua")
+    assert.are.equal(3, #problems)
+  end)
+
+  it("catch a global after the concat operator", function()
+    assert.are.equal(1, #check(A.core_problems, "spec/fixtures/bad_core_concat.lua"))
+  end)
+
   it("catch math.random", function()
     assert.are.equal(1, #check(A.random_problems, "spec/fixtures/bad_random.lua"))
   end)
@@ -32,6 +41,8 @@ describe("the architecture checks", function()
     local files = A.lua_files("spec/fixtures")
     assert.are.same({
       "spec/fixtures/bad_core_api.lua",
+      "spec/fixtures/bad_core_concat.lua",
+      "spec/fixtures/bad_core_globals.lua",
       "spec/fixtures/bad_random.lua",
       "spec/fixtures/good_core.lua",
     }, files)
@@ -49,8 +60,11 @@ describe("the repository", function()
     end
   end)
 
-  it("never uses math.random in core/ or control.lua", function()
+  it("never uses math.random in core/, shell/ or control.lua", function()
     local paths = A.lua_files("core")
+    for _, path in ipairs(A.lua_files("shell")) do
+      paths[#paths + 1] = path
+    end
     if io.open("control.lua") then
       paths[#paths + 1] = "control.lua"
     end
