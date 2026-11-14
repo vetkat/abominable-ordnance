@@ -20,7 +20,17 @@ function Stubs.lifecycle_opts(space_age)
 end
 
 function Stubs.ordnance_opts()
-  return { incubator = graphics(), chamber = graphics() }
+  return {
+    incubator = graphics(),
+    chamber = graphics(),
+    projectile = {
+      picture = { filename = "shell.png" },
+      shadow = { filename = "shell-shadow.png", draw_as_shadow = true },
+      map_color = { r = 1, g = 1, b = 0 },
+      height_from_ground = 1,
+      action = { type = "direct", action_delivery = { type = "instant" } },
+    },
+  }
 end
 
 -- Indexes prototypes by "type/name".
@@ -30,6 +40,46 @@ function Stubs.by_name(prototypes)
     by_name[p.type .. "/" .. p.name] = p
   end
   return by_name
+end
+
+-- Stand-ins for the vanilla artillery turret, flare and remote.
+function Stubs.launcher_opts(levels)
+  return {
+    levels = levels or { 0 },
+    turret = {
+      base_picture = { layers = { { filename = "base.png" } } },
+      cannon_barrel_pictures = { layers = { { filename = "barrel.png" } } },
+      cannon_base_pictures = { layers = { { filename = "cannon.png" } } },
+      cannon_base_shift = { 0, 0, 0 },
+      turret_rotation_speed = 0.001,
+      collision_box = { { -1.2, -1.2 }, { 1.2, 1.2 } },
+      selection_box = { { -1.5, -1.5 }, { 1.5, 1.5 } },
+      rotating_sound = { sound = { filename = "turn.ogg" } },
+      circuit_connector = { points = { wire = { red = { 0, 1 } } } },
+      circuit_wire_max_distance = 9,
+      alert_when_attacking = false,
+      open_sound = { filename = "open.ogg" },
+      close_sound = { filename = "close.ogg" },
+      mined_sound = { filename = "mined.ogg" },
+      damaged_trigger_effect = { type = "create-entity", entity_name = "hit" },
+    },
+    cannon = {
+      sound = { filename = "shoot.ogg", volume = 0.7 },
+      projectile_center = { -0.15625, -0.07812 },
+      projectile_creation_parameters = { { "direction", { 0, 1 } } },
+      projectile_creation_distance = 1.6,
+    },
+    flare = {
+      pictures = { { filename = "flare.png" } },
+      life_time = 3600,
+      map_color = { r = 1, g = 0.5, b = 0 },
+      shots_per_flare = 1,
+    },
+    remote = {
+      flags = { "only-in-cursor", "not-stackable", "spawnable", "always-show" },
+      pick_sound = { filename = "pick.ogg" },
+    },
+  }
 end
 
 return Stubs

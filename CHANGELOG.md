@@ -31,6 +31,15 @@ mod uses [semantic versioning](https://semver.org/spec/v2.0.0.html).
 - An acid-loaded monster leaves an acid trail, at most 5 monsters per
   tick. With more than 300 acid monsters, each one leaves puddles less
   often.
+- Loaded larvae are now larva rockets, the ammo of the larva launcher.
+  Loading one takes a larva rocket casing as well: 2 steel plates, 1
+  explosives and 1 electronic circuit.
+- The larva launcher, an artillery turret that holds 5 larva rockets and
+  reaches 64 tiles. The larva targeting remote marks targets for it.
+  Both come from the Larva rockets research, and three Larva launcher
+  fire rate researches follow. The launcher has a circuit connector,
+  its shots sound like artillery, and with Space Age it stays warm on
+  cold planets. The remote stays in the inventory when you clear the cursor.
 
 ### Fixed
 

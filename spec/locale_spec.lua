@@ -4,15 +4,23 @@
 
 local L = require("spec.support.locale")
 
+local LauncherPrototypes = require("core.prototypes.launcher")
 local Lifecycle = require("core.prototypes.lifecycle")
 local Ordnance = require("core.prototypes.ordnance")
 local Stubs = require("spec.support.stubs")
 
 local SECTION = {
   item = "item-name",
+  ammo = "item-name",
+  gun = "item-name",
+  capsule = "item-name",
   recipe = "recipe-name",
   technology = "technology-name",
   ["assembling-machine"] = "entity-name",
+  ["artillery-turret"] = "entity-name",
+  ["artillery-projectile"] = "entity-name",
+  ["artillery-flare"] = "entity-name",
+  ["ammo-category"] = "ammo-category-name",
 }
 
 local function read(path)
@@ -53,10 +61,14 @@ describe("locale/en/locale.cfg", function()
     for _, p in ipairs((Ordnance.prototypes(Stubs.ordnance_opts()))) do
       all[#all + 1] = p
     end
+    for _, p in ipairs(LauncherPrototypes.prototypes(Stubs.launcher_opts({ 0, 1, 2, 3 }))) do
+      all[#all + 1] = p
+    end
     for _, p in ipairs(all) do
       local section = SECTION[p.type]
       if section then
-        assert.truthy(L.value(text, section, p.name), section .. "." .. p.name)
+        local key = p.type == "technology" and (p.name:gsub("%-%d+$", "")) or p.name
+        assert.truthy(L.value(text, section, key), section .. "." .. key)
       end
     end
   end)

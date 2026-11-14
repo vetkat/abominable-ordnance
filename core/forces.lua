@@ -21,4 +21,21 @@ function Forces.earns_loot(name, researched)
   return researched or name == Names.TAMED
 end
 
+-- True if the landing blast hurts an entity of the target force.
+-- attacker is the launcher's force name, or nil when the launcher no
+-- longer exists. Then only the natives count. is_enemy is true when the
+-- attacker's force is at war with the target. The blast never hits the
+-- tamed force, so it can't hurt the loaded monsters near the spot. It
+-- never hits neutral things such as trees and rocks, and no force hits
+-- itself.
+function Forces.blast_hits(target, attacker, is_enemy)
+  if target == Names.TAMED or target == "neutral" then
+    return false
+  end
+  if attacker == nil then
+    return target == "enemy"
+  end
+  return target ~= attacker and is_enemy
+end
+
 return Forces

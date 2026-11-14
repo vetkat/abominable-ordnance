@@ -1,5 +1,6 @@
 -- The data stage. This file is the shell: it reads the game's data and
 -- passes it to the pure builders in core/.
+local LauncherPrototypes = require("core.prototypes.launcher")
 local Lifecycle = require("core.prototypes.lifecycle")
 local Ordnance = require("core.prototypes.ordnance")
 
@@ -16,9 +17,19 @@ local function looks(name)
   )
 end
 
+-- The larva launcher copies vanilla artillery. Another mod can remove
+-- it, and the mod can't work without it.
+local function vanilla(kind, name)
+  return assert(
+    (data.raw[kind] or {})[name],
+    "Abominable Ordnance needs the vanilla " .. kind .. " " .. name
+  )
+end
+
 local ordnance, husbandry = Ordnance.prototypes({
   incubator = looks("centrifuge"),
   chamber = looks("assembling-machine-3"),
+  projectile = vanilla("artillery-projectile", "artillery-projectile"),
 })
 
 data:extend(Lifecycle.prototypes({
@@ -27,3 +38,12 @@ data:extend(Lifecycle.prototypes({
   extra_unlocks = husbandry,
 }))
 data:extend(ordnance)
+
+data:extend(LauncherPrototypes.prototypes({
+  turret = vanilla("artillery-turret", "artillery-turret"),
+  flare = vanilla("artillery-flare", "artillery-flare"),
+  remote = vanilla("capsule", "artillery-targeting-remote"),
+  cannon = vanilla("gun", "artillery-wagon-cannon").attack_parameters,
+  space_age = space_age,
+  levels = { 0 },
+}))

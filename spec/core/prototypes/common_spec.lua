@@ -24,6 +24,15 @@ describe("the shared prototype helpers", function()
     assert.is_nil(g.layers[1].tint)
   end)
 
+  it("copy a table all the way down", function()
+    local t = { a = { b = { 1, 2 } }, c = "x" }
+    local c = Common.copy(t)
+    assert.are.same(t, c)
+    assert.are_not.equal(t.a, c.a)
+    assert.are_not.equal(t.a.b, c.a.b)
+    assert.are.equal(3, Common.copy(3))
+  end)
+
   it("make an item from an icons list", function()
     local icons = Common.icon("x.png", { r = 1 })
     local i = Common.item("ao-x", icons, "intermediate-product", 20)
@@ -84,5 +93,26 @@ describe("the shared prototype helpers", function()
 
   it("give nil when both machines are gone", function()
     assert.is_nil(Common.looks({}, "a", "b"))
+  end)
+
+  it("pick copies only the named fields, and leaves out missing ones", function()
+    local source = { a = 1, b = { 2 }, c = 3 }
+    local copy = Common.pick(source, { "a", "b", "d" })
+    assert.are.same({ a = 1, b = { 2 } }, copy)
+    copy.a = 9
+    assert.are.equal(1, source.a)
+  end)
+
+  it("pick shares no nested table with the source", function()
+    local source = { b = { c = { 1 } } }
+    local copy = Common.pick(source, { "b" })
+    assert.are_not.equal(source.b, copy.b)
+    assert.are_not.equal(source.b.c, copy.b.c)
+  end)
+
+  it("append adds every item of a list to the end of another", function()
+    local out = { 1 }
+    Common.append(out, { 2, 3 })
+    assert.are.same({ 1, 2, 3 }, out)
   end)
 end)

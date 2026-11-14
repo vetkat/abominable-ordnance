@@ -2,6 +2,18 @@
 -- game globals: only its parameters.
 local Common = {}
 
+-- A deep copy of a value. Plain values come back as they are.
+function Common.copy(value)
+  if type(value) ~= "table" then
+    return value
+  end
+  local copy = {}
+  for k, v in pairs(value) do
+    copy[k] = Common.copy(v)
+  end
+  return copy
+end
+
 -- Returns a copy of a graphics table. Every sprite that is not a shadow,
 -- a light or a glow gets the tint.
 function Common.tinted(value, tint)
@@ -170,6 +182,24 @@ function Common.looks(machines, name, fallback)
     return nil
   end
   return { graphics_set = machine.graphics_set, working_sound = machine.working_sound }
+end
+
+-- A deep copy of the named fields of t. A field that t lacks stays out.
+-- The copy shares no table with t, so the caller can change it freely.
+function Common.pick(t, fields)
+  local copy = {}
+  for _, field in ipairs(fields) do
+    copy[field] = Common.copy(t[field])
+  end
+  return copy
+end
+
+-- Adds every item of list to the end of out. It changes out, which the
+-- caller made.
+function Common.append(out, list)
+  for _, p in ipairs(list) do
+    out[#out + 1] = p
+  end
 end
 
 return Common
