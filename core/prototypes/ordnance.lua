@@ -84,8 +84,7 @@ end
 -- damage, because an area trigger with force "enemy" also hurts the
 -- tamed force (probe, fact 6).
 local function projectile(species, payload, looks)
-  -- A deep copy, so the vanilla tables stay whole.
-  local p = Common.copy(Common.pick(looks, PROJECTILE_LOOKS))
+  local p = Common.pick(looks, PROJECTILE_LOOKS)
   p.type = "artillery-projectile"
   p.hidden = true
   p.name = Payloads.projectile_name(species, payload)
@@ -216,12 +215,6 @@ local function loading(graphics, projectile_looks)
   return out, recipes
 end
 
-local function append(out, list)
-  for _, p in ipairs(list) do
-    out[#out + 1] = p
-  end
-end
-
 -- Returns the prototypes, and the names of the recipes that Monster
 -- husbandry unlocks. The opts hold the graphics_set and working_sound
 -- to copy for the incubator and the chamber. They also hold the vanilla
@@ -231,7 +224,7 @@ function Ordnance.prototypes(opts)
   local incubation_protos, husbandry = incubation(opts.incubator)
   local loading_protos, loading_recipes = loading(opts.chamber, opts.projectile)
   for _, list in ipairs({ incubation_protos, husbandry, loading_protos, loading_recipes }) do
-    append(out, list)
+    Common.append(out, list)
   end
   return out, Common.names(husbandry)
 end

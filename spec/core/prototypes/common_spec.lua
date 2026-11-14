@@ -102,4 +102,17 @@ describe("the shared prototype helpers", function()
     copy.a = 9
     assert.are.equal(1, source.a)
   end)
+
+  it("pick shares no nested table with the source", function()
+    local source = { b = { c = { 1 } } }
+    local copy = Common.pick(source, { "b" })
+    assert.are_not.equal(source.b, copy.b)
+    assert.are_not.equal(source.b.c, copy.b.c)
+  end)
+
+  it("append adds every item of a list to the end of another", function()
+    local out = { 1 }
+    Common.append(out, { 2, 3 })
+    assert.are.same({ 1, 2, 3 }, out)
+  end)
 end)

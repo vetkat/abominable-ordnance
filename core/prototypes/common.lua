@@ -184,16 +184,22 @@ function Common.looks(machines, name, fallback)
   return { graphics_set = machine.graphics_set, working_sound = machine.working_sound }
 end
 
--- A shallow copy of the named fields of t. A field that t lacks stays
--- out. The copy is new, so the caller can change it, but the values are
--- shared: change a nested table only through a deep copy such as
--- Common.tinted.
+-- A deep copy of the named fields of t. A field that t lacks stays out.
+-- The copy shares no table with t, so the caller can change it freely.
 function Common.pick(t, fields)
   local copy = {}
   for _, field in ipairs(fields) do
-    copy[field] = t[field]
+    copy[field] = Common.copy(t[field])
   end
   return copy
+end
+
+-- Adds every item of list to the end of out. It changes out, which the
+-- caller made.
+function Common.append(out, list)
+  for _, p in ipairs(list) do
+    out[#out + 1] = p
+  end
 end
 
 return Common

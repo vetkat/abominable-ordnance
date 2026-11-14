@@ -90,7 +90,7 @@ end
 -- another: the script swaps them.
 local function turret(level, looks)
   local b = Balance.launcher
-  local p = Common.copy(Common.pick(looks, TURRET_LOOKS))
+  local p = Common.pick(looks, TURRET_LOOKS)
   for _, field in ipairs(PICTURES) do
     p[field] = Common.tinted(looks[field], LauncherPrototypes.TINT)
   end
@@ -129,7 +129,7 @@ end
 -- The larva flare: the vanilla flare's looks, answered only by larva
 -- rockets.
 local function flare(looks)
-  local p = Common.copy(Common.pick(looks, FLARE_LOOKS))
+  local p = Common.pick(looks, FLARE_LOOKS)
   p.type = "artillery-flare"
   p.name = Names.FLARE
   p.icons = icons("__base__/graphics/icons/artillery-targeting-remote.png")
@@ -138,14 +138,17 @@ local function flare(looks)
 end
 
 local function remote_kit(looks)
-  local r = Balance.remote
-  local item = Common.copy(Common.pick(looks, REMOTE_LOOKS))
+  local r = Balance.targeting_remote
+  local item = Common.item(
+    Names.REMOTE,
+    icons("__base__/graphics/icons/artillery-targeting-remote.png"),
+    "defensive-structure",
+    1
+  )
+  for k, v in pairs(Common.pick(looks, REMOTE_LOOKS)) do
+    item[k] = v
+  end
   item.type = "capsule"
-  item.name = Names.REMOTE
-  item.icons = icons("__base__/graphics/icons/artillery-targeting-remote.png")
-  item.subgroup = "defensive-structure"
-  item.order = "z[ao]-" .. Names.REMOTE
-  item.stack_size = 1
   item.capsule_action = { type = "artillery-remote", flare = Names.FLARE }
   local recipe = Common.recipe(Names.REMOTE, { "crafting" }, r.time, {
     { type = "item", name = "electronic-circuit", amount = r.circuit },
@@ -197,9 +200,7 @@ function LauncherPrototypes.prototypes(opts)
   end
   local item, recipe = launcher_kit()
   local kit, kit_recipe = remote_kit(opts.remote)
-  for _, p in ipairs({ item, recipe, flare(opts.flare), kit, kit_recipe, rockets_tech() }) do
-    out[#out + 1] = p
-  end
+  Common.append(out, { item, recipe, flare(opts.flare), kit, kit_recipe, rockets_tech() })
   local speed = {
     { type = "gun-speed", ammo_category = Names.AMMO, modifier = Balance.upgrade_research.speed },
   }

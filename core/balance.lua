@@ -67,8 +67,7 @@ return {
     recipe = { time = 10, steel = 20, gear = 10, advanced = 10, pipe = 5 },
   },
   blast = { damage = 35, radius = 3.5 },
-  -- Quoted, so that the core rule does not read the key as the game's remote.
-  ["remote"] = { time = 2, circuit = 1, radar = 1, coal = 1, sulfur = 1 },
+  targeting_remote = { time = 2, circuit = 1, radar = 1, coal = 1, sulfur = 1 },
   rockets_research = { count = 200, time = 30 },
   upgrade_research = { counts = { 150, 250, 400 }, time = 30, speed = 0.2 },
 }

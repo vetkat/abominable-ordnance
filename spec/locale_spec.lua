@@ -67,7 +67,7 @@ describe("locale/en/locale.cfg", function()
     for _, p in ipairs(all) do
       local section = SECTION[p.type]
       if section then
-        local key = p.type == "technology" and p.name:gsub("%-%d+$", "") or p.name
+        local key = p.type == "technology" and (p.name:gsub("%-%d+$", "")) or p.name
         assert.truthy(L.value(text, section, key), section .. "." .. key)
       end
     end

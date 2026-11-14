@@ -74,15 +74,6 @@ local function load_monster(monster, payload)
   script.register_on_object_destroyed(monster)
 end
 
--- True if the attacker is at war with a force. Without a launcher (the
--- rocket outlived it), only the natives count.
-local function at_war(attacker, force)
-  if not attacker then
-    return force.name == "enemy"
-  end
-  return force ~= attacker and attacker.is_enemy(force)
-end
-
 -- The landing blast. The launcher's force deals the damage, so kills
 -- count for it.
 local function blast(surface, position, launcher)
@@ -95,7 +86,11 @@ local function blast(surface, position, launcher)
     if
       target.valid
       and target.is_entity_with_health
-      and Forces.blast_hits(target.force.name, at_war(attacker, target.force))
+      and Forces.blast_hits(
+        target.force.name,
+        attacker and attacker.name,
+        attacker ~= nil and attacker.is_enemy(target.force)
+      )
     then
       local cause = attacker and launcher
       target.damage(Balance.blast.damage, attacker or "neutral", "explosion", nil, cause)
