@@ -1,6 +1,7 @@
 -- Sets up storage and the tamed force, for a new game and for a save
 -- that gains or updates the mod. This module is shell, so the in-game
 -- tests can call it.
+local LauncherShell = require("shell.launcher")
 local Tamed = require("shell.tamed")
 
 local Setup = {}
@@ -22,12 +23,14 @@ local function rebuild_trails()
 end
 
 -- A new mod version can add unlocks to a research that a force has
--- already finished. The reset applies them.
+-- already finished. The reset applies them. The sync then puts every
+-- placed launcher at its force's range level.
 function Setup.on_configuration_changed()
   Setup.on_init()
   rebuild_trails()
   for _, force in pairs(game.forces) do
     force.reset_technology_effects()
+    LauncherShell.sync(force)
   end
 end
 

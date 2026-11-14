@@ -50,7 +50,7 @@ describe("the launcher prototypes", function()
     assert.are_not.equal(opts.turret.circuit_connector, t.circuit_connector)
   end)
 
-  it("freeze on Aquilo only without Space Age", function()
+  it("keep warm on cold planets only with Space Age", function()
     assert.is_nil(build()["artillery-turret/ao-larva-launcher"].heating_energy)
     local t = build({ 0 }, true)["artillery-turret/ao-larva-launcher"]
     assert.are.equal("200kW", t.heating_energy)

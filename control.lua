@@ -3,10 +3,12 @@
 local Balance = require("core.balance")
 local Hatching = require("core.hatching")
 local Forces = require("core.forces")
+local Launcher = require("core.launcher")
 local Loot = require("core.loot")
 local Names = require("core.names")
 local Payloads = require("core.payloads")
 local Species = require("core.species")
+local LauncherShell = require("shell.launcher")
 local Setup = require("shell.setup")
 local Tamed = require("shell.tamed")
 local Trail = require("core.trail")
@@ -54,6 +56,45 @@ script.on_configuration_changed(Setup.on_configuration_changed)
 script.on_event(defines.events.on_force_created, function(event)
   Tamed.relate(event.force)
 end)
+script.on_event(defines.events.on_force_reset, function(event)
+  LauncherShell.sync(event.force)
+end)
+script.on_event(defines.events.on_forces_merged, function(event)
+  LauncherShell.sync(event.destination)
+end)
+
+-- Every launcher stays at its force's level. A range research or its
+-- reversal swaps the placed launchers, and the swap also catches a built
+-- launcher when it arrives. The build events have a filter on the four
+-- launcher names.
+local function research_changed(event)
+  if Launcher.is_range_tech(event.research.name) then
+    LauncherShell.sync(event.research.force)
+  end
+end
+script.on_event(defines.events.on_research_finished, research_changed)
+script.on_event(defines.events.on_research_reversed, research_changed)
+
+local LAUNCHER_FILTER = {}
+for _, name in ipairs(Launcher.NAMES) do
+  LAUNCHER_FILTER[#LAUNCHER_FILTER + 1] = { filter = "name", name = name }
+end
+
+local function built(event)
+  LauncherShell.on_built(event.entity)
+end
+for _, id in ipairs({
+  defines.events.on_built_entity,
+  defines.events.on_robot_built_entity,
+  defines.events.on_space_platform_built_entity,
+  defines.events.script_raised_built,
+  defines.events.script_raised_revive,
+}) do
+  script.on_event(id, built, LAUNCHER_FILTER)
+end
+script.on_event(defines.events.on_entity_cloned, function(event)
+  LauncherShell.on_built(event.destination)
+end, LAUNCHER_FILTER)
 
 -- A loaded monster fights the natives. The engine must not destroy it
 -- when a command fails, or its payload would never go off.
@@ -245,5 +286,6 @@ if script.active_mods["factorio-test"] then
     "tests/ingame/loot_test",
     "tests/ingame/ordnance_test",
     "tests/ingame/launcher_test",
+    "tests/ingame/launcher_range_test",
   })
 end
