@@ -37,4 +37,16 @@ function Hatching.pick(units, evolution, r)
   return units[#units][1]
 end
 
+-- The units whose name passes exists(name). Another mod can remove a
+-- vanilla unit, and the game fails if the mod creates a missing one.
+function Hatching.available(units, exists)
+  local found = {}
+  for _, unit in ipairs(units) do
+    if exists(unit[1]) then
+      found[#found + 1] = unit
+    end
+  end
+  return found
+end
+
 return Hatching

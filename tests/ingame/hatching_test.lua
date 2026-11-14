@@ -64,3 +64,26 @@ test("10 biter eggs on the ground hatch one biter", function()
     assert(biters == 1, "no biter hatched on the ground")
   end)
 end)
+
+test("a hatched biter attacks a building near the hatch spot", function()
+  local position = { 580, 500 }
+  Helpers.arena(surface(), position)
+  local target = surface().create_entity({
+    name = "wooden-chest",
+    position = { position[1] + 12, position[2] },
+    force = "player",
+  })
+  surface().spill_item_stack({
+    position = position,
+    stack = { name = BITER.egg, count = 10 },
+    drop_full_stack = true,
+  })
+  local items = surface().find_entities_filtered({
+    name = "item-on-ground",
+    area = { { 575, 495 }, { 585, 505 } },
+  })
+  Helpers.spoil(items[1].stack)
+  after_ticks(20 * 60, function()
+    assert(not target.valid or target.health < target.max_health, "the biter left the chest alone")
+  end)
+end)

@@ -38,3 +38,24 @@ describe("the hatch pick", function()
     assert.are.equal("behemoth-biter", Hatching.pick(biter.units, 1, 0.999999))
   end)
 end)
+
+describe("the available units", function()
+  local biter = Species.ALL[1]
+
+  it("keeps only the units that exist in the game", function()
+    local exists = function(name)
+      return name ~= "behemoth-biter"
+    end
+    local units = Hatching.available(biter.units, exists)
+    assert.are.equal(3, #units)
+    assert.are.equal("big-biter", units[3][1])
+    assert.are.equal("big-biter", Hatching.pick(units, 1, 0.999999))
+  end)
+
+  it("is empty when no unit exists", function()
+    local units = Hatching.available(biter.units, function()
+      return false
+    end)
+    assert.are.same({}, units)
+  end)
+end)
