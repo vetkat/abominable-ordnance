@@ -8,6 +8,7 @@
 ing-form | docs/design.md | | names of game parts and actions in the design
 ing-form | locale/en/locale.cfg | breeding | the name of the breeding pod
 ing-form | docs/superpowers/specs/*-lifecycle-design.md | | names of game parts and research (Breeding pod, Sulfur processing)
+ing-form | docs/superpowers/specs/*-ordnance-design.md | | names of game parts and research (Loading chamber, Ordnance loading, the Launching notes)
 
 # The review reports record what reviewers said and quote the old spec,
 # including its American spellings.
@@ -26,3 +27,4 @@ modal-passive | docs/superpowers/reviews/*.md | | records the reviewers' wording
 word | docs/superpowers/plans/*.md | modify | the writing-plans file-list format
 word | docs/superpowers/plans/*.md | attempt | a term the work loop defines
 word | docs/superpowers/plans/*.md | utilize | the planted mistake for the checker test
+ing-form | docs/superpowers/plans/*-ordnance.md | | names of game parts and research (Loading chamber, Ordnance loading)
