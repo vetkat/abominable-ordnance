@@ -48,3 +48,16 @@ test("the adopt recipe turns a biter-egg into a mod egg", function()
     )
   end)
 end)
+
+test("an incubator makes 1 larva from 10 eggs", function()
+  Helpers.arena(game.surfaces[1], { 440, 400 })
+  local incubator = Helpers.powered_machine(game.surfaces[1], { 440, 400 }, Names.INCUBATOR)
+  incubator.set_recipe("ao-incubate-biter")
+  incubator.insert({ name = "ao-biter-egg", count = 10 })
+  after_ticks(900, function()
+    assert(
+      incubator.get_output_inventory().get_item_count("ao-biter-larva") == 1,
+      "the incubator did not make a larva"
+    )
+  end)
+end)

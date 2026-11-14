@@ -87,3 +87,22 @@ test("a hatched biter attacks a building near the hatch spot", function()
     assert(not target.valid or target.health < target.max_health, "the biter left the chest alone")
   end)
 end)
+
+test("a spoiled larva hatches one wild biter", function()
+  local position = { 620, 540 }
+  Helpers.arena(surface(), position)
+  surface().spill_item_stack({
+    position = position,
+    stack = { name = BITER.larva, count = 1 },
+    drop_full_stack = true,
+  })
+  local items = surface().find_entities_filtered({
+    name = "item-on-ground",
+    area = { { 615, 535 }, { 625, 545 } },
+  })
+  Helpers.spoil(items[1].stack)
+  after_ticks(2, function()
+    local biters = Helpers.count_units(surface(), position, unit_names(BITER))
+    assert(biters == 1, "the larva hatched " .. biters .. " biters")
+  end)
+end)
