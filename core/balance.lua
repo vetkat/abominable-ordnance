@@ -7,6 +7,7 @@ return {
   chow_stack = 100,
   hatch_ratio = 10,
   hatch_search_radius = 8,
+  hatch_attack_radius = 32,
   loot_min = 1,
   loot_max = 3,
   monster_chow = { time = 2, coal = 1, sulfur = 1, water = 20, result = 2 },

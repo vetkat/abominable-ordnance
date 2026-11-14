@@ -36,8 +36,17 @@ script.on_event(defines.events.on_script_trigger_effect, function(event)
   end
   local unit = Hatching.pick(units, evolution, random())
   local spot = surface.find_non_colliding_position(unit, position, Balance.hatch_search_radius, 0.5)
-  if spot then
-    surface.create_entity({ name = unit, position = spot, force = "enemy" })
+  if not spot then
+    return
+  end
+  local monster = surface.create_entity({ name = unit, position = spot, force = "enemy" })
+  -- A unit with no command stands still until something provokes it.
+  if monster and monster.commandable then
+    monster.commandable.set_command({
+      type = defines.command.attack_area,
+      destination = spot,
+      radius = Balance.hatch_attack_radius,
+    })
   end
 end)
 

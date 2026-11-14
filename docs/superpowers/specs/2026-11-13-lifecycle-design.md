@@ -39,8 +39,9 @@ Terms:
 - **The agent** is Claude Code in this repository.
 - **Species** means biter or spitter in this slice.
 - **Hatch** means to create a monster from an item that spoils.
-- **Wild** means on the `enemy` force. Feral behaviour is a different
-  thing and comes in slice 4.
+- **Wild** means on the `enemy` force, and it attacks everything of the
+  player's within 32 tiles of where it hatched. Feral behaviour is a
+  different thing and comes in slice 4.
 - **The core** is the pure Lua modules in `core/`, which never touch the
   game API. **The shell** is `data.lua` and the event handlers in
   `control.lua`, which call the core. `docs/architecture.md` has the
@@ -197,7 +198,11 @@ The prototype builder, hatching and nest loot all read this table.
    returns the first unit of the species. For spitters this happens below
    evolution 0.25, and the result is `small-spitter`.
 4. The shell finds a free position near the event position and creates
-   the unit on the `enemy` force.
+   the unit on the `enemy` force. It gives the unit an `attack_area`
+   command around that position, with a radius of 32 tiles. Without a
+   command, the unit stands still until something provokes it (found in
+   the game on 2026-11-14). When the area is clear, the game gives the
+   unit a `wander` command near the same spot.
 5. Nothing hatches when the event gives no usable surface or position,
    when the surface is a space platform, or when there is no free
    position.
