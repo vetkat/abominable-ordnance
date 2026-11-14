@@ -30,10 +30,10 @@ function LauncherShell.level(force)
   end)
 end
 
--- Everything the new launcher must keep. The record holds each wire as
+-- Everything the new launcher must keep. The quality is its name. The record holds each wire as
 -- its connector ID, the connector at the other end and the wire's origin.
 ---@param old LuaEntity
-local function read(old)
+function LauncherShell.read(old)
   local wires = {}
   for id, connector in pairs(old.get_wire_connectors(false)) do
     for _, connection in pairs(connector.connections) do
@@ -48,6 +48,8 @@ local function read(old)
     for _, key in ipairs(SETTINGS) do
       behaviour[key] = b[key]
     end
+    behaviour.input_networks = b.input_networks
+    behaviour.output_networks = b.output_networks
   end
   return {
     name = old.name,
@@ -55,7 +57,7 @@ local function read(old)
     position = old.position,
     direction = old.direction,
     force = old.force,
-    quality = old.quality,
+    quality = old.quality.name,
     health = old.health,
     auto = old.artillery_auto_targeting,
     last_user = old.last_user,
@@ -112,8 +114,8 @@ end
 -- item if the swap lost the launcher. A spill writes a log line.
 ---@param temp LuaInventory
 ---@param place {surface: LuaSurface, position: MapPosition, force: LuaForce}
----@param lost_quality LuaQualityPrototype|string|nil
-local function spill(temp, place, lost_quality)
+---@param lost_quality string|nil
+function LauncherShell.spill(temp, place, lost_quality)
   local stacks = Launcher.leftovers(temp[1].valid_for_read, lost_quality)
   for _, stack in ipairs(stacks) do
     place.surface.spill_item_stack({
@@ -136,7 +138,7 @@ end
 ---@param old LuaEntity
 ---@param name string
 function LauncherShell.swap(old, name)
-  local state = read(old)
+  local state = LauncherShell.read(old)
   local temp = game.create_inventory(1)
   local ammo = old.get_inventory(AMMO) --[[@as LuaInventory]]
   temp[1].transfer_stack(ammo[1])
@@ -165,7 +167,7 @@ function LauncherShell.swap(old, name)
   if new then
     restore(new, state, temp)
   end
-  spill(temp, state, lost and state.quality or nil)
+  LauncherShell.spill(temp, state, lost and state.quality or nil)
   temp.destroy()
   return new
 end

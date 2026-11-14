@@ -35,6 +35,15 @@ function Launcher.level_of(name)
   return LEVEL_OF[name]
 end
 
+-- Every level, from 0 to the highest.
+function Launcher.levels()
+  local levels = {}
+  for level = 0, MAX do
+    levels[#levels + 1] = level
+  end
+  return levels
+end
+
 -- The automatic range of a level, in tiles.
 function Launcher.range(level)
   local n = known(level) and level or 0

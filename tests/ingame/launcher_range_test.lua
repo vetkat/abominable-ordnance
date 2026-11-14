@@ -210,7 +210,8 @@ test("the level reads the force's research", function()
 end)
 
 -- The busted test of the remote's flags is the main guard. This test
--- checks the result in the game.
+-- checks only the main inventory. It cannot check the cursor, because
+-- a cursor clear deletes the stack.
 test("a larva targeting remote can sit in a character's main inventory", function()
   local character = surface().create_entity({
     name = "character",
@@ -219,17 +220,10 @@ test("a larva targeting remote can sit in a character's main inventory", functio
   })
   local inventory = character.get_main_inventory()
   local inserted = inventory and inventory.insert({ name = Names.REMOTE, count = 1 }) or 0
-  local cursor = character.cursor_stack
-  local had_cursor = cursor ~= nil
-  if cursor then
-    cursor.set_stack({ name = Names.REMOTE, count = 1 })
-    cursor.clear()
-  end
   local kept = inventory and inventory.get_item_count(Names.REMOTE) or 0
   character.destroy()
   assert(inserted == 1, "the remote did not go into the inventory")
-  assert(had_cursor, "the character has no cursor")
-  assert(kept == 1, kept .. " remotes left after the cursor cleared")
+  assert(kept == 1, kept .. " remotes in the inventory")
 end)
 
 test("a configuration change swaps a launcher to its force's level", function()
@@ -239,4 +233,47 @@ test("a configuration change swaps a launcher to its force's level", function()
   place(2, position)
   Setup.on_configuration_changed()
   assert(one(settle(position), 0), "not level 0")
+end)
+
+test("a swap's state holds the quality as a name", function()
+  local position = { 1420, 1600 }
+  local entity = launcher(position)
+  local state = LauncherShell.read(entity)
+  settle(position)
+  assert(type(state.quality) == "string", "quality is " .. type(state.quality))
+  assert(state.quality == "normal", state.quality)
+end)
+
+test("a spill of a lost launcher puts the item on the ground", function()
+  local position = { 1440, 1600 }
+  Helpers.arena(surface(), position)
+  local entity = launcher(position)
+  local state = LauncherShell.read(entity)
+  settle(position)
+  local temp = game.create_inventory(1)
+  LauncherShell.spill(temp, state, state.quality)
+  temp.destroy()
+  local count = Helpers.count_items(surface(), position, Names.LAUNCHER)
+  assert(count == 1, count .. " launcher items on the ground")
+end)
+
+test("a force merge swaps the launcher to the destination's level", function()
+  local other = game.forces["ao-merge-test"] or game.create_force("ao-merge-test")
+  local position = { 1460, 1600 }
+  set_range(1)
+  -- The launcher is at level 0, the wrong level for the merged force.
+  launcher(position, other.name)
+  game.merge_forces(other, game.forces["player"])
+  local waited = 0
+  local function check()
+    waited = waited + 1
+    local names = at(position)
+    if (#names == 1 and names[1].name == Launcher.name(1)) or waited >= 30 then
+      local result = settle(position)
+      assert(one(result, 1), "not level 1 after the merge")
+    else
+      after_ticks(1, check)
+    end
+  end
+  after_ticks(1, check)
 end)
