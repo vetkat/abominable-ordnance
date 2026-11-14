@@ -40,6 +40,9 @@ mod uses [semantic versioning](https://semver.org/spec/v2.0.0.html).
   fire rate researches follow. The launcher has a circuit connector,
   its shots sound like artillery, and with Space Age it stays warm on
   cold planets. The remote stays in the inventory when you clear the cursor.
+- Larva launcher range research in three levels. Each level adds 16 tiles.
+  Placed launchers update to the level of their force and keep their ammo,
+  wires and settings. A launcher built later starts at that level.
 
 ### Fixed
 
