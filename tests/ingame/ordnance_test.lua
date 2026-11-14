@@ -1,5 +1,8 @@
+local Balance = require("core.balance")
 local Helpers = require("__abominable-ordnance__/tests/ingame/helpers")
 local Names = require("core.names")
+local Payloads = require("core.payloads")
+local Setup = require("shell.setup")
 local Species = require("core.species")
 local Tamed = require("shell.tamed")
 
@@ -149,4 +152,48 @@ test("an acid monster leaves an acid trail", function()
       assert(puddles >= 1, "no acid trail")
     end)
   end)
+end)
+
+test("another object's destruction leaves the loaded entries alone", function()
+  local text = rendering.draw_text({
+    text = "x",
+    surface = surface(),
+    target = { 0, 0 },
+    color = { r = 1, g = 1, b = 1 },
+  })
+  local _, id = script.register_on_object_destroyed(text)
+  storage.loaded[id] = { unit = { valid = false }, payloads = { "poison" } }
+  text.destroy()
+  after_ticks(1, function()
+    local kept = storage.loaded[id] ~= nil
+    storage.loaded[id] = nil
+    assert(kept, "a render object's destruction removed a loaded entry")
+  end)
+end)
+
+test("an acid trail whose entity is missing does nothing", function()
+  with_loaded_monster({ 980, 700 }, "ao-biter-larva-acid", function(unit)
+    storage.loaded[unit.unit_number].trail = "ao-no-such-puddle"
+    after_ticks(Balance.acid_trail_ticks + 1, function()
+      assert(unit.valid, "the monster is gone")
+      unit.destroy()
+    end)
+  end)
+end)
+
+test("every payload effect entity exists", function()
+  for _, payload in ipairs(Payloads.ALL) do
+    assert(prototypes.entity[payload.death.name], payload.death.name)
+    if payload.trail then
+      assert(prototypes.entity[payload.trail], payload.trail)
+    end
+  end
+end)
+
+test("a configuration change unlocks new recipes of a finished research", function()
+  Helpers.research(true)
+  local recipe = game.forces["player"].recipes[Names.INCUBATOR]
+  recipe.enabled = false
+  Setup.on_configuration_changed()
+  assert(recipe.enabled, "the incubator recipe stayed locked")
 end)

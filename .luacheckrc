@@ -37,7 +37,6 @@ local ingame = {
   "tags",
 }
 for _, name in ipairs(factorio) do ingame[#ingame + 1] = name end
--- A test reads the mod's saved table.
-ingame[#ingame + 1] = "storage"
--- A test may change game state, for example a research.
-files["tests/ingame"] = { read_globals = ingame, globals = { "game" } }
+-- A test may change game state, for example a research, and the mod's
+-- saved table.
+files["tests/ingame"] = { read_globals = ingame, globals = { "game", "storage" } }

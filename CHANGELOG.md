@@ -26,5 +26,5 @@ mod uses [semantic versioning](https://semver.org/spec/v2.0.0.html).
 - Loaded monsters. A loaded larva that spoils becomes a monster on the
   tamed force, which fights the natives and spares players. When it dies,
   its payload goes off: a rocket blast, a poison cloud or five acid
-  puddles. An acid-loaded monster leaves an acid trail. Nests that loaded
-  monsters kill drop eggs.
+  puddles. Acid burns native units, not nests. An acid-loaded monster
+  leaves an acid trail. Nests that loaded monsters kill drop eggs.

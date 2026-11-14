@@ -7,6 +7,7 @@ local Loot = require("core.loot")
 local Names = require("core.names")
 local Payloads = require("core.payloads")
 local Species = require("core.species")
+local Setup = require("shell.setup")
 local Tamed = require("shell.tamed")
 
 -- A deterministic random number in [0, 1). storage keeps only the seed.
@@ -47,15 +48,8 @@ local function spawn(surface, position, units, force)
   return monster
 end
 
--- Sets up storage and the tamed force, for a new game and for a save
--- that gains or updates the mod.
-local function setup()
-  storage.loaded = storage.loaded or {}
-  Tamed.ensure()
-end
-
-script.on_init(setup)
-script.on_configuration_changed(setup)
+script.on_init(Setup.on_init)
+script.on_configuration_changed(Setup.on_configuration_changed)
 script.on_event(defines.events.on_force_created, function(event)
   Tamed.relate(event.force)
 end)
@@ -145,15 +139,19 @@ script.on_event(defines.events.on_entity_died, function(event)
 end, { { filter = "type", type = "unit-spawner" }, { filter = "type", type = "unit" } })
 
 -- Runs after on_entity_died, and also when a unit leaves without dying.
--- The mod registers only loaded monsters, so useful_id is a unit number.
+-- Every mod gets every registration, and only entities have a unit
+-- number as useful_id.
 script.on_event(defines.events.on_object_destroyed, function(event)
-  storage.loaded[event.useful_id] = nil
+  if event.type == defines.target_type.entity then
+    storage.loaded[event.useful_id] = nil
+  end
 end)
 
 -- An acid-loaded monster leaves a small acid puddle where it walks.
 script.on_nth_tick(Balance.acid_trail_ticks, function()
   for _, entry in pairs(storage.loaded) do
-    if entry.trail and entry.unit.valid then
+    -- Another mod can remove the trail entity after the monster hatched.
+    if entry.trail and entry.unit.valid and entity_exists(entry.trail) then
       entry.unit.surface.create_entity({
         name = entry.trail,
         position = entry.unit.position,
