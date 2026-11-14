@@ -294,6 +294,11 @@ launcher. The design accepts that.
 
 ### Separate remotes
 
+On 2026-11-14 the maintainer dropped the change below, after the probe
+showed that the vanilla remote already does not fire larva launchers.
+The in-game tests still check that each remote fires only its own
+artillery.
+
 The vanilla artillery flare has no `shot_category`, so it would make
 larva launchers fire too. In `data-final-fixes.lua`, the mod sets
 `shot_category = "artillery-shell"` on the vanilla `artillery-flare`.
