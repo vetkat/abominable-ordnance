@@ -37,4 +37,16 @@ return {
     stack = 10,
     recipe = { time = 5, steel = 10, circuit = 10, pipe = 10 },
   },
+  loaded = { stack = 10, spoil_ticks = 5 * MINUTE },
+  load = { time = 5 },
+  chamber = {
+    crafting_speed = 1,
+    energy_usage = "250kW",
+    pollution = 2,
+    max_health = 400,
+    mining_time = 0.2,
+    stack = 10,
+    recipe = { time = 5, steel = 10, advanced = 5, gear = 10 },
+  },
+  ordnance_research = { count = 250, time = 30 },
 }

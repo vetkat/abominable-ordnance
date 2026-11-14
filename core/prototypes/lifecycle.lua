@@ -62,23 +62,21 @@ end
 
 -- The pod's item, recipe and machine.
 local function pod(graphics)
-  local b = Balance.pod
-  local icons = Common.icon("__base__/graphics/icons/chemical-plant.png", Lifecycle.POD_TINT)
-  local recipe = Common.recipe(Names.POD, { "crafting" }, b.recipe.time, {
-    { type = "item", name = "iron-plate", amount = b.recipe.iron },
-    { type = "item", name = "steel-plate", amount = b.recipe.steel },
-    { type = "item", name = "pipe", amount = b.recipe.pipe },
-    { type = "item", name = "electronic-circuit", amount = b.recipe.circuit },
-  }, { { type = "item", name = Names.POD, amount = 1 } })
-  local machine = Common.machine({
+  local r = Balance.pod.recipe
+  return Common.machine_kit({
     name = Names.POD,
-    icons = icons,
+    icon = "__base__/graphics/icons/chemical-plant.png",
+    tint = Lifecycle.POD_TINT,
     categories = { Names.CATEGORY },
     graphics = graphics,
-    tint = Lifecycle.POD_TINT,
-    numbers = b,
+    numbers = Balance.pod,
+    ingredients = {
+      { type = "item", name = "iron-plate", amount = r.iron },
+      { type = "item", name = "steel-plate", amount = r.steel },
+      { type = "item", name = "pipe", amount = r.pipe },
+      { type = "item", name = "electronic-circuit", amount = r.circuit },
+    },
   })
-  return Common.placeable(Names.POD, icons, b.stack), recipe, machine
 end
 
 local function adopt(species)

@@ -26,20 +26,31 @@ function Payloads.loaded_name(species, payload)
   return "ao-" .. species.name .. "-larva-" .. payload.name
 end
 
-function Payloads.effect_id(species, payload)
+function Payloads.load_recipe(species, payload)
   return "ao-load-" .. species.name .. "-" .. payload.name
+end
+
+-- The spoil effect of a loaded larva. Like the egg's ao-hatch-<species>,
+-- it names what hatches.
+function Payloads.effect_id(species, payload)
+  return "ao-hatch-" .. species.name .. "-" .. payload.name
+end
+
+-- Every loaded effect ID, built once, to its species and payload.
+local BY_EFFECT = {}
+for _, species in ipairs(Species.ALL) do
+  for _, payload in ipairs(Payloads.ALL) do
+    BY_EFFECT[Payloads.effect_id(species, payload)] = { species = species, payload = payload }
+  end
 end
 
 -- The species and payload of a loaded larva's spoil effect, or nil.
 function Payloads.decode(effect_id)
-  for _, species in ipairs(Species.ALL) do
-    for _, payload in ipairs(Payloads.ALL) do
-      if Payloads.effect_id(species, payload) == effect_id then
-        return species, payload
-      end
-    end
+  local entry = BY_EFFECT[effect_id]
+  if not entry then
+    return nil
   end
-  return nil
+  return entry.species, entry.payload
 end
 
 return Payloads

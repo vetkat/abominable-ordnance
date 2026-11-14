@@ -20,7 +20,7 @@ function Stubs.lifecycle_opts(space_age)
 end
 
 function Stubs.ordnance_opts()
-  return { incubator = graphics() }
+  return { incubator = graphics(), chamber = graphics() }
 end
 
 -- Indexes prototypes by "type/name".

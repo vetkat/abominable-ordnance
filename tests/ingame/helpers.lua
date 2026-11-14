@@ -27,9 +27,10 @@ function Helpers.arena(surface, position)
   end
 end
 
--- Gives the player force Monster husbandry, or takes it away.
-function Helpers.research(done)
-  game.forces["player"].technologies[Names.TECH].researched = done
+-- Gives the player force a technology, or takes it away. The default is
+-- Monster husbandry.
+function Helpers.research(done, tech)
+  game.forces["player"].technologies[tech or Names.TECH].researched = done
 end
 
 -- A machine with power from an electric energy interface. The force

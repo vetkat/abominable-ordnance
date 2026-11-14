@@ -61,3 +61,18 @@ test("an incubator makes 1 larva from 10 eggs", function()
     )
   end)
 end)
+
+test("a loading chamber loads a larva with an explosive rocket", function()
+  Helpers.arena(game.surfaces[1], { 460, 400 })
+  local chamber = Helpers.powered_machine(game.surfaces[1], { 460, 400 }, Names.CHAMBER)
+  Helpers.research(true, Names.ORDNANCE_TECH)
+  chamber.set_recipe("ao-load-biter-explosive")
+  chamber.insert({ name = "ao-biter-larva", count = 1 })
+  chamber.insert({ name = "explosive-rocket", count = 1 })
+  after_ticks(600, function()
+    assert(
+      chamber.get_output_inventory().get_item_count("ao-biter-larva-explosive") == 1,
+      "the chamber did not load the larva"
+    )
+  end)
+end)

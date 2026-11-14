@@ -20,3 +20,6 @@ mod uses [semantic versioning](https://semver.org/spec/v2.0.0.html).
   The eggs land beside the corpse, under a floating label.
 - Biter and spitter larvae, and the incubator that makes 1 larva from 10
   eggs. A larva that spoils hatches a wild monster.
+- The loading chamber and the Ordnance loading research. The chamber loads
+  a larva with an explosive rocket, a sulfuric acid barrel or a poison
+  capsule.
