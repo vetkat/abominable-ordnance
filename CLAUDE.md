@@ -33,6 +33,35 @@ stay under about 10 seconds.
 | About 50 to 200 lines, or one new module | 2: simplification and altitude |
 | Over about 200 lines, many files, or anything that other work depends on (hooks, CI, release, shared core modules) | 4 |
 
+## Review angles
+
+Code review also checks the angles that match the paths a PR changes.
+One reviewer takes each angle, within the reviewer count above.
+
+| Paths | Angles |
+| --- | --- |
+| `control.lua`, `shell/`, or code that reads or writes `storage` | Multiplayer safety (no desync), save compatibility (migrations, `on_configuration_changed`), compatibility with other mods |
+| `core/prototypes/`, `data.lua` | Compatibility with other mods and with Space Age |
+| Event handlers, `on_tick` and `on_nth_tick` | Performance (UPS) |
+| `spec/`, `tests/` | Test quality: each test fails for the right reason |
+| `.github/`, `tools/`, `Makefile` | Security, with `/security-review` |
+
+The gate is severity, not a score. A PR merges only with no open Critical
+or Important finding. Review in rounds:
+
+1. The reviewers check the PR: EGM for a spec or plan, the angles above
+   for code.
+2. Fix every Critical and Important finding, and each minor one that is
+   cheap to fix. A code fix gets a test that fails first.
+3. The same reviewers check the changed text or diff again.
+4. Stop when a round finds no new Critical or Important finding. After 3
+   rounds, stop and give the open findings to the maintainer.
+
+The PR description gives one verdict for each angle: `pass`, `n/a`,
+`fixed: <what>` or `minor: <what>`. The CI job `pr` refuses any other
+verdict, a blank one, or a missing section. The label `no-review` skips
+this check, and Dependabot PRs skip it too.
+
 ## Rules
 
 - The target is Factorio 2.1, with and without Space Age.

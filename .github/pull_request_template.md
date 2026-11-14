@@ -9,3 +9,16 @@
 - [ ] `CHANGELOG.md` has an entry under Unreleased, or the PR has the
       label `no-changelog`
 - [ ] A new spec has an EGM review
+
+## Review angles
+
+Give each angle one verdict: `pass`, `n/a`, `fixed: <what>` or
+`minor: <what>`. `CLAUDE.md` names the angles for each path. CI refuses
+a blank verdict and any open Critical or Important finding.
+
+- Multiplayer safety:
+- Save compatibility:
+- Mod compatibility:
+- Performance (UPS):
+- Test quality:
+- Security:
