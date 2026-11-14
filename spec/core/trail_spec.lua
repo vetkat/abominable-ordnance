@@ -11,11 +11,25 @@ local function keys(n)
 end
 
 describe("a trail batch", function()
-  it("visits at most n keys and returns the last one as the cursor", function()
+  it("visits at most n keys and returns the next one as the cursor", function()
     local t = keys(12)
     local got, cursor = Trail.batch(t, nil, 5)
     assert.are.equal(5, #got)
-    assert.are.equal(got[5], cursor)
+    assert.are.equal(next(t, got[5]), cursor)
+  end)
+
+  it("visits the cursor's own key first", function()
+    local t = keys(12)
+    local _, cursor = Trail.batch(t, nil, 5)
+    local got = Trail.batch(t, cursor, 5)
+    assert.are.equal(cursor, got[1])
+  end)
+
+  it("ends the pass with a nil cursor when n keys are the last ones", function()
+    local t = keys(5)
+    local got, cursor = Trail.batch(t, nil, 5)
+    assert.are.equal(5, #got)
+    assert.is_nil(cursor)
   end)
 
   it("ends the pass with a nil cursor", function()
@@ -67,6 +81,35 @@ describe("forgetting a trail key", function()
     t[cursor] = nil
     local got = Trail.batch(t, moved, 10)
     assert.are.equal(6 - 3, #got)
+    assert.are.equal(moved, got[1])
+  end)
+
+  it("visits every living key after the one that leaves", function()
+    local t = keys(6)
+    local _, cursor = Trail.batch(t, nil, 2)
+    local gone = cursor
+    cursor = Trail.forget(t, cursor, gone)
+    t[gone] = nil
+    local seen = {}
+    for _, k in ipairs((Trail.batch(t, cursor, 10))) do
+      seen[k] = true
+    end
+    for k in next, t do
+      if k > gone then
+        assert.is_true(seen[k], "key " .. k .. " skipped")
+      end
+    end
+  end)
+
+  it("ends the pass when the last key leaves", function()
+    local t = keys(3)
+    local _, cursor = Trail.batch(t, nil, 2)
+    assert.is_nil(next(t, cursor))
+    assert.is_nil(Trail.forget(t, cursor, cursor))
+  end)
+
+  it("drops a cursor whose key is not in the table", function()
+    assert.is_nil(Trail.forget(keys(3), 99, 99))
   end)
 
   it("keeps the cursor when another key leaves", function()

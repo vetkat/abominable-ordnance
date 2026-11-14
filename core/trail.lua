@@ -3,35 +3,36 @@
 -- parameters.
 local Trail = {}
 
--- Up to n keys of t after cursor, and the cursor for the next call. The
--- cursor is nil when the pass reached the end of t. A cursor whose key
--- left t counts as the start of t.
+-- Up to n keys of t from cursor on, and the cursor for the next call. The
+-- cursor is the next key to visit, and nil when the pass reached the end
+-- of t. A cursor whose key left t counts as the start of t.
 function Trail.batch(t, cursor, n)
-  if cursor ~= nil and t[cursor] == nil then
-    cursor = nil
+  local key = cursor
+  if key == nil or t[key] == nil then
+    key = next(t)
   end
   local got = {}
-  local key = cursor
   for _ = 1, n do
-    key = next(t, key)
     if key == nil then
       break
     end
     got[#got + 1] = key
-  end
-  if key ~= nil and next(t, key) == nil then
-    key = nil
+    key = next(t, key)
   end
   return got, key
 end
 
 -- The cursor to keep when key leaves t. Call it while t[key] still
--- exists: next() needs the key in the table.
+-- exists, because next() needs the key in the table. A cursor on a key
+-- that is not in t ends the pass.
 function Trail.forget(t, cursor, key)
-  if cursor ~= nil and cursor == key then
-    return next(t, key)
+  if cursor ~= key then
+    return cursor
   end
-  return cursor
+  if cursor == nil or t[key] == nil then
+    return nil
+  end
+  return next(t, key)
 end
 
 -- Returns true when the handler works this tick. It also returns the

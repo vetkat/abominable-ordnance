@@ -119,9 +119,9 @@ one:
   `on_entity_died` handler does.
 - Keep `on_tick` and `on_nth_tick` work small. Its cost must grow with the
   number of players or with a fixed batch size, not with every tracked
-  unit. One known exception: the acid trail loops over all loaded
-  monsters once a second. Batch it before loaded monsters come in the
-  hundreds, at the latest with larva rockets.
+  unit. `core/trail.lua` is the pattern to reuse for per-tick work over
+  tracked units. It visits a fixed batch of units each tick and keeps a
+  cursor in `storage`.
 
 ## Type annotations
 

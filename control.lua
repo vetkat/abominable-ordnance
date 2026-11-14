@@ -62,12 +62,13 @@ local function load_monster(monster, payload)
   monster.ai_settings.allow_try_return_to_spawner = false
   local payloads = { payload.name }
   local trail = Payloads.trail(payloads)
-  storage.loaded[monster.unit_number] = {
+  local entry = {
     unit = monster,
     payloads = payloads,
     trail = trail and entity_exists(trail) and trail or nil,
   }
-  if storage.loaded[monster.unit_number].trail then
+  storage.loaded[monster.unit_number] = entry
+  if entry.trail then
     storage.trails[monster.unit_number] = true
   end
   script.register_on_object_destroyed(monster)
