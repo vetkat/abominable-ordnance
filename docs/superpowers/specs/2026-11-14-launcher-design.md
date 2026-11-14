@@ -1,10 +1,13 @@
 # Abominable Ordnance: slice 3, larva launcher
 
-Date: 2026-11-14. Status: draft for review. The maintainer and the agent
+Date: 2026-11-14. Status: approved. The maintainer and the agent
 agreed on this design in a brainstorm on 2026-11-14. "Answers" lists the
 maintainer's choices, and "Proposals" lists the agent's own calls. An EGM
 review followed, with reports in
 `docs/superpowers/reviews/2026-11-14-launcher-*.md`.
+
+The maintainer approved the spec on 2026-11-14, with separate remotes as
+written.
 
 ## Purpose
 
