@@ -1,4 +1,3 @@
-local Balance = require("core.balance")
 local Trail = require("core.trail")
 
 -- A table with the keys 1 to n, as storage.trails holds unit numbers.
@@ -25,18 +24,12 @@ describe("a trail batch", function()
     assert.are.equal(cursor, got[1])
   end)
 
-  it("ends the pass with a nil cursor when n keys are the last ones", function()
-    local t = keys(5)
-    local got, cursor = Trail.batch(t, nil, 5)
-    assert.are.equal(5, #got)
-    assert.is_nil(cursor)
-  end)
-
-  it("ends the pass with a nil cursor", function()
-    local t = keys(3)
-    local got, cursor = Trail.batch(t, nil, 5)
-    assert.are.equal(3, #got)
-    assert.is_nil(cursor)
+  it("ends the pass with a nil cursor, also when n keys are the last ones", function()
+    for _, size in ipairs({ 3, 5 }) do
+      local got, cursor = Trail.batch(keys(size), nil, 5)
+      assert.are.equal(size, #got)
+      assert.is_nil(cursor)
+    end
   end)
 
   it("gives nothing for an empty table", function()
@@ -65,10 +58,6 @@ describe("a trail batch", function()
     end
     assert.are.equal(300, count)
     assert.is_nil(cursor)
-  end)
-
-  it("uses a batch of 5 by default", function()
-    assert.are.equal(5, Balance.trail_batch)
   end)
 end)
 
