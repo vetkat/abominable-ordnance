@@ -9,6 +9,7 @@ local Payloads = require("core.payloads")
 local Species = require("core.species")
 local Setup = require("shell.setup")
 local Tamed = require("shell.tamed")
+local Trail = require("core.trail")
 
 -- A deterministic random number in [0, 1). storage keeps only the seed.
 local function random()
@@ -61,11 +62,15 @@ local function load_monster(monster, payload)
   monster.ai_settings.allow_try_return_to_spawner = false
   local payloads = { payload.name }
   local trail = Payloads.trail(payloads)
-  storage.loaded[monster.unit_number] = {
+  local entry = {
     unit = monster,
     payloads = payloads,
     trail = trail and entity_exists(trail) and trail or nil,
   }
+  storage.loaded[monster.unit_number] = entry
+  if entry.trail then
+    storage.trails[monster.unit_number] = true
+  end
   script.register_on_object_destroyed(monster)
 end
 
@@ -140,18 +145,33 @@ end, { { filter = "type", type = "unit-spawner" }, { filter = "type", type = "un
 
 -- Runs after on_entity_died, and also when a unit leaves without dying.
 -- Every mod gets every registration, and only entities have a unit
--- number as useful_id.
+-- number as useful_id. The trail cursor moves past the unit first,
+-- because next() needs the key in the table.
 script.on_event(defines.events.on_object_destroyed, function(event)
   if event.type == defines.target_type.entity then
-    storage.loaded[event.useful_id] = nil
+    local id = event.useful_id
+    storage.trail_cursor = Trail.forget(storage.trails, storage.trail_cursor, id)
+    storage.trails[id] = nil
+    storage.loaded[id] = nil
   end
 end)
 
--- An acid-loaded monster leaves a small acid puddle where it walks.
-script.on_nth_tick(Balance.acid_trail_ticks, function()
-  for _, entry in pairs(storage.loaded) do
+-- An acid-loaded monster leaves a small acid puddle where it walks. Each
+-- tick visits at most Balance.trail_batch monsters, and a new pass starts
+-- at most once per Balance.acid_trail_ticks.
+script.on_event(defines.events.on_tick, function(event)
+  local go, next_tick =
+    Trail.start(storage.trail_cursor, event.tick, storage.trail_next_tick, Balance.acid_trail_ticks)
+  storage.trail_next_tick = next_tick
+  if not go then
+    return
+  end
+  local ids, cursor = Trail.batch(storage.trails, storage.trail_cursor, Balance.trail_batch)
+  storage.trail_cursor = cursor
+  for _, id in ipairs(ids) do
+    local entry = storage.loaded[id]
     -- Another mod can remove the trail entity after the monster hatched.
-    if entry.trail and entry.unit.valid and entity_exists(entry.trail) then
+    if entry and entry.trail and entry.unit.valid and entity_exists(entry.trail) then
       entry.unit.surface.create_entity({
         name = entry.trail,
         position = entry.unit.position,
