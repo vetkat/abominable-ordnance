@@ -27,3 +27,4 @@ modal-passive | docs/superpowers/reviews/*.md | | records the reviewers' wording
 word | docs/superpowers/plans/*.md | modify | the writing-plans file-list format
 word | docs/superpowers/plans/*.md | attempt | a term the work loop defines
 word | docs/superpowers/plans/*.md | utilize | the planted mistake for the checker test
+ing-form | docs/superpowers/plans/*-ordnance.md | | names of game parts and research (Loading chamber, Ordnance loading)
