@@ -12,23 +12,23 @@ local surface = function()
   return game.surfaces[1]
 end
 
-local function set_range(force, level)
+local function set_range(level)
   for i = 1, 3 do
-    force.technologies[Names.RANGE_TECH .. i].researched = i <= level
+    Helpers.research(i <= level, Names.RANGE_TECH .. i)
   end
 end
 
 -- A level 0 launcher with two rockets, at a test position.
 local function launcher(position, force)
   Helpers.arena(surface(), position)
-  local entity = surface().create_entity({
-    name = Launcher.name(0),
-    position = position,
-    force = force or "player",
-    quality = "normal",
-  })
-  entity.get_inventory(AMMO).insert({ name = ROCKET, count = 2 })
-  return entity
+  return Helpers.launcher(
+    surface(),
+    position,
+    Launcher.name(0),
+    { name = ROCKET, count = 2 },
+    force,
+    "normal"
+  )
 end
 
 local function at(position, force)
@@ -51,12 +51,24 @@ local function settle(position, force)
   return names
 end
 
+-- Clears a test position of enemies and places a bare launcher of a
+-- level there. raise is true to raise the built event.
+local function place(level, position, raise)
+  Helpers.arena(surface(), position)
+  return surface().create_entity({
+    name = Launcher.name(level),
+    position = position,
+    force = "player",
+    raise_built = raise,
+  })
+end
+
 local function one(names, level)
   return #names == 1 and names[1] == Launcher.name(level)
 end
 
 after_each(function()
-  set_range(game.forces["player"], 0)
+  set_range(0)
 end)
 
 test("a range research swaps a placed launcher to the next level", function()
@@ -82,7 +94,7 @@ test("a range research swaps a placed launcher to the next level", function()
   behaviour.read_ammo = true
   local half = old.health
 
-  set_range(game.forces["player"], 1)
+  set_range(1)
   after_ticks(1, function()
     local found = at(position)
     local new = found[1]
@@ -128,11 +140,11 @@ end)
 test("a reversed range research swaps the launcher back", function()
   local position = { 1140, 1600 }
   launcher(position)
-  set_range(game.forces["player"], 2)
+  set_range(2)
   after_ticks(1, function()
     local first = at(position)[1]
     local up = first and first.name
-    set_range(game.forces["player"], 1)
+    set_range(1)
     after_ticks(1, function()
       local names = settle(position)
       assert(up == Launcher.name(2), "not level 2: " .. tostring(up))
@@ -142,15 +154,9 @@ test("a reversed range research swaps the launcher back", function()
 end)
 
 test("a launcher built after the research is at the force's level", function()
-  set_range(game.forces["player"], 3)
+  set_range(3)
   local position = { 1180, 1600 }
-  Helpers.arena(surface(), position)
-  surface().create_entity({
-    name = Launcher.name(0),
-    position = position,
-    force = "player",
-    raise_built = true,
-  })
+  place(0, position, true)
   after_ticks(1, function()
     assert(one(settle(position), 3), "not level 3")
   end)
@@ -158,13 +164,7 @@ end)
 
 test("a level 2 launcher on a level 0 force becomes level 0", function()
   local position = { 1220, 1600 }
-  Helpers.arena(surface(), position)
-  surface().create_entity({
-    name = Launcher.name(2),
-    position = position,
-    force = "player",
-    raise_built = true,
-  })
+  place(2, position, true)
   after_ticks(1, function()
     assert(one(settle(position), 0), "not level 0")
   end)
@@ -173,14 +173,8 @@ end)
 test("a cloned launcher takes the force's level", function()
   local position = { 1240, 1600 }
   local target = { 1240, 1610 }
-  Helpers.arena(surface(), position)
-  -- create_entity without raise_built raises no event, so this launcher
-  -- keeps level 1 on a level 0 force.
-  local entity = surface().create_entity({
-    name = Launcher.name(1),
-    position = position,
-    force = "player",
-  })
+  -- No raise_built, so this launcher keeps level 1 on a level 0 force.
+  local entity = place(1, position)
   entity.clone({ position = target, surface = surface() })
   after_ticks(1, function()
     local names = settle(target)
@@ -191,12 +185,7 @@ end)
 
 test("mining a level 2 launcher gives the launcher item", function()
   local position = { 1260, 1600 }
-  Helpers.arena(surface(), position)
-  local entity = surface().create_entity({
-    name = Launcher.name(2),
-    position = position,
-    force = "player",
-  })
+  local entity = place(2, position)
   local inventory = game.create_inventory(10)
   entity.mine({ inventory = inventory, force = true })
   local count = inventory.get_item_count(Names.LAUNCHER)
@@ -208,15 +197,15 @@ end)
 test("a research of one force leaves another force's launcher alone", function()
   local other = game.forces["ao-range-test"] or game.create_force("ao-range-test")
   local position = { 1300, 1600 }
-  launcher(position, other)
-  set_range(game.forces["player"], 1)
+  launcher(position, other.name)
+  set_range(1)
   after_ticks(1, function()
     assert(one(settle(position, other), 0), "the other force swapped")
   end)
 end)
 
 test("the level reads the force's research", function()
-  set_range(game.forces["player"], 2)
+  set_range(2)
   assert(LauncherShell.level(game.forces["player"]) == 2, "level")
 end)
 
@@ -245,69 +234,9 @@ end)
 
 test("a configuration change swaps a launcher to its force's level", function()
   local position = { 1380, 1600 }
-  Helpers.arena(surface(), position)
-  -- create_entity without raise_built raises no event, so this launcher
-  -- keeps level 2 on a level 0 force until the sync.
-  surface().create_entity({ name = Launcher.name(2), position = position, force = "player" })
+  -- No raise_built, so this launcher keeps level 2 on a level 0 force
+  -- until the sync.
+  place(2, position)
   Setup.on_configuration_changed()
   assert(one(settle(position), 0), "not level 0")
-end)
-
--- A script inventory with some rockets, and the place a swap spills at.
-local function leftovers(position, count)
-  Helpers.arena(surface(), position)
-  local temp = game.create_inventory(1)
-  if count > 0 then
-    temp.insert({ name = ROCKET, count = count })
-  end
-  return temp, { surface = surface(), position = position, force = game.forces["player"] }
-end
-
--- Reads the items on the ground near a position, then removes them.
-local function ground(position)
-  local got = {
-    rockets = Helpers.count_items(surface(), position, ROCKET),
-    launchers = Helpers.count_items(surface(), position, Names.LAUNCHER),
-  }
-  for _, pile in
-    pairs(surface().find_entities_filtered({
-      name = "item-on-ground",
-      position = position,
-      radius = 8,
-    }))
-  do
-    pile.destroy()
-  end
-  return got
-end
-
-test("ammo that a swap could not place lands on the ground", function()
-  local position = { 1420, 1600 }
-  local temp, place = leftovers(position, 2)
-  LauncherShell.spill_leftovers(temp, place, nil)
-  local empty = temp.is_empty()
-  temp.destroy()
-  local got = ground(position)
-  assert(got.rockets == 2, got.rockets .. " rockets on the ground")
-  assert(got.launchers == 0, got.launchers .. " launcher items on the ground")
-  assert(empty, "the rockets stayed in the script inventory too")
-end)
-
-test("a launcher that a swap lost lands on the ground as an item", function()
-  local position = { 1460, 1600 }
-  local temp, place = leftovers(position, 0)
-  LauncherShell.spill_leftovers(temp, place, "normal")
-  temp.destroy()
-  local got = ground(position)
-  assert(got.launchers == 1, got.launchers .. " launcher items on the ground")
-  assert(got.rockets == 0, got.rockets .. " rockets on the ground")
-end)
-
-test("a swap with nothing left over spills nothing", function()
-  local position = { 1500, 1600 }
-  local temp, place = leftovers(position, 0)
-  LauncherShell.spill_leftovers(temp, place, nil)
-  temp.destroy()
-  local got = ground(position)
-  assert(got.rockets == 0 and got.launchers == 0, "items on the ground")
 end)

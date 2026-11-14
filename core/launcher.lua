@@ -22,9 +22,12 @@ end
 
 Launcher.NAMES = { Names.LAUNCHER }
 local LEVEL_OF = { [Names.LAUNCHER] = 0 }
+-- The range technology names, by level.
+local RANGE_TECHS = {}
 for level = 1, MAX do
   Launcher.NAMES[#Launcher.NAMES + 1] = Launcher.name(level)
   LEVEL_OF[Launcher.name(level)] = level
+  RANGE_TECHS[level] = Names.RANGE_TECH .. level
 end
 
 -- The level of a turret name, or nil for any other entity.
@@ -49,7 +52,7 @@ end
 -- finished level, not a count.
 function Launcher.level(researched)
   for level = MAX, 1, -1 do
-    if researched(Names.RANGE_TECH .. level) then
+    if researched(RANGE_TECHS[level]) then
       return level
     end
   end
@@ -57,12 +60,26 @@ function Launcher.level(researched)
 end
 
 function Launcher.is_range_tech(name)
-  for level = 1, MAX do
-    if name == Names.RANGE_TECH .. level then
+  for _, tech in ipairs(RANGE_TECHS) do
+    if name == tech then
       return true
     end
   end
   return false
+end
+
+-- What a swap could not place, as a list of stacks to spill. The marker
+-- "ammo" stands for the ammo left in the shell's script inventory.
+-- lost_quality is the quality of a launcher that the swap lost, or nil.
+function Launcher.leftovers(has_ammo, lost_quality)
+  local stacks = {}
+  if has_ammo then
+    stacks[#stacks + 1] = "ammo"
+  end
+  if lost_quality then
+    stacks[#stacks + 1] = { name = Names.LAUNCHER, count = 1, quality = lost_quality }
+  end
+  return stacks
 end
 
 -- The next step of a swap, after a step that worked (ok) or failed.

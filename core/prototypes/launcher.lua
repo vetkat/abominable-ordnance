@@ -212,25 +212,6 @@ local function upgrade(prefix, level, effects)
   return tech
 end
 
--- Range techs have no effect in the game. shell/launcher.lua reads them
--- and swaps the launchers to the matching level.
-local function range_techs()
-  local out = {}
-  local u = Balance.upgrade_research
-  for level = 1, Balance.launcher.max_level do
-    out[#out + 1] = Common.technology({
-      name = Names.RANGE_TECH .. level,
-      icons = icons(LAUNCHER_ICON),
-      prerequisites = { level == 1 and Names.ROCKETS_TECH or Names.RANGE_TECH .. (level - 1) },
-      count = u.counts[level],
-      time = u.time,
-      packs = PACKS,
-      unlocks = {},
-    })
-  end
-  return out
-end
-
 -- Returns the prototypes. The launcher copies the looks of vanilla
 -- artillery. These options hold the vanilla prototypes:
 --   turret: the artillery turret.
@@ -253,8 +234,10 @@ function LauncherPrototypes.prototypes(opts)
   }
   for level = 1, Balance.launcher.max_level do
     out[#out + 1] = upgrade(Names.SPEED_TECH, level, speed)
+    -- Range techs have no effect in the game. shell/launcher.lua reads
+    -- them and swaps the launchers to the matching level.
+    out[#out + 1] = upgrade(Names.RANGE_TECH, level, {})
   end
-  Common.append(out, range_techs())
   return out
 end
 

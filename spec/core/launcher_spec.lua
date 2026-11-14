@@ -116,3 +116,27 @@ describe("the swap steps", function()
     assert.are.equal("stop", Launcher.after("nonsense", true))
   end)
 end)
+
+describe("the leftovers of a swap", function()
+  it("are nothing when no ammo is left and no launcher is lost", function()
+    assert.are.same({}, Launcher.leftovers(false, nil))
+  end)
+
+  it("are the ammo marker when ammo is left", function()
+    assert.are.same({ "ammo" }, Launcher.leftovers(true, nil))
+  end)
+
+  it("are one launcher item of the lost quality", function()
+    assert.are.same(
+      { { name = "ao-larva-launcher", count = 1, quality = "rare" } },
+      Launcher.leftovers(false, "rare")
+    )
+  end)
+
+  it("are the ammo marker first, then the launcher item", function()
+    assert.are.same(
+      { "ammo", { name = "ao-larva-launcher", count = 1, quality = "normal" } },
+      Launcher.leftovers(true, "normal")
+    )
+  end)
+end)

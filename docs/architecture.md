@@ -78,8 +78,9 @@ the same result. A difference breaks the sync, and the game stops. So:
   player who joined late and one who did not.
   One exception: a re-entry guard that one call sets and clears again
   before it returns. It is false between events, so every player has
-  the same value. `shell/launcher.lua` uses one so that a swap does not
-  swap the launcher it builds.
+  the same value. `shell/launcher.lua` uses one around the step that
+  builds the old level again, so that a swap does not swap the launcher
+  it builds.
 - `on_load` must not write to `storage` or the game.
 - Register the same events after `on_init` and after `on_load`. A handler
   that only some clients register breaks the sync.

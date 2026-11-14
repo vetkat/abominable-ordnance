@@ -108,13 +108,20 @@ end
 -- position. The force sees the area, because artillery only fires on
 -- its own at what the force can see. The chart covers only 96 tiles
 -- around the turret. The test clears the enemies of that area first
--- with Helpers.arena(surface, position, 96).
-function Helpers.launcher(surface, position, name, ammo)
-  local turret = surface.create_entity({ name = name, position = position, force = "player" })
+-- with Helpers.arena(surface, position, 96). The force (default
+-- "player") and the quality (the game's default) are optional.
+function Helpers.launcher(surface, position, name, ammo, force, quality)
+  force = force or "player"
+  local turret = surface.create_entity({
+    name = name,
+    position = position,
+    force = force,
+    quality = quality,
+  })
   if ammo then
     turret.insert(ammo)
   end
-  game.forces["player"].chart(surface, area(position, 96))
+  game.forces[force].chart(surface, area(position, 96))
   return turret
 end
 

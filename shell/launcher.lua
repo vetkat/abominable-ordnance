@@ -1,17 +1,16 @@
 -- The launcher level and the swap. This module is shell: it reads and
 -- writes the game. control.lua calls it, and so do the in-game tests.
 local Launcher = require("core.launcher")
-local Names = require("core.names")
 
 local LauncherShell = {}
 
 -- The launcher has one ammo slot (core/prototypes/launcher.lua).
 local AMMO = defines.inventory.artillery_turret_ammo
 
--- True while a swap runs. A swap that falls back to the old level
--- raises a built event for it, and on_built must not swap that launcher
--- again, or the swap would recurse. The flag is false outside a swap, so
--- it holds no state between events and cannot desync.
+-- True while a swap builds the old level again. That build raises a
+-- built event, and on_built must not swap that launcher again, or the
+-- swap would recurse. The flag is false outside that step, so it holds
+-- no state between events and cannot desync.
 local swapping = false
 
 -- The control behaviour settings that a swap copies.
@@ -108,24 +107,18 @@ local function restore(new, state, temp)
   end
 end
 
--- Spills what a swap could not place at place.position. That is the
--- ammo left in temp. If the swap lost the launcher, it is also one
--- launcher item of the given quality. A spill writes a log line.
+-- Spills what a swap could not place at place.position (see
+-- Launcher.leftovers). That is the ammo left in temp, and the launcher
+-- item if the swap lost the launcher. A spill writes a log line.
 ---@param temp LuaInventory
 ---@param place {surface: LuaSurface, position: MapPosition, force: LuaForce}
 ---@param lost_quality LuaQualityPrototype|string|nil
-function LauncherShell.spill_leftovers(temp, place, lost_quality)
-  local stacks = {}
-  if temp[1].valid_for_read then
-    stacks[#stacks + 1] = temp[1]
-  end
-  if lost_quality then
-    stacks[#stacks + 1] = { name = Names.LAUNCHER, count = 1, quality = lost_quality }
-  end
+local function spill(temp, place, lost_quality)
+  local stacks = Launcher.leftovers(temp[1].valid_for_read, lost_quality)
   for _, stack in ipairs(stacks) do
     place.surface.spill_item_stack({
       position = place.position,
-      stack = stack,
+      stack = stack == "ammo" and temp[1] or stack,
       force = place.force,
       allow_belts = false,
     })
@@ -149,26 +142,30 @@ function LauncherShell.swap(old, name)
   temp[1].transfer_stack(ammo[1])
   local new
   local lost = false
-  swapping = true
-  local ok = old.destroy({ raise_destroy = true })
-  local step = Launcher.after("destroy", ok)
+  local step = Launcher.after("destroy", old.destroy({ raise_destroy = true }))
   while step ~= "finish" and step ~= "stop" do
     if step == "create" then
       new = create(state, name)
+      step = Launcher.after(step, new ~= nil)
     elseif step == "create_old" then
+      swapping = true
       new = create(state, state.name)
-    elseif step == "give_back" and ammo.valid then
-      ammo[1].transfer_stack(temp[1])
-    elseif step == "spill" then
-      lost = true
+      swapping = false
+      step = Launcher.after(step, new ~= nil)
+    else
+      -- give_back and spill end the swap.
+      if step == "give_back" and ammo.valid then
+        ammo[1].transfer_stack(temp[1])
+      elseif step == "spill" then
+        lost = true
+      end
+      step = "stop"
     end
-    step = Launcher.after(step, new ~= nil)
   end
-  swapping = false
   if new then
     restore(new, state, temp)
   end
-  LauncherShell.spill_leftovers(temp, state, lost and state.quality or nil)
+  spill(temp, state, lost and state.quality or nil)
   temp.destroy()
   return new
 end
@@ -178,8 +175,14 @@ end
 ---@param force LuaForce
 function LauncherShell.sync(force)
   local name = Launcher.name(LauncherShell.level(force))
+  local others = {}
+  for _, other in ipairs(Launcher.NAMES) do
+    if other ~= name then
+      others[#others + 1] = other
+    end
+  end
   for _, surface in pairs(game.surfaces) do
-    local launchers = surface.find_entities_filtered({ name = Launcher.NAMES, force = force })
+    local launchers = surface.find_entities_filtered({ name = others, force = force })
     for _, entity in pairs(launchers) do
       if entity.valid and entity.name ~= name then
         LauncherShell.swap(entity, name)

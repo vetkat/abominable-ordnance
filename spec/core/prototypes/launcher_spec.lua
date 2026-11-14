@@ -1,3 +1,4 @@
+local Balance = require("core.balance")
 local Launcher = require("core.launcher")
 local LauncherPrototypes = require("core.prototypes.launcher")
 local Stubs = require("spec.support.stubs")
@@ -190,13 +191,20 @@ describe("the launcher levels", function()
   end)
 
   it("add three range technologies with no effects", function()
+    local u = Balance.upgrade_research
     for i = 1, 3 do
       local tech = all["technology/ao-larva-launcher-range-" .. i]
       assert.truthy(tech, "no range tech " .. i)
       assert.are.same({}, tech.effects)
       local before = i == 1 and "ao-larva-rockets" or "ao-larva-launcher-range-" .. (i - 1)
       assert.are.same({ before }, tech.prerequisites)
-      assert.are.equal(({ 150, 250, 400 })[i], tech.unit.count)
+      assert.are.equal(u.counts[i], tech.unit.count)
+      assert.are.equal(u.time, tech.unit.time)
+      assert.is_true(tech.upgrade)
+      -- The packs are not in Balance: the range chain uses the speed chain's.
+      local speed = all["technology/ao-larva-launcher-speed-" .. i]
+      assert.are.same(speed.unit.ingredients, tech.unit.ingredients)
+      assert.are.equal(4, #tech.unit.ingredients)
     end
   end)
 end)
