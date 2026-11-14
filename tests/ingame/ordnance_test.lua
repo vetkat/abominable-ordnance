@@ -140,3 +140,17 @@ test("a native biter that dies sets off nothing", function()
   })
   assert(effects == 0, effects .. " effects")
 end)
+
+test("an acid monster leaves an acid trail", function()
+  with_loaded_monster({ 940, 700 }, "ao-biter-larva-acid", function(unit)
+    unit.disabled_by_script = true
+    after_ticks(90, function()
+      local puddles = surface().count_entities_filtered({
+        position = unit.position,
+        radius = 2,
+        name = "acid-splash-fire-spitter-small",
+      })
+      assert(puddles >= 1, "no acid trail")
+    end)
+  end)
+end)

@@ -13,22 +13,22 @@ date.
 
 ## 1.0.0: design version 1
 
-Slice 1 (lifecycle) ships in this release.
+Slices 1 (lifecycle) and 2 (ordnance) ship in this release.
 
-- [ ] Breeding pod (slice 1) and incubator (slice 2) for biters and
+- [x] Breeding pod (slice 1) and incubator (slice 2) for biters and
   spitters ([design][lifecycle])
 
-- [ ] Loading chamber with three payloads: explosive rocket, sulfuric acid,
+- [x] Loading chamber with three payloads: explosive rocket, sulfuric acid,
   poison capsule ([design][ordnance-loading])
-- [ ] Generated item and entity prototypes for each species and payload
-  ([design][technical])
-- [ ] Death effects for the three payloads, and the acid cloud while alive
+- [x] Generated items for each species and payload. Loaded monsters are
+  vanilla units ([design][technical])
+- [x] Death effects for the three payloads, and the acid trail while alive
   ([design][ordnance-loading])
 - [ ] Long-range rocket ammo for loaded larvae, and a simple launcher for
   vanilla ([design][logistics-and-delivery])
 - [ ] Feral behaviour inside a fixed radius
   ([design][feral-behaviour-and-risks])
-- [ ] Spoil outcomes: eggs hatch wild, loaded larvae become loaded monsters
+- [x] Spoil outcomes: eggs hatch wild, loaded larvae become loaded monsters
   ([design][lifecycle])
 - [ ] Stasis ward that pauses and resumes the spoil timer
   ([design][logistics-and-delivery])

@@ -23,3 +23,8 @@ mod uses [semantic versioning](https://semver.org/spec/v2.0.0.html).
 - The loading chamber and the Ordnance loading research. The chamber loads
   a larva with an explosive rocket, a sulfuric acid barrel or a poison
   capsule.
+- Loaded monsters. A loaded larva that spoils becomes a monster on the
+  tamed force, which fights the natives and spares players. When it dies,
+  its payload goes off: a rocket blast, a poison cloud or five acid
+  puddles. An acid-loaded monster leaves an acid trail. Nests that loaded
+  monsters kill drop eggs.

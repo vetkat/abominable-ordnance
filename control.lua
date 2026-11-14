@@ -140,6 +140,20 @@ script.on_event(defines.events.on_object_destroyed, function(event)
   end
 end)
 
+-- An acid-loaded monster leaves a small acid puddle where it walks.
+script.on_nth_tick(Balance.acid_trail_ticks, function()
+  for _, entry in pairs(storage.loaded) do
+    local trail = entry.unit.valid and Payloads.trail(entry.payloads)
+    if trail and unit_exists(trail) then
+      entry.unit.surface.create_entity({
+        name = trail,
+        position = entry.unit.position,
+        force = Names.TAMED,
+      })
+    end
+  end
+end)
+
 -- factorio-test runs the in-game tests. The hook does nothing unless the
 -- factorio-test mod is active.
 if script.active_mods["factorio-test"] then
