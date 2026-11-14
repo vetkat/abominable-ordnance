@@ -69,6 +69,7 @@ test("a loading chamber loads a larva with an explosive rocket", function()
   chamber.set_recipe("ao-load-biter-explosive")
   chamber.insert({ name = "ao-biter-larva", count = 1 })
   chamber.insert({ name = "explosive-rocket", count = 1 })
+  chamber.insert({ name = Names.CASING, count = 1 })
   after_ticks(600, function()
     assert(
       chamber.get_output_inventory().get_item_count("ao-biter-larva-explosive") == 1,

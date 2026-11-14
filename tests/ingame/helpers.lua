@@ -101,4 +101,21 @@ function Helpers.count_items(surface, position, name)
   return count
 end
 
+-- An artillery turret of the player force with some ammo, at a
+-- position. The force sees the area, because artillery only fires on
+-- its own at what the force can see.
+function Helpers.launcher(surface, position, name, ammo)
+  local turret = surface.create_entity({ name = name, position = position, force = "player" })
+  if ammo then
+    turret.insert(ammo)
+  end
+  game.forces["player"].chart(surface, area(position, 96))
+  return turret
+end
+
+-- The number of items left in an artillery turret.
+function Helpers.ammo(turret)
+  return turret.get_inventory(defines.inventory.artillery_turret_ammo).get_item_count()
+end
+
 return Helpers

@@ -80,7 +80,7 @@ local function at_war(attacker, force)
   if not attacker then
     return force.name == "enemy"
   end
-  return attacker.is_enemy(force)
+  return force ~= attacker and attacker.is_enemy(force)
 end
 
 -- The landing blast. The launcher's force deals the damage, so kills
@@ -249,5 +249,6 @@ if script.active_mods["factorio-test"] then
     "tests/ingame/hatching_test",
     "tests/ingame/loot_test",
     "tests/ingame/ordnance_test",
+    "tests/ingame/launcher_test",
   })
 end
