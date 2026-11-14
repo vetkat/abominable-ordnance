@@ -22,7 +22,7 @@ local factorio_writable = { "storage", "table" }
 local stage = { read_globals = factorio, globals = factorio_writable }
 for _, path in ipairs({
   "data.lua", "data-updates.lua", "data-final-fixes.lua", "settings.lua",
-  "settings-updates.lua", "settings-final-fixes.lua", "control.lua", "prototypes",
+  "settings-updates.lua", "settings-final-fixes.lua", "control.lua", "prototypes", "shell",
 }) do
   files[path] = stage
 end
@@ -37,5 +37,7 @@ local ingame = {
   "tags",
 }
 for _, name in ipairs(factorio) do ingame[#ingame + 1] = name end
+-- A test reads the mod's saved table.
+ingame[#ingame + 1] = "storage"
 -- A test may change game state, for example a research.
 files["tests/ingame"] = { read_globals = ingame, globals = { "game" } }

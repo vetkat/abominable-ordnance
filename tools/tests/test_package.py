@@ -5,7 +5,7 @@ from tools import package
 
 
 def test_shipped_files():
-    for path in ["info.json", "LICENSE", "core/a.lua", "locale/en/locale.cfg",
+    for path in ["info.json", "LICENSE", "core/a.lua", "shell/a.lua", "locale/en/locale.cfg",
                  "tests/ingame/smoke_test.lua", "data.lua", "control.lua"]:
         assert package.is_shipped(path), path
     for path in ["README.md", "tools/package.py", "spec/a_spec.lua",
