@@ -13,13 +13,16 @@ local function area(position, radius)
 end
 
 -- Generates the chunks around a test position and removes every enemy
--- there, so that native nests cannot change a count.
-function Helpers.arena(surface, position)
-  surface.request_to_generate_chunks(position, 1)
+-- within radius tiles (24 by default), so that native nests cannot
+-- change a count. A firing test passes 96, the area that
+-- Helpers.launcher charts.
+function Helpers.arena(surface, position, radius)
+  radius = radius or 24
+  surface.request_to_generate_chunks(position, math.ceil(radius / 32))
   surface.force_generate_chunk_requests()
   for _, entity in
     pairs(surface.find_entities_filtered({
-      area = area(position, 24),
+      area = area(position, radius),
       force = "enemy",
     }))
   do
@@ -104,7 +107,8 @@ end
 -- An artillery turret of the player force with some ammo, at a
 -- position. The force sees the area, because artillery only fires on
 -- its own at what the force can see. The chart covers only 96 tiles
--- around the turret.
+-- around the turret. The test clears the enemies of that area first
+-- with Helpers.arena(surface, position, 96).
 function Helpers.launcher(surface, position, name, ammo)
   local turret = surface.create_entity({ name = name, position = position, force = "player" })
   if ammo then
