@@ -54,14 +54,27 @@ script.on_event(defines.events.on_entity_died, function(event)
   local researched = event.force ~= nil and event.force.technologies[Names.TECH].researched
   local entity = event.entity
   local drop = Loot.drop(entity.name, researched, random())
-  if drop then
-    entity.surface.spill_item_stack({
-      position = entity.position,
-      stack = drop,
-      drop_full_stack = true,
-      enable_looted = true,
-    })
+  if not drop then
+    return
   end
+  local box = entity.selection_box
+  local spot = Loot.beside(entity.position, (box.right_bottom.x - box.left_top.x) / 2)
+  entity.surface.spill_item_stack({
+    position = spot,
+    stack = drop,
+    drop_full_stack = true,
+    enable_looted = true,
+  })
+  rendering.draw_text({
+    text = Loot.label(drop),
+    surface = entity.surface,
+    target = spot,
+    color = { r = 1, g = 1, b = 1 },
+    scale = 1.5,
+    alignment = "center",
+    use_rich_text = true,
+    time_to_live = Balance.loot_label_ticks,
+  })
 end, { { filter = "type", type = "unit-spawner" } })
 
 -- factorio-test runs the in-game tests. The hook does nothing unless the

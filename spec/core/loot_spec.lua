@@ -17,4 +17,15 @@ describe("the nest loot", function()
       Loot.drop("biter-spawner", true, 0.999999)
     )
   end)
+
+  it("drops the eggs beside the spawner's corpse", function()
+    assert.are.same({ x = 14, y = 5 }, Loot.beside({ x = 10, y = 5 }, 2.5))
+  end)
+
+  it("labels a drop with its count, icon and name", function()
+    assert.are.same(
+      { "", "+2 [item=ao-biter-egg] ", { "item-name.ao-biter-egg" } },
+      Loot.label({ name = "ao-biter-egg", count = 2 })
+    )
+  end)
 end)
