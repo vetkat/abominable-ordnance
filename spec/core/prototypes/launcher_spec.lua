@@ -29,6 +29,20 @@ describe("the launcher prototypes", function()
     assert.are.equal(0.001, t.turret_rotation_speed)
   end)
 
+  it("share no nested table with the vanilla prototypes", function()
+    local opts = Stubs.launcher_opts()
+    local all = Stubs.by_name(LauncherPrototypes.prototypes(opts))
+    local t = all["artillery-turret/ao-larva-launcher"]
+    assert.are.same(opts.turret.collision_box, t.collision_box)
+    assert.are_not.equal(opts.turret.collision_box, t.collision_box)
+    assert.are_not.equal(opts.turret.rotating_sound, t.rotating_sound)
+    local f = all["artillery-flare/ao-larva-flare"]
+    assert.are_not.equal(opts.flare.pictures, f.pictures)
+    assert.are_not.equal(opts.flare.map_color, f.map_color)
+    local r = all["capsule/ao-larva-targeting-remote"]
+    assert.are_not.equal(opts.remote.flags, r.flags)
+  end)
+
   it("give the level 0 gun 64 tiles, a 5 s cooldown and larva rockets", function()
     local gun = build()["gun/ao-larva-launcher-gun-0"]
     assert.is_true(gun.hidden)

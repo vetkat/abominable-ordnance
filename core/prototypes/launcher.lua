@@ -90,7 +90,7 @@ end
 -- another: the script swaps them.
 local function turret(level, looks)
   local b = Balance.launcher
-  local p = Common.pick(looks, TURRET_LOOKS)
+  local p = Common.copy(Common.pick(looks, TURRET_LOOKS))
   for _, field in ipairs(PICTURES) do
     p[field] = Common.tinted(looks[field], LauncherPrototypes.TINT)
   end
@@ -129,7 +129,7 @@ end
 -- The larva flare: the vanilla flare's looks, answered only by larva
 -- rockets.
 local function flare(looks)
-  local p = Common.pick(looks, FLARE_LOOKS)
+  local p = Common.copy(Common.pick(looks, FLARE_LOOKS))
   p.type = "artillery-flare"
   p.name = Names.FLARE
   p.icons = icons("__base__/graphics/icons/artillery-targeting-remote.png")
@@ -139,7 +139,7 @@ end
 
 local function remote_kit(looks)
   local r = Balance.remote
-  local item = Common.pick(looks, REMOTE_LOOKS)
+  local item = Common.copy(Common.pick(looks, REMOTE_LOOKS))
   item.type = "capsule"
   item.name = Names.REMOTE
   item.icons = icons("__base__/graphics/icons/artillery-targeting-remote.png")
