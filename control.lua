@@ -80,7 +80,7 @@ local function at_war(attacker, force)
   if not attacker then
     return force.name == "enemy"
   end
-  return force ~= attacker and not attacker.get_cease_fire(force) and not attacker.get_friend(force)
+  return attacker.is_enemy(force)
 end
 
 -- The landing blast. The launcher's force deals the damage, so kills
@@ -97,7 +97,7 @@ local function blast(surface, position, launcher)
       and target.is_entity_with_health
       and Forces.blast_hits(target.force.name, at_war(attacker, target.force))
     then
-      local cause = attacker and launcher or nil
+      local cause = attacker and launcher
       target.damage(Balance.blast.damage, attacker or "neutral", "explosion", nil, cause)
     end
   end
@@ -127,7 +127,6 @@ local function land(event, species, payload)
 end
 
 script.on_event(defines.events.on_script_trigger_effect, function(event)
-  -- Other mods' triggers reach this handler too.
   local landed, landed_payload = Payloads.decode_land(event.effect_id)
   if landed then
     land(event, landed, landed_payload)
@@ -135,6 +134,7 @@ script.on_event(defines.events.on_script_trigger_effect, function(event)
   end
   local loaded, payload = Payloads.decode(event.effect_id)
   local species = loaded or Species.by_effect_id(event.effect_id)
+  -- Other mods' triggers reach this handler too.
   if not species then
     return
   end

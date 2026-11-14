@@ -23,9 +23,10 @@ end
 
 -- True if the landing blast hurts an entity of this force. at_war is true
 -- when the launcher's force is at war with it. The tamed force is never
--- hit, so a landing can't hurt the loaded monsters near it.
+-- hit, so a landing can't hurt the loaded monsters near it. Neutral
+-- things such as trees and rocks are never hit either.
 function Forces.blast_hits(name, at_war)
-  return at_war and name ~= Names.TAMED
+  return at_war and name ~= Names.TAMED and name ~= "neutral"
 end
 
 return Forces
