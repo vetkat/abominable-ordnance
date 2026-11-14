@@ -18,7 +18,7 @@ local function larva(species)
   local p =
     Common.item(species.larva, larva_icon(species), "intermediate-product", Balance.larva.stack)
   p.spoil_ticks = Balance.larva.spoil_ticks
-  p.spoil_to_trigger_result = Common.spoil_trigger(species.larva_effect_id, 1)
+  p.spoil_to_trigger_result = Common.spoil_trigger(species.effect_id, 1)
   return p
 end
 
@@ -35,11 +35,10 @@ local function incubate(species)
   )
 end
 
-local function incubator(opts)
-  local icons = Common.icon("__base__/graphics/icons/centrifuge.png", Ordnance.INCUBATOR_TINT)
+-- The incubator's item, recipe and machine.
+local function incubator(graphics)
   local b = Balance.incubator
-  local item = Common.item(Names.INCUBATOR, icons, "production-machine", b.stack)
-  item.place_result = Names.INCUBATOR
+  local icons = Common.icon("__base__/graphics/icons/centrifuge.png", Ordnance.INCUBATOR_TINT)
   local recipe = Common.recipe(Names.INCUBATOR, { "crafting" }, b.recipe.time, {
     { type = "item", name = "steel-plate", amount = b.recipe.steel },
     { type = "item", name = "electronic-circuit", amount = b.recipe.circuit },
@@ -49,35 +48,31 @@ local function incubator(opts)
     name = Names.INCUBATOR,
     icons = icons,
     categories = { Names.INCUBATION },
-    graphics = opts.incubator,
+    graphics = graphics,
     tint = Ordnance.INCUBATOR_TINT,
     numbers = b,
   })
-  return item, recipe, machine
+  return Common.placeable(Names.INCUBATOR, icons, b.stack), recipe, machine
 end
 
--- The recipes that Monster husbandry unlocks for this slice.
-function Ordnance.husbandry_unlocks()
-  local names = {}
-  for _, species in ipairs(Species.ALL) do
-    names[#names + 1] = "ao-incubate-" .. species.name
-  end
-  names[#names + 1] = Names.INCUBATOR
-  return names
-end
-
--- opts.incubator holds the graphics_set and working_sound to copy.
+-- Returns the prototypes and the names of the recipes that Monster
+-- husbandry unlocks. opts.incubator holds the graphics_set and
+-- working_sound to copy.
 function Ordnance.prototypes(opts)
   local out = { { type = "recipe-category", name = Names.INCUBATION } }
+  local husbandry = {}
   for _, species in ipairs(Species.ALL) do
     out[#out + 1] = larva(species)
-    out[#out + 1] = incubate(species)
+    husbandry[#husbandry + 1] = incubate(species)
   end
-  local item, recipe, machine = incubator(opts)
+  local item, recipe, machine = incubator(opts.incubator)
+  husbandry[#husbandry + 1] = recipe
   out[#out + 1] = item
-  out[#out + 1] = recipe
   out[#out + 1] = machine
-  return out
+  for _, r in ipairs(husbandry) do
+    out[#out + 1] = r
+  end
+  return out, Common.names(husbandry)
 end
 
 return Ordnance

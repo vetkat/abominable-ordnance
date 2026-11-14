@@ -59,6 +59,21 @@ function Helpers.powered_pod(surface, position)
   return Helpers.powered_machine(surface, position, Names.POD)
 end
 
+-- Spills a stack on the ground as one pile and returns the pile's stack.
+function Helpers.spill(surface, position, name, count)
+  surface.spill_item_stack({
+    position = position,
+    stack = { name = name, count = count },
+    drop_full_stack = true,
+  })
+  local piles = surface.find_entities_filtered({
+    name = "item-on-ground",
+    area = area(position, 5),
+  })
+  assert(#piles == 1, "the items did not land as one pile")
+  return piles[1].stack
+end
+
 function Helpers.count_units(surface, position, names)
   return surface.count_entities_filtered({
     area = area(position, 12),

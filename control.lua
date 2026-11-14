@@ -18,12 +18,12 @@ local function unit_exists(name)
   return prototypes.entity[name] ~= nil
 end
 
--- Creates a monster of the species near a position, sized by the
+-- Creates one of the units near a position, sized by the
 -- evolution there, and sends it to attack the area. A unit with no
 -- command stands still until something provokes it. Returns the unit, or
 -- nil when no unit or no free spot exists.
-local function spawn(surface, position, species, force)
-  local units = Hatching.available(species.units, unit_exists)
+local function spawn(surface, position, units, force)
+  units = Hatching.available(units, unit_exists)
   if #units == 0 then
     return nil
   end
@@ -55,7 +55,7 @@ script.on_event(defines.events.on_script_trigger_effect, function(event)
   if not surface or not position or surface.platform then
     return
   end
-  spawn(surface, position, species, "enemy")
+  spawn(surface, position, species.units, "enemy")
 end)
 
 script.on_event(defines.events.on_entity_died, function(event)

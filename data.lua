@@ -10,12 +10,11 @@ local function looks(name)
   return { graphics_set = machine.graphics_set, working_sound = machine.working_sound }
 end
 
-local pod = looks(space_age and "biochamber" or "chemical-plant")
+local ordnance, husbandry = Ordnance.prototypes({ incubator = looks("centrifuge") })
 
 data:extend(Lifecycle.prototypes({
   space_age = space_age,
-  graphics_set = pod.graphics_set,
-  working_sound = pod.working_sound,
-  extra_unlocks = Ordnance.husbandry_unlocks(),
+  pod = looks(space_age and "biochamber" or "chemical-plant"),
+  extra_unlocks = husbandry,
 }))
-data:extend(Ordnance.prototypes({ incubator = looks("centrifuge") }))
+data:extend(ordnance)

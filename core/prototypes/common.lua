@@ -98,4 +98,42 @@ function Common.machine(spec)
   }
 end
 
+-- The item that places a machine.
+function Common.placeable(name, icons, stack)
+  local p = Common.item(name, icons, "production-machine", stack)
+  p.place_result = name
+  return p
+end
+
+-- A technology that unlocks the named recipes. spec has name, icons,
+-- prerequisites, count, time, packs (a list of science pack names) and
+-- unlocks (a list of recipe names).
+function Common.technology(spec)
+  local effects = {}
+  for _, name in ipairs(spec.unlocks) do
+    effects[#effects + 1] = { type = "unlock-recipe", recipe = name }
+  end
+  local ingredients = {}
+  for _, pack in ipairs(spec.packs) do
+    ingredients[#ingredients + 1] = { pack, 1 }
+  end
+  return {
+    type = "technology",
+    name = spec.name,
+    icons = spec.icons,
+    prerequisites = spec.prerequisites,
+    effects = effects,
+    unit = { count = spec.count, time = spec.time, ingredients = ingredients },
+  }
+end
+
+-- The names of a list of recipes.
+function Common.names(recipes)
+  local names = {}
+  for i, r in ipairs(recipes) do
+    names[i] = r.name
+  end
+  return names
+end
+
 return Common
