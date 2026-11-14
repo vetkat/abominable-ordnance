@@ -28,6 +28,21 @@ describe("the payload table", function()
     assert.is_nil(Payloads.decode("ao-hatch-biter"))
     assert.is_nil(Payloads.decode("ao-hatch-worm-poison"))
   end)
+
+  it("names a larva rocket's landing effect and projectile", function()
+    local acid = Payloads.ALL[2]
+    assert.are.equal("ao-land-spitter-acid", Payloads.land_id(SPITTER, acid))
+    assert.are.equal("ao-larva-projectile-spitter-acid", Payloads.projectile_name(SPITTER, acid))
+  end)
+
+  it("decodes a landing effect, and only a landing effect", function()
+    local species, payload = Payloads.decode_land("ao-land-biter-poison")
+    assert.are.equal(BITER, species)
+    assert.are.equal("poison", payload.name)
+    assert.is_nil(Payloads.decode_land("ao-hatch-biter-poison"))
+    assert.is_nil(Payloads.decode_land("ao-land-worm-poison"))
+    assert.is_nil(Payloads.decode("ao-land-biter-poison"))
+  end)
 end)
 describe("the payload effects", function()
   local p = { x = 10, y = 20 }

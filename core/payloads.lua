@@ -60,6 +60,33 @@ function Payloads.decode(effect_id)
   return entry.species, entry.payload
 end
 
+-- The effect that a larva rocket runs where it lands.
+function Payloads.land_id(species, payload)
+  return "ao-land-" .. species.name .. "-" .. payload.name
+end
+
+-- The hidden projectile that carries a larva rocket.
+function Payloads.projectile_name(species, payload)
+  return "ao-larva-projectile-" .. species.name .. "-" .. payload.name
+end
+
+-- Every landing effect ID, built once, to its species and payload.
+local BY_LAND = {}
+for _, species in ipairs(Species.ALL) do
+  for _, payload in ipairs(Payloads.ALL) do
+    BY_LAND[Payloads.land_id(species, payload)] = { species = species, payload = payload }
+  end
+end
+
+-- The species and payload of a landing effect, or nil.
+function Payloads.decode_land(effect_id)
+  local entry = BY_LAND[effect_id]
+  if not entry then
+    return nil
+  end
+  return entry.species, entry.payload
+end
+
 local BY_NAME = {}
 for _, payload in ipairs(Payloads.ALL) do
   BY_NAME[payload.name] = payload

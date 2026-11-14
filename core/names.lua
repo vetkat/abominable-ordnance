@@ -12,4 +12,13 @@ return {
   LOADING = "ao-loading",
   ORDNANCE_TECH = "ao-ordnance-loading",
   TAMED = "ao-tamed",
+  LAUNCHER = "ao-larva-launcher",
+  AMMO = "ao-larva-rocket",
+  CASING = "ao-larva-rocket-casing",
+  REMOTE = "ao-larva-targeting-remote",
+  FLARE = "ao-larva-flare",
+  ROCKETS_TECH = "ao-larva-rockets",
+  SPEED_TECH = "ao-larva-launcher-speed-",
+  RANGE_TECH = "ao-larva-launcher-range-",
+  GUN = "ao-larva-launcher-gun-",
 }
