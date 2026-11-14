@@ -8,4 +8,7 @@ return {
   ADOPT = "ao-adopt-biter-egg",
   INCUBATOR = "ao-incubator",
   INCUBATION = "ao-incubation",
+  CHAMBER = "ao-loading-chamber",
+  LOADING = "ao-loading",
+  ORDNANCE_TECH = "ao-ordnance-loading",
 }

@@ -52,4 +52,56 @@ describe("the ordnance prototypes", function()
       assert.truthy(unlocked[name], name)
     end
   end)
+
+  it("make six loaded larvae that spoil into their loaded effect", function()
+    local all = build()
+    local count = 0
+    for key, p in pairs(all) do
+      if key:match("^item/ao%-%a+%-larva%-%a+$") then
+        count = count + 1
+        assert.are.equal(10, p.stack_size, key)
+        assert.are.equal(5 * 60 * 60, p.spoil_ticks, key)
+        assert.are.equal(1, p.spoil_to_trigger_result.items_per_trigger, key)
+      end
+    end
+    assert.are.equal(6, count)
+    local acid = all["item/ao-spitter-larva-acid"]
+    local effect = acid.spoil_to_trigger_result.trigger.action_delivery.source_effects[1]
+    assert.are.equal("ao-hatch-spitter-acid", effect.effect_id)
+  end)
+
+  it("load a larva with one payload item in the loading chamber", function()
+    local r = build()["recipe/ao-load-biter-explosive"]
+    assert.are.same({ "ao-loading" }, r.categories)
+    assert.are.same({
+      { type = "item", name = "ao-biter-larva", amount = 1 },
+      { type = "item", name = "explosive-rocket", amount = 1 },
+    }, r.ingredients)
+    assert.are.equal("ao-biter-larva-explosive", r.results[1].name)
+    assert.is_true(r.results[1].reset_freshness_on_craft)
+    assert.is_false(r.auto_recycle)
+  end)
+
+  it("make the loading chamber a machine of the loading category", function()
+    local all = build()
+    local m = all["assembling-machine/ao-loading-chamber"]
+    assert.are.same({ "ao-loading" }, m.crafting_categories)
+    assert.are.equal("ao-loading-chamber", all["item/ao-loading-chamber"].place_result)
+    assert.truthy(all["recipe-category/ao-loading"])
+  end)
+
+  it("unlock the chamber and the load recipes with Ordnance loading", function()
+    local tech = build()["technology/ao-ordnance-loading"]
+    assert.are.same({ "ao-monster-husbandry", "explosive-rocketry" }, tech.prerequisites)
+    local unlocked = {}
+    for _, effect in ipairs(tech.effects) do
+      unlocked[effect.recipe] = true
+    end
+    assert.truthy(unlocked["ao-loading-chamber"])
+    for _, species in ipairs({ "biter", "spitter" }) do
+      for _, payload in ipairs({ "explosive", "acid", "poison" }) do
+        assert.truthy(unlocked["ao-load-" .. species .. "-" .. payload])
+      end
+    end
+  end)
 end)

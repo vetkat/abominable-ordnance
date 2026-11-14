@@ -73,10 +73,23 @@ def _style(path: str, text: str) -> list[Finding]:
     # its link definitions, which are not prose.
     if kind(path) == "markdown":
         source = prose.without_link_definitions(text)
+    elif kind(path) == "locale":
+        return _locale_style(path, text)
     else:
         source = prose_of(path, text)
     return [Finding(path, f.line, f.rule, f.message, f.excerpt)
             for f in ste_check.check(source, False)]
+
+
+def _locale_style(path: str, text: str) -> list[Finding]:
+    # Each locale entry stands alone. Checked together, a section of short
+    # names reads as one long sentence.
+    found = []
+    for no, value in enumerate(prose_of(path, text).split("\n"), 1):
+        if value:
+            found += [Finding(path, no, f.rule, f.message, f.excerpt)
+                      for f in ste_check.check(value + "\n", False)]
+    return found
 
 
 def _dashes(path: str, prose_text: str) -> list[Finding]:

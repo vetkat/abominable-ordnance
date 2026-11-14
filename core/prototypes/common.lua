@@ -105,6 +105,31 @@ function Common.placeable(name, icons, stack)
   return p
 end
 
+-- A machine with its item and its recipe. The spec has the fields of
+-- Common.machine, but its icon is one path. The ingredients feed the
+-- machine's own recipe. The numbers also give the craft time
+-- (recipe.time) and the item's stack size (stack).
+function Common.machine_kit(spec)
+  local n = spec.numbers
+  local icons = Common.icon(spec.icon, spec.tint)
+  local recipe = Common.recipe(
+    spec.name,
+    { "crafting" },
+    n.recipe.time,
+    spec.ingredients,
+    { { type = "item", name = spec.name, amount = 1 } }
+  )
+  local machine = Common.machine({
+    name = spec.name,
+    icons = icons,
+    categories = spec.categories,
+    graphics = spec.graphics,
+    tint = spec.tint,
+    numbers = n,
+  })
+  return Common.placeable(spec.name, icons, n.stack), recipe, machine
+end
+
 -- A technology that unlocks the named recipes. spec has name, icons,
 -- prerequisites, count, time, packs (a list of science pack names) and
 -- unlocks (a list of recipe names).
