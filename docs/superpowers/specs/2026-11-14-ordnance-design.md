@@ -1,14 +1,13 @@
 # Abominable Ordnance: slice 2, ordnance
 
-Date: 2026-11-14. Status: draft for the maintainer. The agent wrote this
-draft overnight from `docs/design.md` and the slice 1 spec, at the
-maintainer's request. The maintainer approved no design in it.
-
+Date: 2026-11-14. Status: approved. The agent wrote this spec overnight
+from `docs/design.md` and the slice 1 spec, at the maintainer's request.
 An EGM review (Stages 5 to 8) followed, with reports in
-`docs/superpowers/reviews/2026-11-14-ordnance-*.md`. This version applies
-the findings that Stage 8 marked "act now". "Questions for the
-maintainer" lists each open choice with the agent's proposal. No plan
-and no code follow until the maintainer approves this spec.
+`docs/superpowers/reviews/2026-11-14-ordnance-*.md`.
+
+On 2026-11-14 the maintainer accepted the agent's proposal for each of
+Q1 to Q8 and asked for the plan and the build. "Answers" lists the
+choices.
 
 ## Purpose
 
@@ -32,8 +31,7 @@ Goals of this slice:
    machine graphics.
 
 Slice 2 has no launcher (slice 3) and no feral behaviour or stasis ward
-(slice 4). So in this slice a player delivers a loaded larva by hand. See
-Q6.
+(slice 4). So in this slice a player delivers a loaded larva by hand.
 
 Terms are as in the slice 1 spec. In particular, **the egg ratio** is
 `items_per_trigger = 10` on eggs: every 10 spoiled eggs hatch one
@@ -84,21 +82,21 @@ The agent did not check these facts in Space Age. The probe does.
 | Topic | Proposal | Rejected, and why |
 | --- | --- | --- |
 | Larva ratio (Q1) | The incubator makes 1 larva from 10 eggs. A larva hatches 1 monster. | 1 egg to 1 larva: 10 eggs then make 10 monsters, and the incubator undoes the egg ratio. |
-| Loaded monster (Q2) | A vanilla unit, created by the shell. `storage` keeps its payloads by unit number. | One unit prototype per species, size and payload (2 × 4 × 3 = 24 now, hundreds later): `docs/design.md` warns about prototype count. See Q2 for a middle option. |
+| Loaded monster (Q2) | A vanilla unit, created by the shell. `storage` keeps its payloads by unit number. | One unit prototype per species, size and payload (2 × 4 × 3 = 24 now, hundreds later): `docs/design.md` warns about prototype count. One tinted copy per species and size (8 now): more prototypes for a visual cue only. |
 | Death effects | The shell creates vanilla entities where the monster dies: the `explosive-rocket` projectile aimed at the death spot, a `poison-cloud`, or an acid puddle. Each is on `ao-tamed`, with the monster as its cause. | New explosion prototypes: more files, and they drift from vanilla balance. |
 | Acid trail | At a fixed interval the shell creates a small acid puddle under each acid-loaded monster. | A smoke that follows the unit: the agent did not check if the game has one. A smoke made again at each interval also works. |
 | Monster size (Q3) | The loaded monster's size follows enemy evolution, with the slice 1 table. | Always small: a small biter dies too fast for its payload to matter. Tiers per larva: four times the items. |
-| Force (Q4) | Loaded monsters join `ao-tamed`. | The player force: the player cannot then tell their army from their monsters. |
+| Force (Q4) | Loaded monsters join `ao-tamed`. They attack only natives. Their death effects may hurt the player's buildings. | The player force: the player cannot then tell their army from their monsters. |
 | Machines (Q5) | The incubator borrows the centrifuge graphics. The loading chamber borrows assembling machine 3. Both are tinted, in both modes. | Both on the biochamber in Space Age: three machines would look the same, and the base game has no biochamber. |
 | Research | Monster husbandry also unlocks the incubator and its recipes, as the research tree in `docs/design.md` shows. A new technology, Ordnance loading, unlocks the loading chamber and the load recipes. | A separate incubator technology: it adds a research step with no new choice. |
 | Research prerequisites | Ordnance loading needs Monster husbandry and `explosive-rocketry`. `explosive-rocketry` unlocks the explosive rocket, and its own prerequisite `military-3` unlocks the poison capsule. | Monster husbandry alone: the player could build the chamber before they can make two of the payloads. |
 | Loaded larva items | `core/prototypes/ordnance.lua` generates them from two lists: species and payloads. Six items in this slice. | `item-with-tags`: tags do not stack, and normal recipes cannot make them. |
-| Delivery in this slice (Q6) | By hand: the player drops the loaded larva near the target and walks away. It spoils there. | A thrown capsule. See Q6. |
-| Payload items (Q7) | 1 filled barrel per acid load. The barrel is used up. | Return the empty barrel. See Q7. |
+| Delivery in this slice (Q6) | By hand: the player drops the loaded larva near the target and walks away. It spoils there. | A thrown capsule: slice 3 decides how loaded larvae travel. |
+| Payload items (Q7) | 1 filled barrel per acid load. The barrel is used up. | Return the empty barrel: Ordnance loading would also need `fluid-handling`. |
+| Nest loot from monster kills (Q8) | A nest that `ao-tamed` kills drops eggs, as if a researched force killed it. | No eggs from monster kills: the mod's own weapon would stop the egg supply. |
 | Space platforms | Larvae and loaded larvae that spoil on a platform are used up and create nothing, as eggs are. | Hatch on platforms: a monster on a platform has nothing to attack and can damage the platform. |
 
-Every row is a proposal. Rows with a question number have alternatives
-that need the maintainer's choice.
+The maintainer accepted every row on 2026-11-14.
 
 ## Game content
 
@@ -149,10 +147,18 @@ into eggs.
 2. In `on_force_created`, the shell sets cease-fire both ways between
    the new force and `ao-tamed`.
 
+### Spawning a monster
+
+Slice 1 gives every hatched monster an `attack_area` command around its
+hatch spot. Without a command, a unit stands still until something
+provokes it. Every hatch in this slice uses the same spawn step: pick
+the unit, find a free position, create the unit on a force, and give it
+the command.
+
 ### Larva hatch
 
 The slice 1 hatch handler also handles the larva effect IDs. It picks
-the unit by evolution, as for eggs, and creates it on `enemy`.
+the unit by evolution, as for eggs, and spawns it on `enemy`.
 
 ### Loaded hatch
 
@@ -162,8 +168,8 @@ the unit by evolution, as for eggs, and creates it on `enemy`.
 2. The shell picks the unit by evolution from the species table, finds a
    free position near the spoil position, and creates the unit on
    `ao-tamed`.
-3. The shell sets the unit's AI so the engine does not destroy it when a
-   command fails, and gives it a command to attack the area around it.
+3. The shell spawns the unit as above. It also sets the unit's AI so the
+   engine does not destroy it when a command fails.
 4. The shell stores the payload list (one payload in this slice) in
    `storage` by unit number, and registers the unit with
    `script.register_on_object_destroyed`.
@@ -174,7 +180,8 @@ the unit by evolution, as for eggs, and creates it on `enemy`.
 
 1. The one `on_entity_died` handler has two filters: unit spawners for
    nest loot, and units for loaded monsters. It sends each death to the
-   right path.
+   right path. Nest loot counts a kill by `ao-tamed` as a kill by a
+   researched force (Q8).
 2. For a unit with a `storage` entry, a pure core function turns the
    payload list and the death position into a list of entities to
    create. The shell creates each one on `ao-tamed`, with the dead unit
@@ -242,8 +249,8 @@ Before PR 1, a throwaway probe answers these questions in both modes:
    unit?
 
 If a loaded larva cannot hatch in a player's inventory, the agent tells
-the maintainer before PR 3. If effects on `ao-tamed` hurt the player's
-buildings, the agent tells the maintainer and waits for Q4.
+the maintainer before PR 3. Effects on `ao-tamed` may hurt the player's
+buildings (Q4). The probe records what the engine does.
 
 ### Pull requests
 
@@ -260,7 +267,7 @@ accepts this, because only the slice as a whole has to be playable.
 | Risk | Answer |
 | --- | --- |
 | A loaded larva spoils in the base: in a chest, on a belt or in a machine output. | The monster appears there and attacks nothing until natives come. This is the design's "dangerous to handle". Slice 4 adds the stasis ward. |
-| A death effect hurts the player's own buildings. | The probe answers this (question 4). Q4 decides if it is allowed. |
+| A death effect hurts the player's own buildings. | Allowed (Q4): it is the design's "dangerous to handle". The probe records what the engine does. |
 | A save that already has the mod gets no tamed force. | `on_configuration_changed` creates it. |
 | Another mod removes a vanilla payload or effect prototype. | The plan adds a check before each `create_entity`, as slice 1 does for units. |
 | Many acid-loaded monsters make the acid trail slow. | One puddle per monster per interval. The interval lives in `core/balance.lua`. |
@@ -285,55 +292,21 @@ PR 1 makes these edits:
 PR 3 ticks "Breeding pod and incubator", "Loading chamber with three
 payloads" and "Spoil outcomes" in `ROADMAP.md`.
 
-## Questions for the maintainer
+## Answers
 
-- **Q1. Larva ratio.** The design says "Incubator: one egg". With the
-  egg ratio of 10, a 1:1 incubator turns 10 eggs into 10 monsters.
-  Proposal: 10 eggs make 1 larva.
+The maintainer accepted the agent's proposal for each question on
+2026-11-14:
 
-  A pod makes 2 eggs from 1 egg and 5
-  chow in 15 seconds, a gain of 1 egg. So one round of ammunition costs
-  10 pod cycles and 50 chow. Other choices: 1:1, or a ratio in between.
-- **Q2. What a loaded monster is.** Proposal: a vanilla unit that the
-  shell tracks. It looks like a normal biter or spitter.
-
-  Middle option
-  from the review: one tinted copy of each unit per species and size (8
-  prototypes now), with the payload still in `storage`. It makes loaded
-  monsters visible and lets the death handler filter by name, so native
-  deaths never reach the mod. Cost: 8 prototypes now, more with each
-  species.
-- **Q3. Loaded monster size.** Proposal: by enemy evolution, as for
-  eggs. Off Nauvis in Space Age, evolution is low, so the monsters are
-  small there. Other choice: always small.
-- **Q4. The tamed force and friendly fire.** Proposal: one force
-  `ao-tamed` for every player. Two parts to decide:
-   - a. Loaded monsters attack only natives in this slice. Slice 4 adds
-     feral behaviour.
-   - b. Blast damage: may the death effects hurt the player's own
-     buildings? Proposal: yes, as "dangerous to handle". The probe shows
-     what the engine does.
-- **Q5. Machine looks.** Proposal: centrifuge for the incubator and
-  assembling machine 3 for the loading chamber. Other choices: the
-  biochamber for all three in Space Age, or no incubator at all, with
-  the incubate recipe in the breeding pod. That saves one machine but
-  changes the chain in `docs/design.md`.
-- **Q6. Delivery before slice 3.** Proposal: by hand, with a 5-minute
-  spoil time. The fuse starts when the chamber makes the item. Other
-  choice from the review: make the loaded larva a spoiling capsule that
-  the player throws. Its projectile fires the same `script` effect, so
-  the spoil time can be set for logistics, and slice 3 reuses the path.
-- **Q7. Payload items.** A barrel holds 50 units of sulfuric acid.
-  Proposal: each load uses up 1 filled barrel.
-
-  Other choice: return the empty barrel as a second result, as vanilla
-  barrel recipes do. Then Ordnance loading also needs `fluid-handling`.
-- **Q8. Nest loot from monster kills (new, from the review).** The slice
-  1 nest loot needs the killer's force to have Monster husbandry. A nest
-  that a loaded monster kills has `ao-tamed` as the killer, which never
-  has the research, so it drops no eggs. Proposal: kills by `ao-tamed`
-  count as kills by a researched force. Other choice: no eggs from
-  monster kills.
+1. Larva ratio: 10 eggs make 1 larva.
+2. A loaded monster is a vanilla unit that the shell tracks.
+3. Loaded monster size follows enemy evolution.
+4. One force, `ao-tamed`. Loaded monsters attack only natives in this
+   slice. Their death effects may hurt the player's own buildings.
+5. The incubator borrows the centrifuge graphics, and the loading
+   chamber borrows assembling machine 3.
+6. Delivery by hand, with a 5-minute spoil time.
+7. Each acid load uses up 1 filled barrel.
+8. Nests that `ao-tamed` kills drop eggs.
 
 ## Out of scope
 
