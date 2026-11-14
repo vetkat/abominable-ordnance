@@ -28,3 +28,9 @@ mod uses [semantic versioning](https://semver.org/spec/v2.0.0.html).
   its payload goes off: a rocket blast, a poison cloud or five acid
   puddles. Acid burns native units, not nests. An acid-loaded monster
   leaves an acid trail. Nests that loaded monsters kill drop eggs.
+
+### Fixed
+
+- The mod still loads when another mod removes the centrifuge, the
+  assembling machine 3, the chemical plant or the biochamber. Its machines
+  then borrow the look of the assembling machine 2.
