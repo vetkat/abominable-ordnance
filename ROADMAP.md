@@ -24,9 +24,9 @@ Slices 1 (lifecycle) and 2 (ordnance) ship in this release.
   vanilla units ([design][technical])
 - [x] Death effects for the three payloads, and the acid trail while alive
   ([design][ordnance-loading])
-- [ ] Long-range rocket ammo for loaded larvae, and a simple launcher for
-  vanilla ([design][logistics-and-delivery])
-- [ ] Feral behaviour inside a fixed radius
+- [ ] Larva rockets and the larva launcher, in both modes
+  ([design][logistics-and-delivery])
+- [ ] Feral behaviour: too close, idle, or by a chance per payload
   ([design][feral-behaviour-and-risks])
 - [x] Spoil outcomes: eggs hatch wild, loaded larvae become loaded monsters
   ([design][lifecycle])
@@ -45,7 +45,7 @@ Slices 1 (lifecycle) and 2 (ordnance) ship in this release.
 - [ ] Artillery shells for loaded larvae ([design][logistics-and-delivery])
 - [ ] Extractor, embryos, jazz pods with the smooth jazz, and the first
   hybrids ([design][crossbreeding])
-- [ ] Facehuggers on enemies, and the pacifier facehugger
+- [ ] Facehuggers on enemies
   ([design][facehuggers])
 
 ## 3.0.0: design version 3
@@ -53,7 +53,8 @@ Slices 1 (lifecycle) and 2 (ordnance) ship in this release.
 - [ ] Demolisher hatchlings and heated pods ([design][monsters])
 - [ ] The remaining hybrids, and the Abomination with its launcher
   ([design][crossbreeding])
-- [ ] Pheromone dampener research ([design][feral-behaviour-and-risks])
+- [ ] Pheromone dampener research and the pacifier facehugger
+  ([design][feral-behaviour-and-risks])
 - [ ] Facehuggers on players ([design][facehuggers])
 - [ ] PvP setting for multiplayer ([design][concept])
 
@@ -63,7 +64,7 @@ Slices 1 (lifecycle) and 2 (ordnance) ship in this release.
 [logistics-and-delivery]: docs/design.md#logistics-and-delivery
 [feral-behaviour-and-risks]: docs/design.md#feral-behaviour-and-risks
 [research-tree]: docs/design.md#research-tree
-[version-1-feature-list]: docs/design.md#version-1-feature-list
+[version-1-feature-list]: docs/design.md#feature-roadmap
 [monsters]: docs/design.md#monsters
 [crossbreeding]: docs/design.md#crossbreeding
 [facehuggers]: docs/design.md#facehuggers
