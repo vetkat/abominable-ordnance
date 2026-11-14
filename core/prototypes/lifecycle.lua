@@ -2,8 +2,11 @@
 -- result to data:extend. This module reads no game globals: only its
 -- parameters and other core modules.
 local Balance = require("core.balance")
+local Common = require("core.prototypes.common")
 local Names = require("core.names")
 local Species = require("core.species")
+
+local icon, recipe, no_recycling = Common.icon, Common.recipe, Common.no_recycling
 
 local Lifecycle = {}
 
@@ -13,80 +16,16 @@ local FEEDS = {
   { name = Names.SPITTER_CHOW, tint = { r = 0.6, g = 0.9, b = 0.3, a = 1 } },
 }
 
--- Returns a copy of a graphics table. Every sprite that is not a shadow,
--- a light or a glow gets the tint.
-local function tinted(value, tint)
-  if type(value) ~= "table" then
-    return value
-  end
-  local copy = {}
-  for k, v in pairs(value) do
-    copy[k] = tinted(v, tint)
-  end
-  local sprite = copy.filename or copy.filenames or copy.stripes
-  if sprite and not (copy.draw_as_shadow or copy.draw_as_light or copy.draw_as_glow) then
-    copy.tint = tint
-  end
-  return copy
-end
-
-local function icon(path, tint)
-  return { { icon = path, icon_size = 64, tint = tint } }
-end
-
-local function item(name, path, tint, subgroup, stack)
-  return {
-    type = "item",
-    name = name,
-    icons = icon(path, tint),
-    subgroup = subgroup,
-    order = "z[ao]-" .. name,
-    stack_size = stack,
-  }
-end
-
-local function hatch_trigger(effect_id)
-  return {
-    items_per_trigger = Balance.hatch_ratio,
-    trigger = {
-      type = "direct",
-      action_delivery = {
-        type = "instant",
-        source_effects = { { type = "script", effect_id = effect_id } },
-      },
-    },
-  }
-end
-
 local function egg(species)
-  local p = item(
+  local p = Common.item(
     species.egg,
-    "__base__/graphics/icons/small-" .. species.name .. ".png",
-    species.tint,
+    icon("__base__/graphics/icons/small-" .. species.name .. ".png", species.tint),
     "intermediate-product",
     Balance.egg_stack
   )
   p.spoil_ticks = Balance.egg_spoil_ticks
-  p.spoil_to_trigger_result = hatch_trigger(species.effect_id)
+  p.spoil_to_trigger_result = Common.spoil_trigger(species.effect_id, Balance.hatch_ratio)
   return p
-end
-
-local function recipe(name, categories, time, ingredients, results)
-  return {
-    type = "recipe",
-    name = name,
-    categories = categories,
-    enabled = false,
-    energy_required = time,
-    ingredients = ingredients,
-    results = results,
-  }
-end
-
--- Space Age's recycler must not turn eggs back into their ingredients.
-local function no_recycling(r)
-  r.auto_recycle = false
-  return r
 end
 
 local function breed(species)
@@ -122,38 +61,21 @@ local function feed_recipes()
 end
 
 local function pod(opts)
-  local b = Balance.pod
-  return {
-    type = "assembling-machine",
+  return Common.machine({
     name = Names.POD,
     icons = icon("__base__/graphics/icons/chemical-plant.png", Lifecycle.POD_TINT),
-    flags = { "placeable-neutral", "placeable-player", "player-creation" },
-    minable = { mining_time = b.mining_time, result = Names.POD },
-    max_health = b.max_health,
-    corpse = "medium-remnants",
-    collision_box = { { -1.2, -1.2 }, { 1.2, 1.2 } },
-    selection_box = { { -1.5, -1.5 }, { 1.5, 1.5 } },
-    crafting_categories = { Names.CATEGORY },
-    crafting_speed = b.crafting_speed,
-    energy_source = {
-      type = "electric",
-      usage_priority = "secondary-input",
-      emissions_per_minute = { pollution = b.pollution },
-    },
-    energy_usage = b.energy_usage,
-    module_slots = 0,
-    allowed_effects = {},
-    graphics_set = tinted(opts.graphics_set, Lifecycle.POD_TINT),
-    working_sound = opts.working_sound,
-  }
+    categories = { Names.CATEGORY },
+    graphics = opts,
+    tint = Lifecycle.POD_TINT,
+    numbers = Balance.pod,
+  })
 end
 
 local function pod_item_and_recipe()
   local r = Balance.pod.recipe
-  local pod_item = item(
+  local pod_item = Common.item(
     Names.POD,
-    "__base__/graphics/icons/chemical-plant.png",
-    Lifecycle.POD_TINT,
+    icon("__base__/graphics/icons/chemical-plant.png", Lifecycle.POD_TINT),
     "production-machine",
     Balance.pod.stack
   )
@@ -202,10 +124,9 @@ function Lifecycle.prototypes(opts)
   local out = { { type = "recipe-category", name = Names.CATEGORY } }
   local recipes = feed_recipes()
   for _, feed in ipairs(FEEDS) do
-    out[#out + 1] = item(
+    out[#out + 1] = Common.item(
       feed.name,
-      "__base__/graphics/icons/coal.png",
-      feed.tint,
+      icon("__base__/graphics/icons/coal.png", feed.tint),
       "intermediate-product",
       Balance.chow_stack
     )
