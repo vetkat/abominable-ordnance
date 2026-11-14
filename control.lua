@@ -81,8 +81,12 @@ script.on_event(defines.events.on_script_trigger_effect, function(event)
   end
 end)
 
-script.on_event(defines.events.on_entity_died, function(event)
-  local researched = event.force ~= nil and event.force.technologies[Names.TECH].researched
+-- A dead native spawner drops eggs beside its corpse.
+local function nest_loot(event)
+  -- The tamed force has no research, but its kills feed the egg supply.
+  local force = event.force
+  local researched = force ~= nil
+    and (force.name == Names.TAMED or force.technologies[Names.TECH].researched)
   local entity = event.entity
   local drop = Loot.drop(entity.name, researched, random())
   if not drop then
@@ -106,7 +110,35 @@ script.on_event(defines.events.on_entity_died, function(event)
     use_rich_text = true,
     time_to_live = Balance.loot_label_ticks,
   })
-end, { { filter = "type", type = "unit-spawner" } })
+end
+
+-- A loaded monster sets off its payload where it dies.
+local function set_off(entity)
+  local entry = storage.loaded[entity.unit_number]
+  if not entry then
+    return
+  end
+  for _, effect in ipairs(Payloads.on_death(entry.payloads, entity.position, unit_exists)) do
+    effect.force = Names.TAMED
+    effect.cause = entity
+    entity.surface.create_entity(effect)
+  end
+end
+
+script.on_event(defines.events.on_entity_died, function(event)
+  if event.entity.type == "unit-spawner" then
+    nest_loot(event)
+  else
+    set_off(event.entity)
+  end
+end, { { filter = "type", type = "unit-spawner" }, { filter = "type", type = "unit" } })
+
+-- Runs after on_entity_died, and also when a unit leaves without dying.
+script.on_event(defines.events.on_object_destroyed, function(event)
+  if event.type == defines.target_type.entity then
+    storage.loaded[event.useful_id] = nil
+  end
+end)
 
 -- factorio-test runs the in-game tests. The hook does nothing unless the
 -- factorio-test mod is active.

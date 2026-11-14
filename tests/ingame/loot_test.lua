@@ -60,3 +60,11 @@ test("a spawner drops its eggs beside its corpse, with a label", function()
   end
   assert(texts >= 1, "no label")
 end)
+
+test("a spawner that the tamed force kills drops eggs without the research", function()
+  Helpers.research(false)
+  local position = { 680, 600 }
+  spawner(position).die(game.forces["ao-tamed"])
+  Helpers.research(true)
+  assert(eggs_near(position) >= 1, "no eggs from a tamed kill")
+end)

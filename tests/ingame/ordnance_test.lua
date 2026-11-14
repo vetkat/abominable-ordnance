@@ -71,3 +71,72 @@ test("a loaded monster attacks a nearby spawner", function()
     assert(not spawner.valid or spawner.health < spawner.max_health, "the spawner is untouched")
   end)
 end)
+
+-- Hatches a loaded monster at a position and passes it to then(unit) a
+-- tick later.
+local function with_loaded_monster(position, item, after)
+  Helpers.arena(surface(), position)
+  Helpers.spoil(Helpers.spill(surface(), position, item, 1))
+  after_ticks(1, function()
+    after(tamed_units(position)[1])
+  end)
+end
+
+test("an explosive monster that dies blows up the natives' chest", function()
+  local position = { 780, 700 }
+  local chest
+  with_loaded_monster(position, "ao-biter-larva-explosive", function(unit)
+    chest = surface().create_entity({
+      name = "wooden-chest",
+      position = { unit.position.x + 1.5, unit.position.y },
+      force = "enemy",
+    })
+    local number = unit.unit_number
+    unit.die()
+    after_ticks(2, function()
+      assert(not chest.valid or chest.health < chest.max_health, "the chest is untouched")
+      assert(storage.loaded[number] == nil, "the loaded entry is still there")
+    end)
+  end)
+end)
+
+test("a poison monster that dies poisons a native biter", function()
+  local position = { 820, 700 }
+  local foe
+  with_loaded_monster(position, "ao-biter-larva-poison", function(unit)
+    foe = surface().create_entity({
+      name = "medium-biter",
+      position = { unit.position.x + 1.5, unit.position.y },
+      force = "enemy",
+    })
+    foe.disabled_by_script = true
+    unit.die()
+    after_ticks(120, function()
+      assert(not foe.valid or foe.health < foe.max_health, "the biter is untouched")
+    end)
+  end)
+end)
+
+test("a loaded monster removed without dying loses its entry", function()
+  with_loaded_monster({ 860, 700 }, "ao-biter-larva-acid", function(unit)
+    local number = unit.unit_number
+    unit.destroy()
+    after_ticks(1, function()
+      assert(storage.loaded[number] == nil, "the loaded entry is still there")
+    end)
+  end)
+end)
+
+test("a native biter that dies sets off nothing", function()
+  local position = { 900, 700 }
+  Helpers.arena(surface(), position)
+  local biter =
+    surface().create_entity({ name = "small-biter", position = position, force = "enemy" })
+  biter.die()
+  local effects = surface().count_entities_filtered({
+    position = position,
+    radius = 6,
+    name = { "explosive-rocket", "poison-cloud", "acid-splash-fire-spitter-big" },
+  })
+  assert(effects == 0, effects .. " effects")
+end)
