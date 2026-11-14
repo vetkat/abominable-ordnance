@@ -181,6 +181,78 @@ test("an acid trail whose entity is missing does nothing", function()
   end)
 end)
 
+test("an acid monster is in the trail list", function()
+  with_loaded_monster({ 1020, 700 }, "ao-biter-larva-acid", function(unit)
+    assert(storage.trails[unit.unit_number], "the acid monster has no trail entry")
+    unit.destroy()
+  end)
+end)
+
+test("a poison monster is not in the trail list", function()
+  with_loaded_monster({ 1060, 700 }, "ao-biter-larva-poison", function(unit)
+    assert(storage.trails[unit.unit_number] == nil, "the poison monster has a trail entry")
+    unit.destroy()
+  end)
+end)
+
+test("a monster that dies under the cursor does not stop the other trails", function()
+  local position = { 1100, 700 }
+  Helpers.arena(surface(), position)
+  for _ = 1, Balance.trail_batch + 2 do
+    Helpers.spoil(Helpers.spill(surface(), position, "ao-biter-larva-acid", 1))
+  end
+  after_ticks(2, function()
+    local units = tamed_units(position)
+    for _, unit in ipairs(units) do
+      unit.disabled_by_script = true
+    end
+    -- Wait until a pass is under way, so the cursor holds a key.
+    local function kill_under_cursor()
+      local id = storage.trail_cursor
+      if id == nil or storage.loaded[id] == nil then
+        after_ticks(1, kill_under_cursor)
+        return
+      end
+      local victim = storage.loaded[id].unit
+      victim.destroy()
+      after_ticks(Balance.acid_trail_ticks * 2, function()
+        for _, unit in ipairs(units) do
+          if unit.valid then
+            local puddles = surface().count_entities_filtered({
+              position = unit.position,
+              radius = 1,
+              name = "acid-splash-fire-spitter-small",
+            })
+            assert(puddles >= 1, "a monster lost its trail")
+            unit.destroy()
+          end
+        end
+      end)
+    end
+    kill_under_cursor()
+  end)
+end)
+
+test("a configuration change adds old acid monsters to the trail list", function()
+  with_loaded_monster({ 1140, 700 }, "ao-biter-larva-acid", function(unit)
+    local number = unit.unit_number
+    storage.trails = nil
+    Setup.on_configuration_changed()
+    assert(storage.trails[number], "the old acid monster has no trail entry")
+    unit.destroy()
+  end)
+end)
+
+test("a monster that leaves loses its trail entry", function()
+  with_loaded_monster({ 1180, 700 }, "ao-biter-larva-acid", function(unit)
+    local number = unit.unit_number
+    unit.destroy()
+    after_ticks(1, function()
+      assert(storage.trails[number] == nil, "the trail entry is still there")
+    end)
+  end)
+end)
+
 test("every payload effect entity exists", function()
   for _, payload in ipairs(Payloads.ALL) do
     assert(prototypes.entity[payload.death.name], payload.death.name)

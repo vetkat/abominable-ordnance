@@ -29,6 +29,12 @@ mod uses [semantic versioning](https://semver.org/spec/v2.0.0.html).
   puddles. Acid burns native units, not nests. An acid-loaded monster
   leaves an acid trail. Nests that loaded monsters kill drop eggs.
 
+### Changed
+
+- The acid trail visits at most 5 loaded monsters per tick. Up to 300
+  acid monsters still leave a puddle about once a second. More monsters
+  share the time, so each one leaves puddles less often.
+
 ### Fixed
 
 - The mod still loads when another mod removes the centrifuge, the
