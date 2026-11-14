@@ -150,9 +150,11 @@ end, { { filter = "type", type = "unit-spawner" }, { filter = "type", type = "un
 script.on_event(defines.events.on_object_destroyed, function(event)
   if event.type == defines.target_type.entity then
     local id = event.useful_id
-    storage.trail_cursor = Trail.forget(storage.trails, storage.trail_cursor, id)
-    storage.trails[id] = nil
-    storage.loaded[id] = nil
+    if storage.loaded[id] then
+      storage.trail_cursor = Trail.forget(storage.trails, storage.trail_cursor, id)
+      storage.trails[id] = nil
+      storage.loaded[id] = nil
+    end
   end
 end)
 
@@ -162,16 +164,16 @@ end)
 script.on_event(defines.events.on_tick, function(event)
   local go, next_tick =
     Trail.start(storage.trail_cursor, event.tick, storage.trail_next_tick, Balance.acid_trail_ticks)
-  storage.trail_next_tick = next_tick
   if not go then
     return
   end
+  storage.trail_next_tick = next_tick
   local ids, cursor = Trail.batch(storage.trails, storage.trail_cursor, Balance.trail_batch)
   storage.trail_cursor = cursor
   for _, id in ipairs(ids) do
     local entry = storage.loaded[id]
     -- Another mod can remove the trail entity after the monster hatched.
-    if entry and entry.trail and entry.unit.valid and entity_exists(entry.trail) then
+    if entry and entry.unit.valid and entity_exists(entry.trail) then
       entry.unit.surface.create_entity({
         name = entry.trail,
         position = entry.unit.position,

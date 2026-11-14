@@ -3,9 +3,10 @@
 -- parameters.
 local Trail = {}
 
--- Up to n keys of t from cursor on, and the cursor for the next call. The
--- cursor is the next key to visit, and nil when the pass reached the end
--- of t. A cursor whose key left t counts as the start of t.
+-- Returns up to n keys of t from the cursor on, and the cursor for the
+-- next call. The cursor is the next key to visit. It is nil when the
+-- pass reached the end of t. A cursor whose key left t counts as the
+-- start of t.
 function Trail.batch(t, cursor, n)
   local key = cursor
   if key == nil or t[key] == nil then
