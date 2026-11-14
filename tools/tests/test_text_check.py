@@ -75,3 +75,14 @@ def test_spelling_findings_parse_cspell_output():
 def test_link_definitions_are_not_prose():
     defs = "".join(f"[label{n}]: docs/design.md#a-section-{n}\n" for n in range(12))
     assert tc.check_files({"ROADMAP.md": "Read [it][label0].\n\n" + defs}) == []
+
+
+def test_locale_entries_are_checked_one_at_a_time():
+    names = "".join(f"k{i}=Biter larva number {i} of the many\n" for i in range(12))
+    assert tc.check_files({"locale/en/locale.cfg": "[item-name]\n" + names}) == []
+
+
+def test_a_long_locale_entry_is_still_found_on_its_line():
+    long_value = " ".join(["word"] * 40) + "."
+    found = tc.check_files({"locale/en/locale.cfg": "[x]\nk=Short.\nlong=" + long_value + "\n"})
+    assert [(f.line, f.rule) for f in found] == [(3, "sentence-length")]
