@@ -26,7 +26,7 @@ Slices 1 (lifecycle) and 2 (ordnance) ship in this release.
   ([design][ordnance-loading])
 - [x] Larva rockets and the larva launcher, in both modes
   ([design][logistics-and-delivery])
-- [ ] Feral behaviour: too close, idle, or by a chance per payload
+- [x] Feral behaviour: too close, idle, or by a chance per payload
   ([design][feral-behaviour-and-risks])
 - [x] Spoil outcomes: eggs hatch wild, loaded larvae become loaded monsters
   ([design][lifecycle])

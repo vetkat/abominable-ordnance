@@ -107,7 +107,7 @@ The probe in "Delivery" must confirm these. Each has a fallback:
 | Fact to confirm | Fallback |
 | --- | --- |
 | Writing `unit.force = "ao-feral"` makes the unit attack its old allies and the player | Replace the unit, as "Replacing a unit" describes |
-| A feral unit with a wander command attacks a player or a building that comes near | The batch check gives a feral unit with no command an `attack_area` command at its own position |
+| A feral unit with a wander command attacks a player or a building that comes near | The completion handler sends a feral unit hunting again when its command ends, and the batch check restarts one that waits for it |
 | One `find_nearest_enemy_entity_with_owner` search with radius 64 in a dense test base costs little | Lower `seek_distance` to 48 |
 | The natives attack units of a force that is at war with them | None needed: the tamed force already fights this way |
 | An `attack_area` at a target across water ends with `behavior_result.fail` | Treat `success` as a failure when the target is still valid and more than `search_radius` away |
@@ -148,9 +148,10 @@ that change how the game feels.
   loaded monsters get one check every 10 s. With more, each check comes
   later.
 - **A fighting monster is never idle.** When the batch check finds a
-  native within 32 tiles, it clears the idle clock. If the monster has
-  no command, the check gives it an `attack_area` command with radius 32
-  at its own position.
+  native within 32 tiles, it clears the idle clock. If the monster's
+  command is not an `attack_area`, the check gives it one with radius 32
+  at its own position. Units always report a command, so the check
+  tests the command type, not `has_command`.
 - **A feral monster stays in `storage.loaded`.** Its payload still goes
   off on death, and an acid monster keeps its trail. The entry gets
   `feral = true`. The too-close scan and the idle and unstable triggers
@@ -162,14 +163,16 @@ that change how the game feels.
 - **A feral monster hunts.** `docs/design.md` says feral monsters
   attack the nearest target, including you and your buildings. The
   shell looks for a target when a monster goes feral, and again when
-  the batch check finds a feral monster with no command. The target is
+  its command ends with a success (`on_ai_command_completed`). The batch
+  check restarts a monster that waits for it. The target is
   the nearest entity of a force at war with `ao-feral` within
   `seek_distance`, from `find_nearest_enemy_entity_with_owner`.
 
   The monster gets an `attack_area` command at that target. With no
   target in range, it gets a wander command with radius 32 that ends
-  after `rewander_ticks`. The next batch check then searches again, so a
-  base built later still draws it, and it never stands still for good.
+  after `rewander_ticks`. The completion handler then searches again,
+  so a base built later still draws it, and it never stands still for
+  good.
   An attack that fails, for example at a target across water, ends in a
   wander instead of a new search at once (see "Failed commands").
 - **Spoiled loaded larvae stay tamed at first.** Slice 2 already works
@@ -202,7 +205,7 @@ of them later in `core/balance.lua` or in the code.
 | Warning | The text "Feral!" above the monster for 3 s. No chat message |
 | Feral hunting | A feral monster attacks the nearest enemy entity within 64 tiles (`seek_distance`). With none, it wanders |
 | Loot from feral kills | Natives that a feral monster kills drop no nest loot |
-| Tamed monsters near natives | A tamed loaded monster with no command and a native within 32 tiles gets a fresh `attack_area` command. This is new behaviour for tamed monsters |
+| Tamed monsters near natives | A tamed loaded monster whose command is not an `attack_area`, with a native within 32 tiles, gets a fresh `attack_area` command. This is new behaviour for tamed monsters |
 | Force limit full | Feral behaviour is off, with only a log line. The player is not told in the game |
 | Size and radius | The feral radius grows by 1 tile per size step: 5 for a small biter, 8 for a behemoth |
 
@@ -285,13 +288,15 @@ The batch check walks `storage.loaded` with its own cursor,
 it checks up to `batch` entries:
 
 1. It skips an entry whose unit is not valid or is on a space platform.
-2. A feral entry with no command gets a new target, as "A feral monster
-   hunts" in Proposals says. The check skips a feral entry with a
-   command, so the idle and unstable work never runs for feral entries.
+2. A feral entry that has `awaiting_check` set, or no command, gets a
+   new target, as "A feral monster hunts" in Proposals says. Units
+   always report a command, so the completion handler does the usual
+   re-hunt and sets `awaiting_check` when it leaves the restart to the
+   check. The idle and unstable work never runs for feral entries.
 3. For a tamed entry, it counts entities of the natives within
    `search_radius` of the unit, with `limit = 1` and no type filter.
 4. With a native in range, it sets `entry.idle_since` to nil. If the
-   unit has no command, it gives it an `attack_area` command.
+   unit's command is not an `attack_area`, it gives it one.
 5. With no native in range, it sets `entry.idle_since` to the current
    tick if it is nil.
 6. The core decides if the monster goes feral now. It uses
@@ -328,17 +333,23 @@ looks up `storage.loaded[event.unit_number]` and ignores the event when
 there is no feral entry, or when the entry's unit has another unit
 number.
 
-- With `defines.behavior_result.fail`, the shell gives the unit a wander
-  command for `rewander_ticks`. It does not search for a new target at
-  once, so an unreachable target can't start a loop of failed commands.
+- Any `fail` that no distraction caused marks the monster:
+  `entry.failed_at` takes the current tick. This includes a failed
+  wander, so a stuck unit can't fail-wander every few ticks.
+- After a `fail`, the shell gives the unit a wander command for
+  `rewander_ticks`. It does not search for a new target at once, so an
+  unreachable target can't start a loop of failed commands. If the unit
+  already failed within the window, it gets no new command. The
+  handler sets `entry.awaiting_check = true`, and the next batch check
+  hunts again. A hunt or a wander clears the flag.
 - A `fail` with `was_distracted = true` came from a distraction, not from
   the hunt. The probe checks if the original command resumes after
   such a failure. If it does, the shell ignores the event. If not, it
   gives the wander only.
-- Any other `fail` of a hunt's `attack_area` marks the monster:
-  `entry.failed_at` takes the current tick. The shell sets
-  `entry.hunting = true` when it gives that command. So a failed wander
-  never marks the monster.
+- A `success` sends the monster hunting again at once. If the search
+  returns the same valid `entry.last_target` as the last hunt, the unit
+  gets a wander instead. This stops a loop of attacks on a target that
+  the monster can't harm. A wander clears `last_target`.
 - The probe-table fallback can treat a `success` as a failure. That
   marks the monster too.
 - While `failed_at` is less than `retry_wanders × rewander_ticks` ago,
@@ -423,9 +434,10 @@ The rules in `docs/architecture.md` apply. New and changed modules:
 - A feral monster keeps its `storage.loaded` entry. When it dies, its
   payload effects belong to `ao-feral`.
 - A feral monster that kills a native spawner drops no nest loot.
-- A feral monster with no command gets a command at its next batch
-  check. With a player chest within `seek_distance`, the command
-  targets it.
+- A feral monster whose wander ends hunts again. With a player chest
+  within `seek_distance`, the command targets it.
+- A feral monster that waits for the batch check gets a new command
+  from it.
 - A tamed monster next to a Space Age native that is not a `unit` (for
   example a Gleba spider unit) is not idle. This test runs in Space Age
   only.
@@ -436,6 +448,11 @@ The rules in `docs/architecture.md` apply. New and changed modules:
   water, it tries at most one attack per `retry_wanders × rewander_ticks`.
   After that time it hunts again.
 - A `fail` caused by a distraction does not mark the monster.
+- A success that returns the same valid target gives a wander, not
+  another attack. A different target gets an `attack_area`.
+- A tamed monster near a native gets an `attack_area` from the check
+  when its command is another type. One that already has an
+  `attack_area` keeps it.
 - A feral monster that wanders with no target in range searches again
   after `rewander_ticks`. A player chest placed within `seek_distance`
   during the wander becomes its target.
@@ -467,7 +484,7 @@ Each PR follows the workflow in `CLAUDE.md`, with a CHANGELOG entry.
 - **Batch check cost.** Each tick checks up to 5 monsters. Each check
   makes one `count_entities_filtered` call with `limit = 1`. The cost per
   tick stays fixed. The probe does not measure it.
-- **Target search cost.** A feral monster with no command runs one
+- **Target search cost.** A feral monster that re-hunts runs one
   `find_nearest_enemy_entity_with_owner` search with radius 64. In a
   dense base that area holds thousands of entities, and up to 5 such
   searches can run in one tick. The probe times one search. If it is
@@ -478,8 +495,9 @@ Each PR follows the workflow in `CLAUDE.md`, with a CHANGELOG entry.
   `ao-tamed`, setup fails, as it did in slice 2.
 - **Feral entries in the batch.** Feral monsters stay in
   `storage.loaded`, so they take batch slots. At large counts, tamed
-  monsters get their idle check less often. A feral entry with a
-  command costs only one `has_command` call, and the batch size bounds
+  monsters get their idle check less often. A feral entry that
+  needs no restart costs only a read of `awaiting_check` and
+  `has_command`, and the batch size bounds
   the cost per tick.
 - **Players near a launcher.** A rocket that spoils inside a launcher
   hatches next to it. If a player stands there, the monster goes feral

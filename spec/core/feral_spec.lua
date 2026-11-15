@@ -69,15 +69,12 @@ describe("the failed-hunt mark", function()
     assert.is_false(Feral.marked({ failed_at = 100 }, 100 + window))
   end)
 
-  it("comes only from a failed hunt without a distraction", function()
-    assert.is_true(Feral.marks(true, false, true))
-    assert.is_false(Feral.marks(true, true, true))
-    assert.is_false(Feral.marks(true, false, false))
-    assert.is_false(Feral.marks(false, false, true))
-  end)
-
-  it("returns a boolean even for a missing failure", function()
-    assert.is_false(Feral.marks(nil, false, true))
+  it("rewanders at once after a failure unless a failure is recent", function()
+    assert.is_true(Feral.wanders_after_failure({ hunting = true }, 100))
+    assert.is_true(Feral.wanders_after_failure({ hunting = false }, 100))
+    assert.is_true(Feral.wanders_after_failure({ hunting = true, failed_at = 99 }, 100))
+    assert.is_false(Feral.wanders_after_failure({ hunting = false, failed_at = 99 }, 100))
+    assert.is_true(Feral.wanders_after_failure({ hunting = false, failed_at = 99 }, 99 + window))
   end)
 end)
 
@@ -90,5 +87,87 @@ describe("the player test", function()
     assert.is_false(Feral.player_counts(false, true, false))
     assert.is_false(Feral.player_counts(true, false, false))
     assert.is_false(Feral.player_counts(true, true, true))
+  end)
+end)
+
+describe("the idle and unstable decision", function()
+  local function entry(fields)
+    local e = { payloads = { "explosive" } }
+    for k, v in pairs(fields) do
+      e[k] = v
+    end
+    return e
+  end
+
+  local function roll(value)
+    return function()
+      return value
+    end
+  end
+
+  it("rolls only when it needs the number", function()
+    local calls = 0
+    local function counting()
+      calls = calls + 1
+      return 0.5
+    end
+    Feral.decide(entry({ idle_since = 0 }), f.idle_ticks, counting)
+    Feral.decide(entry({ feral = true }), 100, counting)
+    Feral.decide(entry({}), 100, counting)
+    assert.are.equal(0, calls)
+    Feral.decide(entry({ checked_at = 0 }), 100, counting)
+    assert.are.equal(1, calls)
+  end)
+
+  it("turns a monster feral after idle_ticks of idling", function()
+    assert.is_false(Feral.decide(entry({}), 1000, roll(0.99)))
+    assert.is_false(Feral.decide(entry({ idle_since = 1000 }), 1000 + f.idle_ticks - 1, roll(0.99)))
+    assert.is_true(Feral.decide(entry({ idle_since = 1000 }), 1000 + f.idle_ticks, roll(0.99)))
+  end)
+
+  it("keeps the chance a probability, even for a big stack over a long time", function()
+    assert.are.equal(1, Feral.unstable_chance(600, 600))
+    assert.is_false(Feral.unstable_chance(600, 600) ~= Feral.unstable_chance(600, 600))
+    assert.are.equal(0, Feral.unstable_chance(0, 600))
+  end)
+
+  it("never rolls on the first check", function()
+    assert.are.equal(0, Feral.unstable_chance(1, 0))
+    assert.is_false(Feral.decide(entry({}), 600, roll(0)))
+  end)
+
+  it("rolls the chance for the time since the last check", function()
+    local chance = 1 - (1 - f.unstable_per_minute) ^ (600 / Feral.TICKS_PER_MINUTE)
+    assert.are.near(chance, Feral.unstable_chance(1, 600), 1e-12)
+    local e = entry({ checked_at = 0 })
+    assert.is_true(Feral.decide(e, 600, roll(chance / 2)))
+    assert.is_false(Feral.decide(e, 600, roll(chance * 2)))
+  end)
+
+  it("grows the chance with each payload", function()
+    assert.is_true(Feral.unstable_chance(2, 600) > Feral.unstable_chance(1, 600))
+  end)
+
+  it("never decides for a feral entry", function()
+    assert.is_false(Feral.decide(entry({ feral = true, idle_since = 0 }), 10 ^ 9, roll(0)))
+  end)
+
+  it("copes with an entry that has no payload list", function()
+    assert.is_false(Feral.decide({ checked_at = 0 }, 600, roll(0)))
+  end)
+end)
+
+describe("the idle clock", function()
+  it("starts at the first check without a native near", function()
+    assert.are.equal(500, Feral.idle_since(nil, false, 500))
+  end)
+
+  it("keeps running while no native is near", function()
+    assert.are.equal(100, Feral.idle_since(100, false, 500))
+  end)
+
+  it("stops when a native is near", function()
+    assert.is_nil(Feral.idle_since(100, true, 500))
+    assert.is_nil(Feral.idle_since(nil, true, 500))
   end)
 end)
