@@ -34,11 +34,18 @@ local ordnance, husbandry = Ordnance.prototypes({
   projectile = vanilla("artillery-projectile", "artillery-projectile"),
 })
 
-local lifecycle = Lifecycle.prototypes({
-  space_age = space_age,
-  pod = looks(space_age and "biochamber" or "chemical-plant"),
-  extra_unlocks = husbandry,
-})
+-- Every item that spoils gets an explicit weight, so that a warded item
+-- weighs what its source does in Space Age.
+local lift_weight = vanilla("utility-constants", "default").default_rocket_lift_weight
+local lifecycle = Stasis.weighted(
+  Lifecycle.prototypes({
+    space_age = space_age,
+    pod = looks(space_age and "biochamber" or "chemical-plant"),
+    extra_unlocks = husbandry,
+  }),
+  lift_weight
+)
+ordnance = Stasis.weighted(ordnance, lift_weight)
 data:extend(lifecycle)
 data:extend(ordnance)
 
