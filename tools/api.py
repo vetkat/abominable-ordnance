@@ -6,8 +6,9 @@ An agent reads this short entry and skips the whole library file.
     python3 -m tools.api on_entity_died
 
 A name can be a class, a class member, an event, a concept, a define, a
-prototype, a prototype property or a prototype type. An unknown name
-gives the closest names.
+prototype, a prototype property or a prototype type. A name that exists
+in both stages gives the runtime entry. Ask for the prototype one as
+prototype:<name>. An unknown name gives the closest names and exit 1.
 """
 from __future__ import annotations
 
@@ -41,9 +42,15 @@ def render(kind: object) -> str:
         return json.dumps(kind.get("value"))
     if name == "type":
         return render(kind.get("value"))
-    if name in ("table", "tuple"):
+    if name == "table":
         return "{" + ", ".join(field(item) for item in kind.get("parameters", [])) + "}"
-    return str(name)
+    if name == "tuple":
+        return "[" + ", ".join(render(item) for item in kind.get("values", [])) + "]"
+    if name == "struct":
+        return "struct (see members)"
+    if name == "LuaStruct":
+        return "struct {" + ", ".join(a["name"] for a in kind.get("attributes", [])) + "}"
+    return str(name) if name else "?"
 
 
 def field(item: dict) -> str:
@@ -92,9 +99,38 @@ def prop(owner: str, item: dict) -> str:
     return f"{owner}.{field(item)}{default}\n{summary(item.get('description'))}"
 
 
-def entries(runtime: dict, proto: dict) -> dict[str, str]:
-    """Map every name an agent can ask for to its text."""
-    found: dict[str, str] = {}  # built here, so filling it in place is safe
+def label(stage: str, found: dict[str, str]) -> dict[str, str]:
+    return {key: f"[{stage}] {text}" for key, text in found.items()}
+
+
+def limited(items: list[dict], cap: int = 20) -> str:
+    """Name the items, and only the first few of a long list."""
+    if len(items) <= cap:
+        return names(items)
+    return f"{len(items)} values: " + ", ".join(i["name"] for i in items[:cap]) + ", ..."
+
+
+def defines(items: list[dict], prefix: str = "defines") -> dict[str, str]:
+    """Index every define group, subgroup and value by its dotted name."""
+    found: dict[str, str] = {}
+    for item in items:
+        key = f"{prefix}.{item['name']}"
+        values, subkeys = item.get("values") or [], item.get("subkeys") or []
+        lines = [f"{key}: " + limited(values) if values else key,
+                 summary(item.get("description"))]
+        if subkeys:
+            lines.append("subkeys: " + names(subkeys))
+        found[key] = "\n".join(line for line in lines if line)
+        for value in values:
+            found[f"{key}.{value['name']}"] = "\n".join(
+                line for line in (f"{key}.{value['name']}", summary(value.get("description")))
+                if line)
+        found.update(defines(subkeys, key))
+    return found
+
+
+def runtime_entries(runtime: dict) -> dict[str, str]:
+    found: dict[str, str] = {}
     for item in runtime.get("classes", []):
         found[item["name"]] = klass(item)
         for member in item.get("methods", []):
@@ -105,28 +141,54 @@ def entries(runtime: dict, proto: dict) -> dict[str, str]:
         found[item["name"]] = "\n".join(
             [f"event {item['name']}", summary(item.get("description"))]
             + ["  " + field(data) for data in item.get("data", [])])
-    for item in runtime.get("concepts", []) + proto.get("types", []):
+    for item in runtime.get("concepts", []):
         found[item["name"]] = (f"{item['name']} = {render(item.get('type'))}\n"
                                + summary(item.get("description")))
         for member in item.get("properties") or []:
             found[f"{item['name']}.{member['name']}"] = prop(item["name"], member)
-    for item in runtime.get("defines", []):
-        found[f"defines.{item['name']}"] = (f"defines.{item['name']}: "
-                                            + names(item.get("values", [])))
-    own: dict[str, dict[str, str]] = {}  # built here, so filling it in place is safe
+    found.update(defines(runtime.get("defines", [])))
+    return found
+
+
+def prototype_entries(proto: dict) -> dict[str, str]:
+    found: dict[str, str] = {}
+    own: dict[str, dict[str, str]] = {}
+    parents: dict[str, str | None] = {}
+    for item in proto.get("types", []):
+        found[item["name"]] = (f"{item['name']} = {render(item.get('type'))}\n"
+                               + summary(item.get("description")))
+        for member in item.get("properties") or []:
+            found[f"{item['name']}.{member['name']}"] = prop(item["name"], member)
     for item in proto.get("prototypes", []):
         found[item["name"]] = prototype(item)
+        parents[item["name"]] = item.get("parent")
         own[item["name"]] = {member["name"]: prop(item["name"], member)
                              for member in item.get("properties") or []}
         for key, text in own[item["name"]].items():
             found[f"{item['name']}.{key}"] = text
-    parents = {item["name"]: item.get("parent") for item in proto.get("prototypes", [])}
     return {**inherited(own, parents), **found}
+
+
+def entries(runtime: dict, proto: dict) -> dict[str, str]:
+    """Map every name an agent can ask for to its text.
+
+    A runtime name beats a prototype name of the same name. The prototype
+    one stays reachable as prototype:<name>.
+    """
+    prototypes = label("prototype", prototype_entries(proto))
+    runtimes = label("runtime", runtime_entries(runtime))
+    found = {**prototypes, **{
+        key: text + (f"\n(also a prototype type: prototype:{key})" if key in prototypes else "")
+        for key, text in runtimes.items()}}
+    for item in proto.get("prototypes", []):
+        if item.get("typename"):
+            found.setdefault(item["typename"], prototypes[item["name"]])
+    return {**{f"prototype:{key}": text for key, text in prototypes.items()}, **found}
 
 
 def inherited(own: dict[str, dict[str, str]], parents: dict[str, str | None]) -> dict[str, str]:
     """Give each prototype the properties of its parents, nearest first."""
-    found: dict[str, str] = {}  # built here, so filling it in place is safe
+    found: dict[str, str] = {}
     for child in parents:
         seen = {child}
         parent = parents[child]
@@ -138,16 +200,30 @@ def inherited(own: dict[str, dict[str, str]], parents: dict[str, str | None]) ->
     return found
 
 
-def lookup(runtime: dict, proto: dict, query: str) -> str:
-    found = entries(runtime, proto)
+def resolve(found: dict[str, str], query: str) -> str | None:
+    """The text for a name, ignoring case and a trailing dot, or None."""
+    query = query.strip().rstrip(".")
     if query in found:
         return found[query]
-    close = difflib.get_close_matches(query, found.keys(), n=8, cutoff=0.6)
+    folded: dict[str, str] = {}
+    for key in found:
+        folded.setdefault(key.lower(), key)
+    return found[folded[query.lower()]] if query.lower() in folded else None
+
+
+def miss(found: dict[str, str], query: str) -> str:
+    close = difflib.get_close_matches(query.strip(), found.keys(), n=8, cutoff=0.6)
     return f"no match for {query}" + ("; close: " + ", ".join(close) if close else "")
 
 
+def lookup(runtime: dict, proto: dict, query: str) -> str:
+    found = entries(runtime, proto)
+    text = resolve(found, query)
+    return miss(found, query) if text is None else text
+
+
 def main(argv: list[str], folder: pathlib.Path = API) -> int:
-    if len(argv) != 1:
+    if len(argv) != 1 or not argv[0].strip():
         print("usage: python3 -m tools.api NAME", file=sys.stderr)
         return 2
     try:
@@ -157,8 +233,10 @@ def main(argv: list[str], folder: pathlib.Path = API) -> int:
         print(f"api: cannot read {folder}: {error}. Run `make lua` once to "
               "download it.", file=sys.stderr)
         return 1
-    print(lookup(runtime, proto, argv[0]))
-    return 0
+    found = entries(runtime, proto)
+    text = resolve(found, argv[0])
+    print(miss(found, argv[0]) if text is None else text)
+    return 0 if text is not None else 1
 
 
 if __name__ == "__main__":

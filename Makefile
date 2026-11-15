@@ -91,9 +91,12 @@ gates: $(API)/stamp
 ingame:
 	tools/ingame.sh $(MODE)
 
+# NAME goes in through the environment, so the shell never parses it.
+export NAME
+
 ## one API entry, for example: make api NAME=LuaSurface.create_entity
 api: $(API)/stamp
-	@python3 -m tools.api "$(NAME)"
+	@python3 -m tools.api "$$NAME"
 
 ## after /ste80-humanizer and /simplify: lets the Claude Code hook pass
 stamp:
