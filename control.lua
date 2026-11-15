@@ -60,6 +60,7 @@ script.on_event(defines.events.on_force_reset, function(event)
   LauncherShell.sync(event.force)
 end)
 script.on_event(defines.events.on_forces_merged, function(event)
+  Tamed.ensure()
   LauncherShell.sync(event.destination)
 end)
 
@@ -288,5 +289,6 @@ if script.active_mods["factorio-test"] then
     "tests/ingame/launcher_test",
     "tests/ingame/launcher_range_test",
     "tests/ingame/stasis_test",
+    "tests/ingame/feral_test",
   })
 end
