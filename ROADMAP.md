@@ -60,6 +60,8 @@ Slices 1 (lifecycle) and 2 (ordnance) ship in this release.
   ([design][feral-behaviour-and-risks])
 - [ ] Facehuggers on players ([design][facehuggers])
 - [ ] PvP setting for multiplayer ([design][concept])
+- [ ] Custom graphics for every building and item of the mod, with
+  tooling to make the sprites
 
 [lifecycle]: docs/design.md#lifecycle-eggs-embryos-and-larvae
 [ordnance-loading]: docs/design.md#ordnance-loading
