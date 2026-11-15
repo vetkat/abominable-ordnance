@@ -155,6 +155,15 @@ in this table.
 | Atomic bomb | Glows, moves slowly | Nuclear explosion |
 | Tesla ammo (Space Age) | Arcs to nearby enemies | Chain-lightning burst |
 
+**What each payload hurts.** A payload decides what its landing blast and
+its death effect hurt, and each uses its own damage type (decided
+2026-11-15, see `docs/superpowers/specs/2026-11-15-payload-damage-design.md`):
+
+- Explosive rocket: everything, rocks included.
+- Poison capsule: living things only (natives, players, tamed monsters,
+  trees).
+- Sulfuric acid: everything except rocks.
+
 **Expand Orifices.** By default a monster holds one payload. The Expand
 Orifices I research adds a second slot, and Expand Orifices II adds a third.
 Live effects run side by side and death effects fire together.
@@ -420,11 +429,13 @@ hard parts are prototype count, demolishers and the player transformation.
   loaded unit at the landing spot and records its payload, which a
   `create-entity` trigger cannot do. A landing runs its own
   `ao-land-<species>-<payload>` effect, which reads `target_position`. The
-  spoil effect stays `ao-hatch-`. The script deals the blast, because an
-  enemy trigger force also hurt the tamed force.
+  spoil effect stays `ao-hatch-`. The script deals the blast, with the
+  payload's targets and damage type.
 - **Live and death effects.** Track loaded units in `storage`. Live effects
-  run from `on_nth_tick`. Death effects come from `on_entity_died`, which
-  spawns the matching explosion or cloud.
+  run from `on_nth_tick`. Death effects come from `on_entity_died`. It
+  shows a look-alike explosion, cloud or puddles, and the script deals the
+  damage by the payload's target rule. Lingering clouds and pools are
+  hazards in a batched pass.
 - **Forces.** Loaded monsters join an allied force that is hostile to the
   natives. Going feral moves the unit to a separate feral force that is
   hostile to everyone. With PvP on, each player force gets its own allied
@@ -526,6 +537,12 @@ Answered:
 
 Open:
 
+- [ ] Version 2 payload targets (draft, revisit in version 2). Grenade:
+  everything, rocks included, like explosive. Slowdown: anything that
+  moves (natives, players, your moving buildings, tamed monsters).
+  Flamethrower: everything except rocks. Tesla: creatures (natives,
+  players, tamed monsters). Atomic bomb: everything, rocks included, plus
+  a nuclear fallout cloud that lingers for a few minutes.
 - [ ] Pheromone flare: should the remote's flare release pollution to
   draw native attacks?
 - [ ] Do feral monsters warn the player, and how? Slice 4 shows "Feral!"
