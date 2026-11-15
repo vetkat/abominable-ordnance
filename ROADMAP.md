@@ -30,9 +30,9 @@ Slices 1 (lifecycle) and 2 (ordnance) ship in this release.
   ([design][feral-behaviour-and-risks])
 - [x] Spoil outcomes: eggs hatch wild, loaded larvae become loaded monsters
   ([design][lifecycle])
-- [ ] Stasis ward that pauses and resumes the spoil timer
+- [x] Stasis ward that slows the spoil timer 20 times
   ([design][logistics-and-delivery])
-- [ ] The first four research techs ([design][research-tree])
+- [x] The first four research techs ([design][research-tree])
 - [ ] Runs on vanilla Factorio 2.1 and with Space Age
   ([design][version-1-feature-list])
 

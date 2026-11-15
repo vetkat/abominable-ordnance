@@ -51,8 +51,8 @@ step after Capture is a machine or a recipe, so you can automate it.
 4. **Crossbreed (optional).** Jazz pods combine two embryos of different
    species into a hybrid egg, which goes to the incubator like any other
    egg.
-5. **Store and ship.** Stasis wards pause the spoil timer on the way (see
-   [Logistics and delivery](#logistics-and-delivery)).
+5. **Store and ship.** Stasis wards slow the spoil timer 20 times on the way
+   (see [Logistics and delivery](#logistics-and-delivery)).
 6. **Fire.** The larva launcher and artillery fire loaded larvae as
    long-range ammo. The larva turns into its full monster where it lands.
 7. **Detonate.** The monster attacks the area where it lands, applies its
@@ -255,7 +255,7 @@ force, which is hostile to everyone, so the natives fight it too.
 
 - **Feral radius.** Grows with payload count and monster size. For a
   one-slot biter it is around 5 tiles. For the Abomination it is around 20.
-- **Spoiled larvae.** A loaded larva that spoils outside a stasis ward becomes
+- **Spoiled larvae.** A loaded larva that spoils, warded or not, becomes
   its full monster at once, already loaded. A nuke larva that spoils on a belt
   is a serious risk. Spoiled eggs hatch a wild, unloaded
   monster. Spoiled embryos die.
@@ -279,8 +279,9 @@ launcher and artillery fire loaded larvae.
 - **Stasis ward.** Each lifecycle item has a warded version with a very
   long spoil time, for example "warded biter egg". An assembler packs an item
   into its warded version, and another recipe unpacks it. A recipe's output
-  keeps its ingredients' freshness, so the spoil timer continues where it
-  stopped. Warded items stack and travel by belt, train or rocket.
+  keeps its ingredients' freshness, so the warded item starts at the same
+  spoil progress, and its timer runs 20 times more slowly. Warded items
+  stack and travel by belt, train or rocket.
 - **Larva launcher.** One new artillery turret fires loaded larvae as
   ammo, with and without Space Age. The loading chamber packs each larva
   with a shared larva rocket casing, so no larva needs a separate rocket
@@ -331,7 +332,7 @@ flowchart TD
         rockets --> artillery
     end
     subgraph control [Control]
-        stasis["Stasis ward<br/>Pauses spoiling<br/>Military + chemical"]
+        stasis["Stasis ward<br/>Slows spoiling<br/>Military + chemical"]
         facehuggers["Facehuggers<br/>Convert enemies<br/>+ Utility science"]
         pheromones["Pheromones<br/>Smaller feral radius, pacifier<br/>+ Utility science"]
         hosts["Bigger hosts<br/>Big + behemoth hosts<br/>+ Space science"]
@@ -368,9 +369,8 @@ It proves the core loop before adding planets. Ticked items are in the mod.
 - [ ] Feral behaviour: monsters attack everything when a player comes too
   close, when they stay idle, or by a chance per payload
 - [x] Spoil outcomes: eggs hatch wild, loaded larvae become loaded monsters
-- [ ] Stasis ward that pauses and resumes the spoil timer
-- [ ] First four research techs (Monster husbandry, Ordnance
-  loading and Larva rockets are in the mod, Stasis ward is not)
+- [x] Stasis ward that slows the spoil timer 20 times
+- [x] First four research techs (all four are in the mod)
 - [ ] Runs on vanilla Factorio 2.1 and with Space Age
 
 ### Version 2
