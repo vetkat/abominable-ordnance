@@ -118,3 +118,18 @@ The build uses these defaults until the maintainer decides:
 - With a full force limit, the feral triggers turn off with a log line
   only.
 - The feral radius grows by one tile per size step (8 for a behemoth).
+
+## Rounds 4 to 6
+
+On 2026-11-15 the maintainer accepted every default in "Calls for the
+maintainer" and asked for one more round.
+
+- **Round 4** found that "the last command failed" was undefined. Read one
+  way, a monster tried an unreachable target every 10 s. Read the other
+  way, it ignored that target for good.
+- **Round 5** found that marking one target did not help: across a lake,
+  the nearest building changes as the monster wanders. Fixed: a failed
+  attack marks the monster. For about 50 s every search gives a wander.
+- **Round 6** found no new Blocker or Major issue. Three nits were
+  fixed: only a failed hunt marks the monster, the probe fallbacks say
+  how they interact with the mark, and a distraction never marks it.

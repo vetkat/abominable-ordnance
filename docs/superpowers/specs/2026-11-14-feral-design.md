@@ -1,11 +1,14 @@
 # Abominable Ordnance: slice 4, feral behaviour
 
-Date: 2026-11-14. Status: draft for review, round 3. The agent wrote this
+Date: 2026-11-14. Status: approved. The agent wrote this
 spec from `docs/design.md` while the maintainer was away. The maintainer
 allows the build after an EGM review finds no new Blocker or Major issue.
 
-EGM review: 3 rounds. Round 3 found two new Major issues, fixed in the
-text but not re-reviewed, so the build waits for the maintainer.
+EGM review: 6 rounds. The maintainer accepted every default in "Calls for
+the maintainer" on 2026-11-15 and asked for one more round. Round 4 found
+one new Major issue in the failed-target rule, and round 5 a gap in its
+fix. This version fixes both: a failed attack now marks the monster, not
+the target. Round 6 found no new Blocker or Major issue.
 
 "Answers" lists what `docs/design.md` already decides. "Proposals" lists
 the agent's own calls. "Calls for the maintainer" lists the calls that
@@ -107,6 +110,8 @@ The probe in "Delivery" must confirm these. Each has a fallback:
 | A feral unit with a wander command attacks a player or a building that comes near | The batch check gives a feral unit with no command an `attack_area` command at its own position |
 | One `find_nearest_enemy_entity_with_owner` search with radius 64 in a dense test base costs little | Lower `seek_distance` to 48 |
 | The natives attack units of a force that is at war with them | None needed: the tamed force already fights this way |
+| An `attack_area` at a target across water ends with `behavior_result.fail` | Treat `success` as a failure when the target is still valid and more than `search_radius` away |
+| After a distraction command fails, the unit's original command resumes | If it does not, give the wander as for any other failure |
 
 ## Answers
 
@@ -218,6 +223,7 @@ All numbers go in `core/balance.lua`, under `Balance.feral`:
 | `search_radius` | 32 | Same as the slice 2 `hatch_attack_radius` |
 | `seek_distance` | 64 | How far a feral monster looks for a target |
 | `rewander_ticks` | 600 | How long a feral wander lasts before the monster searches again |
+| `retry_wanders` | 5 | Wanders before a feral monster hunts again after a failed attack, about 50 s |
 | `unstable_per_minute` | 0.002 | Chance per payload per minute |
 | `warning_ticks` | 180 | How long "Feral!" shows |
 
@@ -325,9 +331,25 @@ number.
 - With `defines.behavior_result.fail`, the shell gives the unit a wander
   command for `rewander_ticks`. It does not search for a new target at
   once, so an unreachable target can't start a loop of failed commands.
-- Every search stores its target in `entry.last_target`. When the next
-  search returns the same entity and the last command failed, the shell
-  gives a wander command instead.
+- A `fail` with `was_distracted = true` came from a distraction, not from
+  the hunt. The probe checks if the original command resumes after
+  such a failure. If it does, the shell ignores the event. If not, it
+  gives the wander only.
+- Any other `fail` of a hunt's `attack_area` marks the monster:
+  `entry.failed_at` takes the current tick. The shell sets
+  `entry.hunting = true` when it gives that command. So a failed wander
+  never marks the monster.
+- The probe-table fallback can treat a `success` as a failure. That
+  marks the monster too.
+- While `failed_at` is less than `retry_wanders × rewander_ticks` ago,
+  every search gives a wander, whatever the search returns. So a base
+  across a lake costs at most one failed attack per monster in that time.
+- After that time the shell clears `failed_at`, and the monster hunts
+  normally again. A bridge or landfill can make the target reachable.
+- The probe-table fallback for wandering units can be in use. Then a
+  marked monster gets that `attack_area` at its own position instead of
+  the wander. It can't fail on an unreachable target, so it never marks
+  the monster.
 
 ### Replacing a unit
 
@@ -410,8 +432,10 @@ The rules in `docs/architecture.md` apply. New and changed modules:
 - A monster that dies while the feral cursor points at it does not stop
   the batch check.
 - A feral monster whose only target stands across water gets a wander
-  command after its attack fails. At its next batch check it does not
-  try the same target again.
+  command after its attack fails. With two or more targets across the
+  water, it tries at most one attack per `retry_wanders × rewander_ticks`.
+  After that time it hunts again.
+- A `fail` caused by a distraction does not mark the monster.
 - A feral monster that wanders with no target in range searches again
   after `rewander_ticks`. A player chest placed within `seek_distance`
   during the wander becomes its target.
