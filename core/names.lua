@@ -21,4 +21,9 @@ return {
   SPEED_TECH = "ao-larva-launcher-speed-",
   RANGE_TECH = "ao-larva-launcher-range-",
   GUN = "ao-larva-launcher-gun-",
+  STASIS_TECH = "ao-stasis-ward",
+  WARD = "ao-stasis-ward",
+  WARDED = "ao-warded-",
+  PACK = "ao-ward-",
+  UNPACK = "ao-unward-",
 }
