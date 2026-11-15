@@ -39,4 +39,6 @@ vague-association | docs/superpowers/reviews/*.md | | records the reviewers' wor
 
 # Names of a Space Age planet and a proposed item in the design.
 spelling | docs/design.md | Aquilo | the Space Age planet
+spelling | docs/superpowers/*/*.md | Aquilo | the Space Age planet
+ing-form | docs/superpowers/specs/*-stasis-design.md | | names of recipes and actions (Packing, Unpacking, spoiling)
 spelling | docs/design.md | cryo | part of the proposed item name, cryo gel
