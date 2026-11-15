@@ -4,6 +4,7 @@ local Launcher = require("core.launcher")
 local LauncherPrototypes = require("core.prototypes.launcher")
 local Lifecycle = require("core.prototypes.lifecycle")
 local Ordnance = require("core.prototypes.ordnance")
+local Stasis = require("core.prototypes.stasis")
 
 local space_age = mods["space-age"] ~= nil
 
@@ -33,12 +34,30 @@ local ordnance, husbandry = Ordnance.prototypes({
   projectile = vanilla("artillery-projectile", "artillery-projectile"),
 })
 
-data:extend(Lifecycle.prototypes({
-  space_age = space_age,
-  pod = looks(space_age and "biochamber" or "chemical-plant"),
-  extra_unlocks = husbandry,
-}))
+-- Every item that spoils gets an explicit weight, so that a warded item
+-- weighs what its source does in Space Age.
+local lift_weight = vanilla("utility-constants", "default").default_rocket_lift_weight
+local lifecycle = Stasis.weighted(
+  Lifecycle.prototypes({
+    space_age = space_age,
+    pod = looks(space_age and "biochamber" or "chemical-plant"),
+    extra_unlocks = husbandry,
+  }),
+  lift_weight
+)
+ordnance = Stasis.weighted(ordnance, lift_weight)
+data:extend(lifecycle)
 data:extend(ordnance)
+
+-- The stasis ward needs these vanilla items. An overhaul mod can remove
+-- them.
+for _, name in ipairs({ "plastic-bar", "steel-plate", "electronic-circuit" }) do
+  vanilla("item", name)
+end
+local sources = {}
+Common.append(sources, lifecycle)
+Common.append(sources, ordnance)
+data:extend(Stasis.prototypes(sources))
 
 data:extend(LauncherPrototypes.prototypes({
   turret = vanilla("artillery-turret", "artillery-turret"),

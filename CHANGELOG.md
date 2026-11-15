@@ -43,9 +43,18 @@ mod uses [semantic versioning](https://semver.org/spec/v2.0.0.html).
 - Larva launcher range research in three levels. Each level adds 16 tiles.
   Placed launchers update to the level of their force and keep their ammo,
   wires and settings. A launcher built later starts at that level.
+- The stasis ward and the Stasis ward research. A ward packs an egg, a
+  larva or a larva rocket into a warded item that spoils 20 times more
+  slowly. An unpack gives the item and the ward back, and the item keeps
+  its spoil progress. A warded item that spoils still hatches its
+  monster, and its ward is lost. On a space platform no monster hatches, and
+  the item is lost with its ward.
 
 ### Fixed
 
+- In Space Age, a warded spitter egg and a warded spitter larva weighed less
+  than the plain item. Every lifecycle item now has an explicit weight, and
+  a warded item has the same weight.
 - The mod still loads when another mod removes the centrifuge, the
   assembling machine 3, the chemical plant or the biochamber. Its machines
   then borrow the look of the assembling machine 2.
