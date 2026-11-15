@@ -26,4 +26,5 @@ return {
   WARDED = "ao-warded-",
   PACK = "ao-ward-",
   UNPACK = "ao-unward-",
+  FERAL = "ao-feral",
 }
