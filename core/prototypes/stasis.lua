@@ -96,8 +96,9 @@ local function item(name, amount)
   return { type = "item", name = name, amount = amount }
 end
 
+-- Pack and unpack sort right after their warded item, pack first.
 local function pack(source, ward)
-  return locked(
+  local r = locked(
     Common.recipe(
       Stasis.pack_recipe(source.name),
       { "crafting" },
@@ -106,6 +107,8 @@ local function pack(source, ward)
       { item(ward.name, 1) }
     )
   )
+  r.order = ward.order .. "-a"
+  return r
 end
 
 local function unpack(source, ward)
@@ -118,6 +121,7 @@ local function unpack(source, ward)
       { item(source.name, 1), item(Names.WARD, 1) }
     )
   )
+  r.order = ward.order .. "-b"
   r.main_product = source.name
   r.icons = with_ward(source.icons)
   return r
@@ -140,7 +144,9 @@ local function ward_kit()
     item("electronic-circuit", w.circuit),
   }, { item(Names.WARD, 1) })
   recipe.subgroup = Stasis.SUBGROUP
-  return subgroup, Common.item(Names.WARD, icons, Stasis.SUBGROUP, w.stack), recipe
+  local ward_item = Common.item(Names.WARD, icons, Stasis.SUBGROUP, w.stack)
+  recipe.order = ward_item.order
+  return subgroup, ward_item, recipe
 end
 
 -- Returns the stasis prototypes. sources is a list of prototypes that

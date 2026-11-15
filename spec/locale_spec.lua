@@ -7,6 +7,7 @@ local L = require("spec.support.locale")
 local LauncherPrototypes = require("core.prototypes.launcher")
 local Lifecycle = require("core.prototypes.lifecycle")
 local Ordnance = require("core.prototypes.ordnance")
+local Stasis = require("core.prototypes.stasis")
 local Stubs = require("spec.support.stubs")
 
 local SECTION = {
@@ -21,6 +22,7 @@ local SECTION = {
   ["artillery-projectile"] = "entity-name",
   ["artillery-flare"] = "entity-name",
   ["ammo-category"] = "ammo-category-name",
+  ["item-subgroup"] = "item-subgroup-name",
 }
 
 local function read(path)
@@ -62,6 +64,9 @@ describe("locale/en/locale.cfg", function()
       all[#all + 1] = p
     end
     for _, p in ipairs(LauncherPrototypes.prototypes(Stubs.launcher_opts({ 0, 1, 2, 3 }))) do
+      all[#all + 1] = p
+    end
+    for _, p in ipairs(Stasis.prototypes(all)) do
       all[#all + 1] = p
     end
     for _, p in ipairs(all) do

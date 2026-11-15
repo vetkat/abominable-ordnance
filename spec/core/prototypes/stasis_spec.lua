@@ -161,4 +161,16 @@ describe("the stasis ward", function()
     assert.is_nil(all["recipe/ao-ward-spitter-egg"])
     assert.are.equal(19, #all["technology/ao-stasis-ward"].effects)
   end)
+
+  it("orders the recipes like the items", function()
+    local out = build()
+    assert.are.equal(out["item/ao-stasis-ward"].order, out["recipe/ao-stasis-ward"].order)
+    for _, name in ipairs(Stasis.lifecycle_names()) do
+      local w = out["item/" .. Stasis.warded_name(name)]
+      local pack = out["recipe/" .. Stasis.pack_recipe(name)].order
+      local unpack = out["recipe/" .. Stasis.unpack_recipe(name)].order
+      assert.are.equal(w.order .. "-a", pack)
+      assert.are.equal(w.order .. "-b", unpack)
+    end
+  end)
 end)
