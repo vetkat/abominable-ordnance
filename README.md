@@ -33,6 +33,15 @@ make setup
 `make setup` turns on the git hook in `.githooks/`, which runs
 `make fast` before each commit.
 
+Optional, for Claude Code: [Serena](https://github.com/oraios/serena)
+lets an agent read Lua code by symbol, which uses fewer tokens.
+
+```bash
+uv tool install git+https://github.com/oraios/serena
+serena setup claude-code
+serena project create --language lua --index .
+```
+
 | Target | What it runs | When it runs |
 | --- | --- | --- |
 | `make setup` | Sets `core.hooksPath` to `.githooks` | once, after a clone |
@@ -40,6 +49,7 @@ make setup
 | `make lua` | Builds the API folder if needed, then luacheck, StyLua, LuaLS, busted under Lua 5.2, the coverage floor | in `make fast`, CI job `lua` |
 | `make tools` | pytest without the gate tests, `check_version.py` without a tag | in `make fast`, CI job `tools` |
 | `make gates` | The gate tests that need LuaLS, StyLua and the API folder | in `make check`, CI job `lua` |
+| `make api NAME=<name>` | Prints one Factorio API entry, or the closest names | before you use an API name |
 | `make format` | Rewrites the Lua files in the repository's format | before you stage Lua |
 | `make fast` | `make text`, `make lua`, `make tools` | every commit (git hook) |
 | `make ingame` | The in-game tests in the headless server, base game only and with Space Age | CI job `ingame`, by hand |

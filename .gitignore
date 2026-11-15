@@ -8,3 +8,5 @@ changelog.txt
 node_modules/
 __pycache__/
 .pytest_cache/
+# Serena's local project index and settings
+.serena/

@@ -79,8 +79,14 @@ this check, and Dependabot PRs skip it too.
   then set the version by the version rules in
   `docs/superpowers/specs/2026-11-12-repo-and-ci-design.md`.
 - Never commit `docs/archive/`. It holds old chat logs.
-- Before you use a Factorio API name, look it up in
-  `.factorio-api/factorio/library/`. Give that path to the search: a
+- Before you use a Factorio API name, look it up with
+  `make api NAME=<name>`, for example `make api
+  NAME=LuaSurface.create_entity`. It prints one entry in a few lines and
+  suggests close names. Read `.factorio-api/factorio/library/` only for
+  what it leaves out, such as examples. Give that path to the search: a
   search from the repository root skips the folder, because git ignores
   it.
+- When the Serena tools are available, read Lua code by symbol with
+  them, not as whole files. Do not use Serena's memory tools: project
+  memory stays in Claude Code.
 - Run `make format` before you stage Lua files.

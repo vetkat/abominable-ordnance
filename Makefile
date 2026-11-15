@@ -36,7 +36,7 @@ endif
 
 MARKDOWN = $(shell git ls-files '*.md')
 
-.PHONY: setup fast check text lua tools gates format ingame stamp package
+.PHONY: setup fast check text lua tools gates format ingame stamp package api
 
 ## once, after a clone: turn on the git hook
 setup:
@@ -90,6 +90,10 @@ gates: $(API)/stamp
 ## MODE=base or MODE=space-age runs one mode; empty runs both
 ingame:
 	tools/ingame.sh $(MODE)
+
+## one API entry, for example: make api NAME=LuaSurface.create_entity
+api: $(API)/stamp
+	@python3 -m tools.api "$(NAME)"
 
 ## after /ste80-humanizer and /simplify: lets the Claude Code hook pass
 stamp:
