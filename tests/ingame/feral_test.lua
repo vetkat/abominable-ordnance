@@ -310,6 +310,88 @@ test("a second failed wander inside the mark window waits for the batch check", 
   end)
 end)
 
+test("a feral monster that waits for the batch check gets a command from it", function()
+  with_entry({ 3540, 3000 }, "ao-biter-larva-explosive", function(entry)
+    local restore = pause_batch_check()
+    entry.unit.disabled_by_script = false
+    FeralShell.go_feral(entry, game.tick)
+    entry.unit.commandable.set_command({
+      type = defines.command.attack_area,
+      destination = entry.unit.position,
+      radius = 1,
+    })
+    entry.hunting = false
+    entry.failed_at = game.tick - 1
+    FeralShell.completed({
+      unit_number = entry.unit.unit_number,
+      result = defines.behavior_result.fail,
+      was_distracted = false,
+      tick = game.tick,
+    })
+    local waiting = entry.awaiting_check
+    local before = entry.unit.commandable.command.type
+    FeralShell.check(entry.unit.unit_number, game.tick, function()
+      return 0.99
+    end)
+    local after = entry.unit.commandable.command.type
+    local cleared = entry.awaiting_check
+    restore()
+    entry.unit.destroy()
+    assert(waiting == true, "the failed wander did not wait for the check")
+    assert(before == defines.command.attack_area, "the precondition failed")
+    assert(after == defines.command.wander, "the check gave no new command")
+    assert(not cleared, "the wait flag stayed set")
+  end)
+end)
+
+test("a tamed monster near a native gets an attack_area from the check", function()
+  with_entry({ 3560, 3000 }, "ao-biter-larva-explosive", function(entry)
+    local restore = pause_batch_check()
+    entry.unit.disabled_by_script = false
+    local p = entry.unit.position
+    local native = surface().create_entity({
+      name = "small-biter",
+      position = { p.x + 10, p.y },
+      force = "enemy",
+    })
+    native.disabled_by_script = true
+    entry.unit.commandable.set_command({ type = defines.command.stop, ticks_to_wait = 1000 })
+    FeralShell.check(entry.unit.unit_number, game.tick, function()
+      return 0.99
+    end)
+    local command = entry.unit.commandable.command
+    restore()
+    native.destroy()
+    entry.unit.destroy()
+    assert(command and command.type == defines.command.attack_area, "no attack_area command")
+  end)
+end)
+
+test("a success against the same target wanders instead of attacking again", function()
+  with_entry({ 3580, 3000 }, "ao-biter-larva-explosive", function(entry)
+    local restore = pause_batch_check()
+    entry.unit.disabled_by_script = false
+    local p = entry.unit.position
+    local chest = Helpers.chest(surface(), { p.x + 20, p.y })
+    FeralShell.go_feral(entry, game.tick)
+    local first = entry.unit.commandable.command.type
+    FeralShell.completed({
+      unit_number = entry.unit.unit_number,
+      result = defines.behavior_result.success,
+      was_distracted = false,
+      tick = game.tick,
+    })
+    local second = entry.unit.commandable.command.type
+    local hunting = entry.hunting
+    restore()
+    chest.destroy()
+    entry.unit.destroy()
+    assert(first == defines.command.attack_area, "the precondition failed")
+    assert(second == defines.command.wander, "the monster attacked the same target again")
+    assert(hunting == false, "the monster still counts as hunting")
+  end)
+end)
+
 test("a failed hunt marks the monster, a distraction does not", function()
   with_entry({ 3360, 3000 }, "ao-biter-larva-explosive", function(entry)
     FeralShell.go_feral(entry, game.tick)

@@ -25,6 +25,8 @@ end
 function FeralShell.wander(entry)
   local f = Balance.feral
   entry.hunting = false
+  entry.awaiting_check = nil
+  entry.last_target = nil
   entry.unit.commandable.set_command({
     type = defines.command.wander,
     radius = f.search_radius,
@@ -33,8 +35,10 @@ function FeralShell.wander(entry)
 end
 
 -- A feral monster attacks the nearest enemy within seek_distance. A
--- marked monster wanders instead, and so does one with no target.
-function FeralShell.hunt(entry, tick)
+-- marked monster wanders instead, and so does one with no target. After
+-- a success, the same target as last time also gives a wander. This
+-- stops a loop of attacks on a target that the monster can't harm.
+function FeralShell.hunt(entry, tick, after_success)
   local f = Balance.feral
   local unit = entry.unit
   if Feral.marked(entry, tick) then
@@ -51,6 +55,13 @@ function FeralShell.hunt(entry, tick)
     FeralShell.wander(entry)
     return
   end
+  local last = entry.last_target
+  if after_success and last and last.valid and last == target then
+    FeralShell.wander(entry)
+    return
+  end
+  entry.awaiting_check = nil
+  entry.last_target = target
   entry.hunting = true
   unit.commandable.set_command({
     type = defines.command.attack_area,
@@ -114,8 +125,10 @@ function FeralShell.scan_player(player, tick)
 end
 
 -- The batch check for one loaded monster. A feral monster without a
--- command hunts again, as a backup: in Factorio 2.1 has_command stays
--- true after a command ends, so FeralShell.completed does the re-hunt.
+-- command, or one that awaits the check, hunts again. In Factorio 2.1
+-- has_command stays true after a command ends, so FeralShell.completed
+-- does the usual re-hunt and sets awaiting_check when it leaves the
+-- restart to this check.
 -- A tamed monster updates its idle clock and may go feral. random is a
 -- function from control.lua that gives a number in [0, 1). The core
 -- calls it only when the unstable roll needs it.
@@ -130,7 +143,7 @@ function FeralShell.check(id, tick, random)
     return
   end
   if entry.feral then
-    if not unit.commandable.has_command then
+    if entry.awaiting_check or not unit.commandable.has_command then
       FeralShell.hunt(entry, tick)
     end
     return
@@ -143,7 +156,8 @@ function FeralShell.check(id, tick, random)
   })
   entry.idle_since = Feral.idle_since(entry.idle_since, natives > 0, tick)
   if natives > 0 then
-    if not unit.commandable.has_command then
+    local command = unit.commandable.command
+    if not (command and command.type == defines.command.attack_area) then
       unit.commandable.set_command({
         type = defines.command.attack_area,
         destination = unit.position,
@@ -177,7 +191,7 @@ function FeralShell.completed(event)
     return
   end
   if event.result == defines.behavior_result.success then
-    FeralShell.hunt(entry, event.tick)
+    FeralShell.hunt(entry, event.tick, true)
     return
   end
   if event.result ~= defines.behavior_result.fail then
@@ -187,6 +201,8 @@ function FeralShell.completed(event)
   entry.failed_at = event.tick
   if rewander then
     FeralShell.wander(entry)
+  else
+    entry.awaiting_check = true
   end
 end
 
