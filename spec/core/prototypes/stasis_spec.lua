@@ -1,13 +1,14 @@
+local Balance = require("core.balance")
+local Common = require("core.prototypes.common")
 local Lifecycle = require("core.prototypes.lifecycle")
 local Ordnance = require("core.prototypes.ordnance")
+local Names = require("core.names")
 local Stasis = require("core.prototypes.stasis")
 local Stubs = require("spec.support.stubs")
 
 local function sources()
   local list = Lifecycle.prototypes(Stubs.lifecycle_opts(false))
-  for _, p in ipairs((Ordnance.prototypes(Stubs.ordnance_opts()))) do
-    list[#list + 1] = p
-  end
+  Common.append(list, (Ordnance.prototypes(Stubs.ordnance_opts())))
   return list
 end
 
@@ -39,9 +40,9 @@ describe("the stasis ward", function()
       assert.truthy(all["recipe/" .. Stasis.pack_recipe(name)], name)
       assert.truthy(all["recipe/" .. Stasis.unpack_recipe(name)], name)
     end
-    assert.are.equal("ao-warded-biter-egg", Stasis.warded_name("ao-biter-egg"))
-    assert.are.equal("ao-ward-biter-egg", Stasis.pack_recipe("ao-biter-egg"))
-    assert.are.equal("ao-unward-biter-egg", Stasis.unpack_recipe("ao-biter-egg"))
+    assert.are.equal(Names.WARDED .. "biter-egg", Stasis.warded_name("ao-biter-egg"))
+    assert.are.equal(Names.PACK .. "biter-egg", Stasis.pack_recipe("ao-biter-egg"))
+    assert.are.equal(Names.UNPACK .. "biter-egg", Stasis.unpack_recipe("ao-biter-egg"))
   end)
 
   it("wards nothing outside the list", function()
@@ -55,18 +56,35 @@ describe("the stasis ward", function()
     assert.are.equal(10, warded)
   end)
 
-  it("slows the spoil timer 20 times and keeps the item's spoil effect", function()
+  it("slows the spoil timer and keeps the item's spoil effect", function()
     local all, src = build()
     for _, name in ipairs(Stasis.lifecycle_names()) do
       local source = src["item/" .. name] or src["ammo/" .. name]
       local warded = all["item/" .. Stasis.warded_name(name)]
-      assert.are.equal(source.spoil_ticks * 20, warded.spoil_ticks, name)
+      assert.are.equal(source.spoil_ticks * Balance.stasis.factor, warded.spoil_ticks, name)
       assert.are.same(source.spoil_to_trigger_result, warded.spoil_to_trigger_result)
       assert.are_not.equal(source.spoil_to_trigger_result, warded.spoil_to_trigger_result)
       assert.are.equal(source.stack_size, warded.stack_size)
       assert.is_false(warded.auto_recycle)
       assert.are.equal(Stasis.SUBGROUP, warded.subgroup)
     end
+  end)
+
+  it("gives a warded item the default weight of its source item", function()
+    local all, src = build()
+    local expected = Balance.stasis.rocket_lift_weight / src["item/ao-biter-egg"].stack_size
+    assert.are.equal(expected, all["item/ao-warded-biter-egg"].weight)
+  end)
+
+  it("copies a weight that the source item sets", function()
+    local src = sources()
+    for _, p in ipairs(src) do
+      if p.name == "ao-biter-egg" then
+        p.weight = 777
+      end
+    end
+    local all = Stubs.by_name(Stasis.prototypes(src))
+    assert.are.equal(777, all["item/ao-warded-biter-egg"].weight)
   end)
 
   it("makes a warded rocket a plain item with no ammo type", function()
@@ -81,10 +99,10 @@ describe("the stasis ward", function()
     local r = build()["recipe/ao-ward-spitter-larva"]
     assert.are.same({
       { type = "item", name = "ao-spitter-larva", amount = 1 },
-      { type = "item", name = "ao-stasis-ward", amount = 1 },
+      { type = "item", name = Names.WARD, amount = 1 },
     }, r.ingredients)
     assert.are.same({ { type = "item", name = "ao-warded-spitter-larva", amount = 1 } }, r.results)
-    assert.are.equal(1, r.energy_required)
+    assert.are.equal(Balance.stasis.pack_time, r.energy_required)
   end)
 
   it("unpacks to the item as main product and the ward", function()
@@ -95,7 +113,7 @@ describe("the stasis ward", function()
     )
     assert.are.same({
       { type = "item", name = "ao-biter-larva-acid", amount = 1 },
-      { type = "item", name = "ao-stasis-ward", amount = 1 },
+      { type = "item", name = Names.WARD, amount = 1 },
     }, r.results)
     assert.are.equal("ao-biter-larva-acid", r.main_product)
     assert.truthy(r.icons)
@@ -122,16 +140,16 @@ describe("the stasis ward", function()
 
   it("makes a recyclable ward from plastic, steel and a circuit", function()
     local all = build()
-    local item = all["item/ao-stasis-ward"]
-    assert.are.equal(50, item.stack_size)
+    local item = all["item/" .. Names.WARD]
+    assert.are.equal(Balance.stasis.ward.stack, item.stack_size)
     assert.is_nil(item.spoil_ticks)
-    local r = all["recipe/ao-stasis-ward"]
+    local r = all["recipe/" .. Names.WARD]
     assert.are.same({
-      { type = "item", name = "plastic-bar", amount = 2 },
-      { type = "item", name = "steel-plate", amount = 1 },
-      { type = "item", name = "electronic-circuit", amount = 1 },
+      { type = "item", name = "plastic-bar", amount = Balance.stasis.ward.plastic },
+      { type = "item", name = "steel-plate", amount = Balance.stasis.ward.steel },
+      { type = "item", name = "electronic-circuit", amount = Balance.stasis.ward.circuit },
     }, r.ingredients)
-    assert.are.equal(2, r.energy_required)
+    assert.are.equal(Balance.stasis.ward.time, r.energy_required)
     assert.is_nil(r.auto_recycle)
   end)
 
@@ -141,30 +159,30 @@ describe("the stasis ward", function()
   end)
 
   it("unlocks the ward and every pack and unpack after Ordnance loading", function()
-    local tech = build()["technology/ao-stasis-ward"]
+    local tech = build()["technology/" .. Names.STASIS_TECH]
     assert.are.same({ "ao-ordnance-loading" }, tech.prerequisites)
-    assert.are.equal(150, tech.unit.count)
-    assert.are.equal(30, tech.unit.time)
+    assert.are.equal(Balance.stasis.research.count, tech.unit.count)
+    assert.are.equal(Balance.stasis.research.time, tech.unit.time)
     assert.are.equal(21, #tech.effects)
-    assert.are.same({ type = "unlock-recipe", recipe = "ao-stasis-ward" }, tech.effects[1])
+    assert.are.same({ type = "unlock-recipe", recipe = Names.WARD }, tech.effects[1])
   end)
 
-  it("skips a lifecycle item that is missing from the sources", function()
+  it("raises a clear error for a lifecycle item that is missing from the sources", function()
     local src = {}
     for _, p in ipairs(sources()) do
       if p.name ~= "ao-spitter-egg" then
         src[#src + 1] = p
       end
     end
-    local all = Stubs.by_name(Stasis.prototypes(src))
-    assert.is_nil(all["item/ao-warded-spitter-egg"])
-    assert.is_nil(all["recipe/ao-ward-spitter-egg"])
-    assert.are.equal(19, #all["technology/ao-stasis-ward"].effects)
+    local ok, err = pcall(Stasis.prototypes, src)
+    assert.is_false(ok)
+    assert.truthy(tostring(err):find("ao-spitter-egg", 1, true))
+    assert.truthy(tostring(err):find("lifecycle", 1, true))
   end)
 
   it("orders the recipes like the items", function()
     local out = build()
-    assert.are.equal(out["item/ao-stasis-ward"].order, out["recipe/ao-stasis-ward"].order)
+    assert.are.equal(out["item/" .. Names.WARD].order, out["recipe/" .. Names.WARD].order)
     for _, name in ipairs(Stasis.lifecycle_names()) do
       local w = out["item/" .. Stasis.warded_name(name)]
       local pack = out["recipe/" .. Stasis.pack_recipe(name)].order

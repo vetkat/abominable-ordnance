@@ -4,6 +4,7 @@
 
 local L = require("spec.support.locale")
 
+local Common = require("core.prototypes.common")
 local LauncherPrototypes = require("core.prototypes.launcher")
 local Lifecycle = require("core.prototypes.lifecycle")
 local Ordnance = require("core.prototypes.ordnance")
@@ -66,9 +67,7 @@ describe("locale/en/locale.cfg", function()
     for _, p in ipairs(LauncherPrototypes.prototypes(Stubs.launcher_opts({ 0, 1, 2, 3 }))) do
       all[#all + 1] = p
     end
-    for _, p in ipairs(Stasis.prototypes(all)) do
-      all[#all + 1] = p
-    end
+    Common.append(all, Stasis.prototypes(all))
     for _, p in ipairs(all) do
       local section = SECTION[p.type]
       if section then

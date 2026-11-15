@@ -280,8 +280,9 @@ launcher and artillery fire loaded larvae.
   long spoil time, for example "warded biter egg". An assembler packs an item
   into its warded version, and another recipe unpacks it. A recipe's output
   keeps its ingredients' freshness, so the warded item starts at the same
-  spoil progress, and its timer runs 20 times more slowly. Warded items
-  stack and travel by belt, train or rocket.
+  spoil progress, and its timer runs 20 times more slowly. The probe
+  confirmed this for assembler packs and unpacks and for hand-craft packs.
+  Warded items stack and travel by belt, train or rocket.
 - **Larva launcher.** One new artillery turret fires loaded larvae as
   ammo, with and without Space Age. The loading chamber packs each larva
   with a shared larva rocket casing, so no larva needs a separate rocket
@@ -438,6 +439,10 @@ hard parts are prototype count, demolishers and the player transformation.
 
 ### Technical risks
 
+- **Warded items on a space platform.** A warded item that spoils on a
+  space platform is lost with its ward. The mod's spoil handlers do nothing
+  on a platform, so no monster hatches. It affects only items that wait on
+  a platform for a long time.
 - **Item count.** With one slot, 13 loadable kinds (5 species, 7 hybrids and
   the Abomination) × 9 payloads make about 117 loaded-larva items. Multiple
   slots make thousands. The version 2 spec must choose between a short list

@@ -30,10 +30,16 @@ local function near(a, b)
 end
 
 -- An assembler with power that runs one recipe, with its input filled.
-local function assembler(position, recipe, inputs, quality, name)
+-- The optional modules go in before the recipe, because a recipe that
+-- allows no quality refuses a quality module. The insert must take all.
+local function assembler(position, recipe, inputs, quality, name, modules)
   Helpers.arena(surface(), position)
   Helpers.research(true, Names.STASIS_TECH)
   local machine = Helpers.powered_machine(surface(), position, name or "assembling-machine-2")
+  if modules then
+    local inserted = machine.get_inventory(defines.inventory.crafter_modules).insert(modules)
+    assert(inserted == modules.count, "inserted " .. inserted .. " modules")
+  end
   machine.set_recipe(recipe, quality)
   local input = machine.get_inventory(defines.inventory.crafter_input)
   for _, stack in ipairs(inputs) do
@@ -108,11 +114,7 @@ end)
 -- a plain egg, so a warded egg has 20 times as long left.
 local function egg_in_chest(position, name)
   Helpers.arena(surface(), position)
-  local chest = surface().create_entity({
-    name = "steel-chest",
-    position = position,
-    force = "player",
-  })
+  local chest = Helpers.chest(surface(), position)
   chest.insert({ name = name, count = 1 })
   local total = prototypes.item[BITER.egg].get_spoil_ticks()
   set_progress(chest.get_inventory(defines.inventory.chest)[1], 1 - 60 / total)
@@ -159,15 +161,16 @@ test("10 warded biter eggs that spoil hatch one wild biter", function()
   end)
 end)
 
--- With four quality modules, a crafter would roll up a quality at 10%
--- a craft. Pack and unpack must not: 40 crafts, no roll.
+-- With four quality modules, a crafter rolls up a quality at 10% a
+-- craft. Pack and unpack must not: 40 crafts, no roll. The control is a
+-- machine with the same modules on a recipe that allows quality. It
+-- fails the test when the force has no quality above normal.
 local CRAFTS = 40
 
-local function with_quality_modules(machine)
-  machine.get_inventory(defines.inventory.crafter_modules).insert({
-    name = "quality-module-3",
-    count = 4,
-  })
+local function unlock_qualities()
+  for _, quality in ipairs({ "uncommon", "rare", "epic", "legendary" }) do
+    game.forces["player"].unlock_quality(quality)
+  end
 end
 
 -- The item names and qualities in an inventory, as "name/quality x n".
@@ -179,37 +182,66 @@ local function contents(inventory)
   return table.concat(lines, ", ")
 end
 
+local function crafter(position, recipe, inputs, quality)
+  return assembler(position, recipe, inputs, quality, "assembling-machine-3", {
+    name = "quality-module-3",
+    count = 4,
+  })
+end
+
+-- An inserter and a chest below a machine, so that a product of a higher
+-- quality has room: a full output stops a crafter. The chest is the
+-- machine's output.
+local function drain(position)
+  local x, y = position[1] + 0.5, position[2] + 0.5
+  surface().create_entity({
+    name = "inserter",
+    position = { x, y + 2 },
+    direction = defines.direction.north,
+    force = "player",
+  })
+  return Helpers.chest(surface(), { x, y + 3 })
+end
+
 tags("space-age")
-test("quality modules do not raise the quality of packed eggs", function()
-  local machine = assembler({ 2280, 500 }, "ao-ward-biter-egg", {
+test("quality modules lift no pack or unpack, but lift a plain recipe", function()
+  unlock_qualities()
+  local pack = crafter({ 2280, 500 }, "ao-ward-biter-egg", {
     { name = BITER.egg, count = CRAFTS },
     { name = Names.WARD, count = CRAFTS },
-  }, nil, "assembling-machine-3")
-  with_quality_modules(machine)
+  })
+  local unpack = crafter({ 2320, 500 }, "ao-unward-biter-egg", {
+    { name = "ao-warded-biter-egg", count = CRAFTS, quality = "uncommon" },
+  }, "uncommon")
+  local control = crafter({ 2360, 500 }, "iron-gear-wheel", {
+    { name = "iron-plate", count = 2 * CRAFTS },
+  })
+  local gears = drain({ 2360, 500 })
   after_ticks(60 * 45, function()
-    local out = output(machine)
-    local normal = out.get_item_count({ name = "ao-warded-biter-egg", quality = "normal" })
-    local text = contents(out)
-    machine.destroy()
-    assert(normal == CRAFTS, "expected " .. CRAFTS .. " normal warded eggs, got " .. text)
+    local packed = output(pack)
+    local unpacked = output(unpack)
+    local chest = gears.get_inventory(defines.inventory.chest)
+    local normal = packed.get_item_count({ name = "ao-warded-biter-egg", quality = "normal" })
+    local eggs = unpacked.get_item_count({ name = BITER.egg, quality = "uncommon" })
+    local wards = unpacked.get_item_count({ name = Names.WARD, quality = "uncommon" })
+    local lifted = chest.get_item_count()
+      - chest.get_item_count({ name = "iron-gear-wheel", quality = "normal" })
+    local texts = { contents(packed), contents(unpacked), contents(chest) }
+    for _, entity in ipairs({ pack, unpack, control, gears }) do
+      entity.destroy()
+    end
+    assert(lifted > 0, "control: no gear above normal quality, got " .. texts[3])
+    assert(normal == CRAFTS, "expected " .. CRAFTS .. " normal warded eggs, got " .. texts[1])
+    assert(
+      eggs == CRAFTS and wards == CRAFTS,
+      "expected " .. CRAFTS .. " uncommon eggs and wards, got " .. texts[2]
+    )
   end)
 end)
 
 tags("space-age")
-test("unpacking uncommon warded eggs with quality modules gives uncommon eggs and wards", function()
-  local machine = assembler({ 2320, 500 }, "ao-unward-biter-egg", {
-    { name = "ao-warded-biter-egg", count = CRAFTS, quality = "uncommon" },
-  }, "uncommon", "assembling-machine-3")
-  with_quality_modules(machine)
-  after_ticks(60 * 45, function()
-    local out = output(machine)
-    local eggs = out.get_item_count({ name = BITER.egg, quality = "uncommon" })
-    local wards = out.get_item_count({ name = Names.WARD, quality = "uncommon" })
-    local text = contents(out)
-    machine.destroy()
-    assert(
-      eggs == CRAFTS and wards == CRAFTS,
-      "expected " .. CRAFTS .. " uncommon eggs and wards, got " .. text
-    )
-  end)
+test("a warded item weighs the same as its source item", function()
+  local plain = prototypes.item[BITER.egg].weight
+  local warded = prototypes.item["ao-warded-biter-egg"].weight
+  assert(plain == warded, "egg " .. plain .. ", warded egg " .. warded)
 end)

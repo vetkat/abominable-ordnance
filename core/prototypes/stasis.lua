@@ -52,6 +52,8 @@ function Stasis.unpack_recipe(name)
   return Names.UNPACK .. suffix(name)
 end
 
+local WARD_ICONS = Common.icon(Stasis.WARD_ICON, Stasis.WARD_TINT)
+
 -- A copy of an item's icons with the ward icon in the corner.
 local function with_ward(icons)
   local out = Common.copy(icons)
@@ -88,6 +90,7 @@ local function warded(source)
   )
   p.spoil_ticks = source.spoil_ticks * Balance.stasis.factor
   p.spoil_to_trigger_result = Common.copy(source.spoil_to_trigger_result)
+  p.weight = source.weight or Balance.stasis.rocket_lift_weight / source.stack_size
   p.auto_recycle = false
   return p
 end
@@ -96,7 +99,7 @@ local function item(name, amount)
   return { type = "item", name = name, amount = amount }
 end
 
--- Pack and unpack sort right after their warded item, pack first.
+-- Pack and unpack sort by their warded item's order, pack first.
 local function pack(source, ward)
   local r = locked(
     Common.recipe(
@@ -131,7 +134,6 @@ end
 -- prototype.
 local function ward_kit()
   local w = Balance.stasis.ward
-  local icons = Common.icon(Stasis.WARD_ICON, Stasis.WARD_TINT)
   local subgroup = {
     type = "item-subgroup",
     name = Stasis.SUBGROUP,
@@ -144,15 +146,15 @@ local function ward_kit()
     item("electronic-circuit", w.circuit),
   }, { item(Names.WARD, 1) })
   recipe.subgroup = Stasis.SUBGROUP
-  local ward_item = Common.item(Names.WARD, icons, Stasis.SUBGROUP, w.stack)
+  local ward_item = Common.item(Names.WARD, WARD_ICONS, Stasis.SUBGROUP, w.stack)
   recipe.order = ward_item.order
   return subgroup, ward_item, recipe
 end
 
 -- Returns the stasis prototypes. sources is a list of prototypes that
 -- holds the lifecycle items, as Lifecycle.prototypes and
--- Ordnance.prototypes return them. A lifecycle item that sources lack
--- gets no warded version.
+-- Ordnance.prototypes return them. It raises an error for a lifecycle
+-- item that sources lack, because the pack and unpack recipes need it.
 function Stasis.prototypes(sources)
   local by_name = {}
   for _, p in ipairs(sources) do
@@ -165,16 +167,17 @@ function Stasis.prototypes(sources)
   local unlocks = { ward_recipe.name }
   for _, name in ipairs(Stasis.lifecycle_names()) do
     local source = by_name[name]
-    if source then
-      local w = warded(source)
-      local p, u = pack(source, w), unpack(source, w)
-      Common.append(out, { w, p, u })
-      Common.append(unlocks, { p.name, u.name })
+    if not source then
+      error("stasis: the sources lack the lifecycle item " .. name)
     end
+    local w = warded(source)
+    local p, u = pack(source, w), unpack(source, w)
+    Common.append(out, { w, p, u })
+    Common.append(unlocks, { p.name, u.name })
   end
   out[#out + 1] = Common.technology({
     name = Names.STASIS_TECH,
-    icons = Common.icon(Stasis.WARD_ICON, Stasis.WARD_TINT),
+    icons = WARD_ICONS,
     prerequisites = { Names.ORDNANCE_TECH },
     count = Balance.stasis.research.count,
     time = Balance.stasis.research.time,

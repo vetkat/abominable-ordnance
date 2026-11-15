@@ -74,6 +74,11 @@ return {
   stasis = {
     factor = 20,
     pack_time = 1,
+    -- The engine's default item weight is this over the stack size. A
+    -- warded item gets the weight that its source item has by default,
+    -- because its recipe would otherwise make the engine derive a
+    -- different one in Space Age.
+    rocket_lift_weight = 1000000,
     ward = { stack = 50, time = 2, plastic = 2, steel = 1, circuit = 1 },
     research = { count = 150, time = 30 },
   },
