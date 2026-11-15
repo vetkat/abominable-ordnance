@@ -63,6 +63,15 @@ function Helpers.powered_pod(surface, position)
   return Helpers.powered_machine(surface, position, Names.POD)
 end
 
+-- A steel chest of the player force at a position.
+function Helpers.chest(surface, position)
+  return surface.create_entity({
+    name = "steel-chest",
+    position = position,
+    force = "player",
+  })
+end
+
 -- Spills a stack on the ground as one pile and returns the pile's stack.
 function Helpers.spill(surface, position, name, count)
   surface.spill_item_stack({

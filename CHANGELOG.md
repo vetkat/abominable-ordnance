@@ -43,6 +43,11 @@ mod uses [semantic versioning](https://semver.org/spec/v2.0.0.html).
 - Larva launcher range research in three levels. Each level adds 16 tiles.
   Placed launchers update to the level of their force and keep their ammo,
   wires and settings. A launcher built later starts at that level.
+- The stasis ward and the Stasis ward research. A ward packs an egg, a
+  larva or a larva rocket into a warded item that spoils 20 times more
+  slowly. An unpack gives the item and the ward back, and the item keeps
+  its spoil progress. A warded item that spoils still hatches, and its
+  ward is lost, except on a space platform, where it is lost.
 
 ### Fixed
 

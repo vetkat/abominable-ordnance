@@ -30,11 +30,7 @@ end)
 test("10 spitter eggs in a chest hatch one spitter at evolution 0", function()
   local position = { 500, 500 }
   Helpers.arena(surface(), position)
-  local chest = surface().create_entity({
-    name = "steel-chest",
-    position = position,
-    force = "player",
-  })
+  local chest = Helpers.chest(surface(), position)
   chest.insert({ name = SPITTER.egg, count = 10 })
   Helpers.spoil(chest.get_inventory(defines.inventory.chest)[1])
   after_ticks(2, function()
