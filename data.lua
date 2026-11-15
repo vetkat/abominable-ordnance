@@ -57,7 +57,7 @@ end
 local sources = {}
 Common.append(sources, lifecycle)
 Common.append(sources, ordnance)
-data:extend(Stasis.prototypes(sources))
+data:extend(Stasis.prototypes(sources, { Stasis.BASE }))
 
 data:extend(LauncherPrototypes.prototypes({
   turret = vanilla("artillery-turret", "artillery-turret"),

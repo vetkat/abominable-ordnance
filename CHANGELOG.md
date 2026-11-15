@@ -59,6 +59,11 @@ mod uses [semantic versioning](https://semver.org/spec/v2.0.0.html).
   A feral monster whose attack fails wanders for about 50 s before it
   hunts again. A feral monster whose wander ends hunts again at once.
 
+### Changed
+
+- The stasis ward builder takes a list of ward kinds, so a second ward
+  can share it. Nothing changes in the game.
+
 ### Fixed
 
 - In Space Age, a warded spitter egg and a warded spitter larva weighed less
