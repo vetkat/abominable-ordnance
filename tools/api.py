@@ -8,7 +8,10 @@ An agent reads this short entry and skips the whole library file.
 A name can be a class, a class member, an event, a concept, a define, a
 prototype, a prototype property or a prototype type. A name that exists
 in both stages gives the runtime entry. Ask for the prototype one as
-prototype:<name>. An unknown name gives the closest names and exit 1.
+prototype:<name>. An unknown name gives the closest names. The exit code
+is 0 for a match, 1 for a miss or a missing API folder, and 2 for a bad
+call. `make api` reports every failure as exit 2. Make expands NAME, so
+write `$$` for a `$`.
 """
 from __future__ import annotations
 
@@ -96,7 +99,7 @@ def prototype(item: dict) -> str:
 
 def prop(owner: str, item: dict) -> str:
     default = f" (default: {item['default']})" if "default" in item else ""
-    return f"{owner}.{field(item)}{default}\n{summary(item.get('description'))}"
+    return f"{owner}.{field(item)}{default}\n{summary(item.get('description'))}".rstrip("\n")
 
 
 def label(stage: str, found: dict[str, str]) -> dict[str, str]:
@@ -110,22 +113,28 @@ def limited(items: list[dict], cap: int = 20) -> str:
     return f"{len(items)} values: " + ", ".join(i["name"] for i in items[:cap]) + ", ..."
 
 
-def defines(items: list[dict], prefix: str = "defines") -> dict[str, str]:
-    """Index every define group, subgroup and value by its dotted name."""
+def defines(items: list[dict], prefix: str = "defines",
+            events: frozenset[str] = frozenset()) -> dict[str, str]:
+    """Index every define group, subgroup and value by its dotted name.
+
+    A value of defines.events that names an event says so.
+    """
     found: dict[str, str] = {}
     for item in items:
         key = f"{prefix}.{item['name']}"
         values, subkeys = item.get("values") or [], item.get("subkeys") or []
-        lines = [f"{key}: " + limited(values) if values else key,
+        lines = [(f"{key}: " + limited(values)) if values else key,
                  summary(item.get("description"))]
         if subkeys:
             lines.append("subkeys: " + names(subkeys))
         found[key] = "\n".join(line for line in lines if line)
         for value in values:
+            tag = " (event " + value["name"] + ")" if key == "defines.events" and \
+                value["name"] in events else ""
             found[f"{key}.{value['name']}"] = "\n".join(
-                line for line in (f"{key}.{value['name']}", summary(value.get("description")))
+                line for line in (f"{key}.{value['name']}{tag}", summary(value.get("description")))
                 if line)
-        found.update(defines(subkeys, key))
+        found.update(defines(subkeys, key, events))
     return found
 
 
@@ -146,7 +155,8 @@ def runtime_entries(runtime: dict) -> dict[str, str]:
                                + summary(item.get("description")))
         for member in item.get("properties") or []:
             found[f"{item['name']}.{member['name']}"] = prop(item["name"], member)
-    found.update(defines(runtime.get("defines", [])))
+    found.update(defines(runtime.get("defines", []), "defines",
+                         frozenset(item["name"] for item in runtime.get("events", []))))
     return found
 
 
@@ -181,7 +191,7 @@ def entries(runtime: dict, proto: dict) -> dict[str, str]:
         key: text + (f"\n(also a prototype type: prototype:{key})" if key in prototypes else "")
         for key, text in runtimes.items()}}
     for item in proto.get("prototypes", []):
-        if item.get("typename"):
+        if item.get("typename"):  # setdefault: a real name always beats a type string
             found.setdefault(item["typename"], prototypes[item["name"]])
     return {**{f"prototype:{key}": text for key, text in prototypes.items()}, **found}
 
@@ -190,10 +200,10 @@ def inherited(own: dict[str, dict[str, str]], parents: dict[str, str | None]) ->
     """Give each prototype the properties of its parents, nearest first."""
     found: dict[str, str] = {}
     for child in parents:
-        seen = {child}
         parent = parents[child]
-        while parent in own and parent not in seen:  # a loop in the data ends here
-            seen.add(parent)
+        for _ in parents:  # a parent loop in the data ends after one pass
+            if parent not in own:
+                break
             for key, text in own[parent].items():
                 found.setdefault(f"{child}.{key}", f"{text}\n(inherited by {child})")
             parent = parents[parent]
@@ -201,8 +211,7 @@ def inherited(own: dict[str, dict[str, str]], parents: dict[str, str | None]) ->
 
 
 def resolve(found: dict[str, str], query: str) -> str | None:
-    """The text for a name, ignoring case and a trailing dot, or None."""
-    query = query.strip().rstrip(".")
+    """The text for a name, ignoring case, or None. The query is clean."""
     if query in found:
         return found[query]
     folded: dict[str, str] = {}
@@ -211,15 +220,19 @@ def resolve(found: dict[str, str], query: str) -> str | None:
     return found[folded[query.lower()]] if query.lower() in folded else None
 
 
-def miss(found: dict[str, str], query: str) -> str:
-    close = difflib.get_close_matches(query.strip(), found.keys(), n=8, cutoff=0.6)
-    return f"no match for {query}" + ("; close: " + ", ".join(close) if close else "")
+def search(runtime: dict, proto: dict, query: str) -> tuple[str, bool]:
+    """The text for a name and whether it matched. A miss lists close names."""
+    query = query.strip().rstrip(".")
+    found = entries(runtime, proto)
+    text = resolve(found, query)
+    if text is not None:
+        return text, True
+    close = difflib.get_close_matches(query, found.keys(), n=8, cutoff=0.6)
+    return f"no match for {query}" + ("; close: " + ", ".join(close) if close else ""), False
 
 
 def lookup(runtime: dict, proto: dict, query: str) -> str:
-    found = entries(runtime, proto)
-    text = resolve(found, query)
-    return miss(found, query) if text is None else text
+    return search(runtime, proto, query)[0]
 
 
 def main(argv: list[str], folder: pathlib.Path = API) -> int:
@@ -233,10 +246,9 @@ def main(argv: list[str], folder: pathlib.Path = API) -> int:
         print(f"api: cannot read {folder}: {error}. Run `make lua` once to "
               "download it.", file=sys.stderr)
         return 1
-    found = entries(runtime, proto)
-    text = resolve(found, argv[0])
-    print(miss(found, argv[0]) if text is None else text)
-    return 0 if text is not None else 1
+    text, matched = search(runtime, proto, argv[0])
+    print(text)
+    return 0 if matched else 1
 
 
 if __name__ == "__main__":

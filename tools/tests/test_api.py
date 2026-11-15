@@ -380,9 +380,54 @@ def test_a_name_matches_ignoring_case_and_a_trailing_dot():
     assert "LuaSurface.pollute(" in find("luasurface.POLLUTE.")
 
 
+ROOT = pathlib.Path(__file__).resolve().parents[2]
+
+
+def make_api(env_extra, *args):
+    env = {k: v for k, v in os.environ.items() if k != "NAME"} | env_extra
+    return subprocess.run(["make", "-s", "-o", ".factorio-api/stamp", "api", *args],
+                          cwd=ROOT, capture_output=True, text=True, env=env)
+
+
 def test_make_api_does_not_run_shell_code_in_the_name():
-    root = pathlib.Path(__file__).resolve().parents[2]
-    done = subprocess.run(
-        ["make", "-s", "-o", ".factorio-api/stamp", "api", 'NAME=x"; echo PWNED; "'],
-        cwd=root, capture_output=True, text=True, env=os.environ)
+    payload = 'x"; echo PWNED; "'
+    done = make_api({}, f"NAME={payload}")
+    assert done.returncode in (0, 1, 2)
     assert "PWNED" not in done.stdout.splitlines()
+    assert f"no match for {payload}" in done.stdout
+
+
+def test_make_api_ignores_a_name_from_the_environment():
+    done = make_api({"NAME": "myhost"})
+    assert "usage" in done.stderr and "myhost" not in done.stdout + done.stderr
+
+
+def test_make_api_takes_a_name_from_the_command_line():
+    done = make_api({"NAME": "myhost"}, "NAME=defines.direction.north")
+    assert "defines.direction.north" in done.stdout
+
+
+def test_a_cycle_that_leaves_out_the_child_ends():
+    proto = {"prototypes": [
+        {"name": "A", "parent": "B", "properties": []},
+        {"name": "B", "parent": "C", "properties": []},
+        {"name": "C", "parent": "B", "properties": [{"name": "p", "type": "x"}]},
+    ], "types": []}
+    text = lookup_in(proto, "A.p")
+    assert text.count("inherited") == 1 and "inherited by A" in text
+
+
+def test_a_property_without_a_description_has_no_blank_last_line():
+    proto = {"prototypes": [{"name": "A", "parent": None, "properties": [
+        {"name": "n", "type": "int"}]}], "types": []}
+    assert not lookup_in(proto, "A.n").endswith("\n")
+
+
+def test_an_event_define_says_it_is_an_event():
+    runtime = {"events": [{"name": "on_tick", "data": []}],
+               "defines": [{"name": "events", "values": [{"name": "on_tick"}]}]}
+    assert "(event on_tick)" in lookup_in({}, "defines.events.on_tick", runtime)
+
+
+def test_a_miss_reports_the_query_as_asked_without_the_dot_or_spaces():
+    assert "no match for zzzz" in find(" zzzz. ")
