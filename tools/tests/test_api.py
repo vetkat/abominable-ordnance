@@ -2,6 +2,7 @@ import json
 import os
 import pathlib
 import subprocess
+import threading
 
 from tools import api
 
@@ -93,7 +94,7 @@ PROTOTYPE = {
 
 
 def find(query):
-    return api.lookup(RUNTIME, PROTOTYPE, query)
+    return api.search(RUNTIME, PROTOTYPE, query)[0]
 
 
 def test_a_method_shows_its_table_parameters_and_return():
@@ -170,7 +171,7 @@ def test_an_unknown_name_with_nothing_close_says_so():
 def test_a_long_description_is_cut():
     long_runtime = {**RUNTIME, "concepts": [{
         "name": "Big", "description": "x" * 1000, "type": "string"}]}
-    assert len(api.lookup(long_runtime, PROTOTYPE, "Big")) < 400
+    assert len(api.search(long_runtime, PROTOTYPE, "Big")[0]) < 400
 
 
 def test_main_reads_the_files_and_prints(tmp_path, capsys):
@@ -196,7 +197,7 @@ def test_a_prototype_property_is_found_on_a_parent():
         "properties": [{"name": "collision_box", "type": "BoundingBox",
                         "optional": True}],
     }], "types": []}
-    text = api.lookup(RUNTIME, proto, "UnitPrototype.collision_box")
+    text = api.search(RUNTIME, proto, "UnitPrototype.collision_box")[0]
     assert "EntityWithOwnerPrototype.collision_box?: BoundingBox" in text
     assert "inherited by UnitPrototype" in text
 
@@ -207,12 +208,23 @@ def test_an_inherited_property_names_only_the_asking_prototype():
         {"name": "B", "parent": "A", "properties": []},
         {"name": "C", "parent": "B", "properties": []},
     ], "types": []}
-    text = api.lookup({}, proto, "C.p")
+    text = api.search({}, proto, "C.p")[0]
     assert text.count("inherited") == 1 and "inherited by C" in text
 
 
 def lookup_in(proto, query, runtime=None):
-    return api.lookup(runtime or {}, proto, query)
+    return api.search(runtime or {}, proto, query)[0]
+
+
+def lookup_ends(proto, query):
+    """Look the name up in a thread, so a loop that never ends fails the test."""
+    done = []
+    thread = threading.Thread(target=lambda: done.append(lookup_in(proto, query)),
+                              daemon=True)
+    thread.start()
+    thread.join(2)
+    assert done, "the lookup did not end"
+    return done[0]
 
 
 def test_a_parent_loop_in_the_data_ends():
@@ -220,7 +232,7 @@ def test_a_parent_loop_in_the_data_ends():
         {"name": "A", "parent": "B", "properties": [{"name": "p", "type": "x"}]},
         {"name": "B", "parent": "A", "properties": [{"name": "q", "type": "x"}]},
     ], "types": []}
-    assert "inherited by A" in lookup_in(proto, "A.q")
+    assert "inherited by A" in lookup_ends(proto, "A.q")
 
 
 def test_the_nearest_parent_wins():
@@ -320,7 +332,7 @@ def test_a_long_define_group_shows_a_count_and_the_first_twenty():
 
 
 def find_in(runtime, query):
-    return api.lookup(runtime, {}, query)
+    return api.search(runtime, {}, query)[0]
 
 
 BOTH_RUNTIME = {"concepts": [{"name": "Color", "description": "Runtime colour.",
@@ -330,18 +342,18 @@ BOTH_PROTO = {"prototypes": [], "types": [{"name": "Color", "description": "Prot
 
 
 def test_a_runtime_concept_beats_a_prototype_type_of_the_same_name():
-    text = api.lookup(BOTH_RUNTIME, BOTH_PROTO, "Color")
+    text = api.search(BOTH_RUNTIME, BOTH_PROTO, "Color")[0]
     assert "Runtime colour." in text and "[runtime]" in text
     assert "also a prototype type: prototype:Color" in text
 
 
 def test_the_prototype_type_is_found_with_its_prefix():
-    text = api.lookup(BOTH_RUNTIME, BOTH_PROTO, "prototype:Color")
+    text = api.search(BOTH_RUNTIME, BOTH_PROTO, "prototype:Color")[0]
     assert "Proto colour." in text and "[prototype]" in text
 
 
 def test_a_name_in_one_stage_only_has_no_also_note():
-    assert "also a" not in api.lookup(RUNTIME, PROTOTYPE, "ForceID")
+    assert "also a" not in api.search(RUNTIME, PROTOTYPE, "ForceID")[0]
 
 
 def test_a_tuple_renders_its_values_in_square_brackets():
@@ -373,7 +385,7 @@ def test_a_prototype_is_found_by_its_type_string():
 def test_a_type_string_never_shadows_a_runtime_name():
     proto = {"prototypes": [{"name": "UnitPrototype", "typename": "LuaSurface",
                              "parent": None, "properties": []}], "types": []}
-    assert "class LuaSurface" in api.lookup(RUNTIME, proto, "LuaSurface")
+    assert "class LuaSurface" in api.search(RUNTIME, proto, "LuaSurface")[0]
 
 
 def test_a_name_matches_ignoring_case_and_a_trailing_dot():
@@ -413,7 +425,7 @@ def test_a_cycle_that_leaves_out_the_child_ends():
         {"name": "B", "parent": "C", "properties": []},
         {"name": "C", "parent": "B", "properties": [{"name": "p", "type": "x"}]},
     ], "types": []}
-    text = lookup_in(proto, "A.p")
+    text = lookup_ends(proto, "A.p")
     assert text.count("inherited") == 1 and "inherited by A" in text
 
 
@@ -431,3 +443,13 @@ def test_an_event_define_says_it_is_an_event():
 
 def test_a_miss_reports_the_query_as_asked_without_the_dot_or_spaces():
     assert "no match for zzzz" in find(" zzzz. ")
+
+
+def test_main_with_a_name_that_is_only_dots_prints_usage(tmp_path, capsys):
+    assert api.main(["."], tmp_path) == 2
+    assert "usage" in capsys.readouterr().err
+
+
+def test_make_api_ignores_an_api_name_from_the_environment():
+    done = make_api({"API_NAME": "sneaky"})
+    assert "usage" in done.stderr and "sneaky" not in done.stdout + done.stderr

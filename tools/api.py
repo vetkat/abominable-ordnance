@@ -129,8 +129,8 @@ def defines(items: list[dict], prefix: str = "defines",
             lines.append("subkeys: " + names(subkeys))
         found[key] = "\n".join(line for line in lines if line)
         for value in values:
-            tag = " (event " + value["name"] + ")" if key == "defines.events" and \
-                value["name"] in events else ""
+            tag = (" (event " + value["name"] + ")"
+                   if key == "defines.events" and value["name"] in events else "")
             found[f"{key}.{value['name']}"] = "\n".join(
                 line for line in (f"{key}.{value['name']}{tag}", summary(value.get("description")))
                 if line)
@@ -220,9 +220,13 @@ def resolve(found: dict[str, str], query: str) -> str | None:
     return found[folded[query.lower()]] if query.lower() in folded else None
 
 
+def clean(query: str) -> str:
+    return query.strip().rstrip(".")
+
+
 def search(runtime: dict, proto: dict, query: str) -> tuple[str, bool]:
     """The text for a name and whether it matched. A miss lists close names."""
-    query = query.strip().rstrip(".")
+    query = clean(query)
     found = entries(runtime, proto)
     text = resolve(found, query)
     if text is not None:
@@ -231,12 +235,8 @@ def search(runtime: dict, proto: dict, query: str) -> tuple[str, bool]:
     return f"no match for {query}" + ("; close: " + ", ".join(close) if close else ""), False
 
 
-def lookup(runtime: dict, proto: dict, query: str) -> str:
-    return search(runtime, proto, query)[0]
-
-
 def main(argv: list[str], folder: pathlib.Path = API) -> int:
-    if len(argv) != 1 or not argv[0].strip():
+    if len(argv) != 1 or not clean(argv[0]):
         print("usage: python3 -m tools.api NAME", file=sys.stderr)
         return 2
     try:
