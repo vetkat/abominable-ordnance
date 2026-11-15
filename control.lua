@@ -58,6 +58,8 @@ script.on_event(defines.events.on_force_created, function(event)
   Tamed.relate(event.force)
 end)
 script.on_event(defines.events.on_force_reset, function(event)
+  -- A reset may clear diplomacy, so relate the force again.
+  Tamed.relate(event.force)
   LauncherShell.sync(event.force)
 end)
 script.on_event(defines.events.on_forces_merged, function(event)
@@ -281,7 +283,7 @@ end)
 -- The too-close scan: one search around each connected player every
 -- scan_ticks, so the cost grows with players, not with monsters.
 script.on_nth_tick(Balance.feral.scan_ticks, function(event)
-  if not FeralShell.available() then
+  if next(storage.loaded) == nil or not FeralShell.available() then
     return
   end
   for _, player in pairs(game.connected_players) do

@@ -1,4 +1,4 @@
--- Sets up storage and the tamed force, for a new game and for a save
+-- Sets up storage and the tamed and feral forces, for a new game and for a save
 -- that gains or updates the mod. This module is shell, so the in-game
 -- tests can call it.
 local LauncherShell = require("shell.launcher")

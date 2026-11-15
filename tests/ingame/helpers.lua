@@ -72,6 +72,15 @@ function Helpers.chest(surface, position)
   })
 end
 
+-- A character of a force at a position.
+function Helpers.character(surface, position, force)
+  return surface.create_entity({
+    name = "character",
+    position = position,
+    force = force or "player",
+  })
+end
+
 -- Spills a stack on the ground as one pile and returns the pile's stack.
 function Helpers.spill(surface, position, name, count)
   surface.spill_item_stack({

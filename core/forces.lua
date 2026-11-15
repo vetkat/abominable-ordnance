@@ -27,9 +27,18 @@ function Forces.feral_cease_fire(name)
 end
 
 -- The tamed force has no research, but its kills still feed the egg
--- supply (spec Q8).
+-- supply (spec Q8). The feral force never earns loot, even if a
+-- script researches the technology for it.
 function Forces.earns_loot(name, researched)
-  return researched or name == Names.TAMED
+  return name ~= Names.FERAL and (researched or name == Names.TAMED)
+end
+
+-- The game allows 64 forces in all.
+local FORCE_LIMIT = 64
+
+-- True when one more force fits.
+function Forces.can_create(count)
+  return count < FORCE_LIMIT
 end
 
 -- True if the landing blast hurts an entity of the target force.

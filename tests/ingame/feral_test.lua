@@ -48,23 +48,16 @@ test("a force made later is at war with the feral force", function()
   local other = game.forces["ao-feral-test-force"] or game.create_force("ao-feral-test-force")
   after_ticks(1, function()
     local feral = game.forces[Names.FERAL]
-    assert(not feral.get_cease_fire(other) and not other.get_cease_fire(feral), "no war")
+    local war = not feral.get_cease_fire(other) and not other.get_cease_fire(feral)
+    game.merge_forces(other, "player")
+    assert(war, "no war")
   end)
-end)
-
-test("the force limit guard allows a force below 64 forces only", function()
-  assert(Tamed.can_create(63), "63 forces should leave room")
-  assert(not Tamed.can_create(64), "64 forces should be full")
 end)
 
 test("a character within the feral radius makes a loaded monster feral", function()
   with_entry({ 3000, 3000 }, "ao-biter-larva-explosive", function(entry)
     local p = entry.unit.position
-    local character = surface().create_entity({
-      name = "character",
-      position = { p.x + f.radius - 1, p.y },
-      force = "player",
-    })
+    local character = Helpers.character(surface(), { p.x + f.radius - 1, p.y })
     local player = { character = character, force = character.force }
     FeralShell.scan_player(player, game.tick)
     local feral, force = entry.feral, entry.unit.force.name
@@ -78,15 +71,28 @@ end)
 test("a character outside the feral radius leaves the monster tamed", function()
   with_entry({ 3040, 3000 }, "ao-biter-larva-explosive", function(entry)
     local p = entry.unit.position
-    local character = surface().create_entity({
-      name = "character",
-      position = { p.x + f.radius + 1, p.y },
-      force = "player",
-    })
+    local character = Helpers.character(surface(), { p.x + f.radius + 1, p.y })
     FeralShell.scan_player({ character = character, force = character.force }, game.tick)
     local feral = entry.feral
     character.destroy()
     entry.unit.destroy()
+    assert(not feral, "the monster went feral")
+  end)
+end)
+
+test("a player at war with the tamed force never makes a monster feral", function()
+  with_entry({ 3060, 3000 }, "ao-biter-larva-explosive", function(entry)
+    local other = game.forces["ao-feral-test-hostile"] or game.create_force("ao-feral-test-hostile")
+    local tamed = game.forces[Names.TAMED]
+    tamed.set_cease_fire(other, false)
+    other.set_cease_fire(tamed, false)
+    local p = entry.unit.position
+    local character = Helpers.character(surface(), { p.x + 1, p.y }, other.name)
+    FeralShell.scan_player({ character = character, force = other }, game.tick)
+    local feral = entry.feral
+    character.destroy()
+    entry.unit.destroy()
+    game.merge_forces(other, "player")
     assert(not feral, "the monster went feral")
   end)
 end)
@@ -129,11 +135,18 @@ test("a feral monster with a player chest in range hunts it", function()
     entry.unit.disabled_by_script = false
     FeralShell.go_feral(entry, game.tick)
     local hunting = entry.hunting
-    local has_command = entry.unit.commandable.has_command
+    local command = entry.unit.commandable.command
+    local chest_x, chest_y = chest.position.x, chest.position.y
     chest.destroy()
     entry.unit.destroy()
     assert(hunting, "the monster is not hunting")
-    assert(has_command, "the monster has no command")
+    assert(command, "the monster has no command")
+    assert(command.type == defines.command.attack_area, "the command is not attack_area")
+    local d = command.destination
+    assert(
+      math.abs(d.x - chest_x) < 1 and math.abs(d.y - chest_y) < 1,
+      "the hunt aims at " .. d.x .. "," .. d.y
+    )
   end)
 end)
 

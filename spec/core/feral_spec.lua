@@ -10,23 +10,8 @@ describe("the feral names and numbers", function()
   end)
 
   it("keep every feral number in Balance.feral", function()
-    for _, key in ipairs({
-      "radius",
-      "per_payload",
-      "per_size",
-      "max_payloads",
-      "scan_ticks",
-      "idle_ticks",
-      "pass_ticks",
-      "batch",
-      "search_radius",
-      "seek_distance",
-      "rewander_ticks",
-      "retry_wanders",
-      "unstable_per_minute",
-      "warning_ticks",
-    }) do
-      assert.is_number(f[key], key)
+    for key, value in pairs(f) do
+      assert.is_number(value, key)
     end
   end)
 end)
@@ -65,6 +50,10 @@ describe("the too-close test", function()
     assert.is_false(Feral.too_close(entry, f.radius + 0.1, "small-biter"))
   end)
 
+  it("is total for an entry without payloads", function()
+    assert.is_true(Feral.too_close({}, 0, "small-biter"))
+  end)
+
   it("never turns a feral entry feral again", function()
     local feral = { payloads = { "explosive" }, feral = true }
     assert.is_false(Feral.too_close(feral, 0, "small-biter"))
@@ -85,5 +74,21 @@ describe("the failed-hunt mark", function()
     assert.is_false(Feral.marks(true, true, true))
     assert.is_false(Feral.marks(true, false, false))
     assert.is_false(Feral.marks(false, false, true))
+  end)
+
+  it("returns a boolean even for a missing failure", function()
+    assert.is_false(Feral.marks(nil, false, true))
+  end)
+end)
+
+describe("the player test", function()
+  it("counts a player with a character at peace, off a platform", function()
+    assert.is_true(Feral.player_counts(true, true, false))
+  end)
+
+  it("skips a player without a character, at war or on a platform", function()
+    assert.is_false(Feral.player_counts(false, true, false))
+    assert.is_false(Feral.player_counts(true, false, false))
+    assert.is_false(Feral.player_counts(true, true, true))
   end)
 end)

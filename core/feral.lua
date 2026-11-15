@@ -30,11 +30,16 @@ end
 
 -- The largest feral radius in the mod. The too-close scan searches this
 -- far around each player.
+local LARGEST_RADIUS = Balance.feral.radius
+  + Balance.feral.per_payload * (Balance.feral.max_payloads - 1)
+  + Balance.feral.per_size * MAX_STEP
+
 function Feral.largest_radius()
-  local f = Balance.feral
-  return f.radius + f.per_payload * (f.max_payloads - 1) + f.per_size * MAX_STEP
+  return LARGEST_RADIUS
 end
 
+-- The straight-line distance between two positions, each a table with
+-- x and y.
 function Feral.distance(a, b)
   local dx, dy = a.x - b.x, a.y - b.y
   return math.sqrt(dx * dx + dy * dy)
@@ -46,7 +51,7 @@ function Feral.too_close(entry, distance, name)
   if entry.feral then
     return false
   end
-  return distance <= Feral.radius(name, #entry.payloads)
+  return distance <= Feral.radius(name, #(entry.payloads or {}))
 end
 
 -- True while the monster's last failed hunt is recent. A marked monster
@@ -59,7 +64,13 @@ end
 -- True if a completed command marks the monster: a failed hunt that a
 -- distraction did not cause.
 function Feral.marks(failed, was_distracted, hunting)
-  return failed and not was_distracted and hunting == true
+  return failed == true and not was_distracted and hunting == true
+end
+
+-- True if the too-close scan counts a player: one with a character, on a
+-- force at peace with the tamed force, off a space platform.
+function Feral.player_counts(has_character, at_peace, on_platform)
+  return has_character == true and at_peace == true and not on_platform
 end
 
 return Feral

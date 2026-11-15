@@ -14,7 +14,10 @@ end
 
 -- The force of a loaded monster's payload and trail.
 function FeralShell.force_of(entry)
-  return entry.feral and Names.FERAL or Names.TAMED
+  if entry.feral and FeralShell.available() then
+    return Names.FERAL
+  end
+  return Names.TAMED
 end
 
 -- A wander with a time limit, so that the next batch check searches
@@ -87,11 +90,9 @@ function FeralShell.scan_player(player, tick)
     return
   end
   local tamed = game.forces[Names.TAMED]
-  if not tamed or not tamed.get_cease_fire(player.force) then
-    return
-  end
   local surface = character.surface
-  if surface.platform then
+  local at_peace = tamed ~= nil and tamed.get_cease_fire(player.force)
+  if not Feral.player_counts(true, at_peace, surface.platform ~= nil) then
     return
   end
   local position = character.position

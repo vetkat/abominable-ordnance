@@ -1,17 +1,9 @@
--- Sets up the tamed and feral forces. This module is shell: it reads and writes the
--- game. control.lua calls it, and so do the in-game tests.
+-- Sets up the tamed and feral forces. This module is shell: it reads and
+-- writes the game. control.lua calls it, and so do the in-game tests.
 local Forces = require("core.forces")
 local Names = require("core.names")
 
 local Tamed = {}
-
--- The game allows 64 forces in all.
-local FORCE_LIMIT = 64
-
--- True when one more force fits.
-function Tamed.can_create(count)
-  return count < FORCE_LIMIT
-end
 
 -- Counts the forces. The game's force table has no length operator that
 -- works, so this walks it.
@@ -47,7 +39,7 @@ function Tamed.ensure()
     game.create_force(Names.TAMED)
   end
   if not game.forces[Names.FERAL] then
-    if Tamed.can_create(count_forces()) then
+    if Forces.can_create(count_forces()) then
       game.create_force(Names.FERAL)
     else
       log("Abominable Ordnance: the force limit is full, so loaded monsters never go feral")
