@@ -73,4 +73,30 @@ function Feral.player_counts(has_character, at_peace, on_platform)
   return has_character == true and at_peace == true and not on_platform
 end
 
+-- The chance that a monster goes feral by the unstable rule over
+-- elapsed ticks. It grows with each payload.
+function Feral.unstable_chance(payload_count, elapsed)
+  if elapsed <= 0 or payload_count <= 0 then
+    return 0
+  end
+  local p = Balance.feral.unstable_per_minute * payload_count
+  return 1 - (1 - p) ^ (elapsed / 3600)
+end
+
+-- True if a tamed monster goes feral at this check. It does when it has
+-- idled for idle_ticks or more. Otherwise the unstable roll for the time
+-- since its last check decides. The roll is a random number in [0, 1)
+-- from the shell. A monster with no
+-- checked_at has no elapsed time, so it does not roll.
+function Feral.decide(entry, tick, roll)
+  if entry.feral then
+    return false
+  end
+  if entry.idle_since ~= nil and tick - entry.idle_since >= Balance.feral.idle_ticks then
+    return true
+  end
+  local elapsed = entry.checked_at and tick - entry.checked_at or 0
+  return roll < Feral.unstable_chance(#(entry.payloads or {}), elapsed)
+end
+
 return Feral

@@ -92,3 +92,44 @@ describe("the player test", function()
     assert.is_false(Feral.player_counts(true, true, true))
   end)
 end)
+
+describe("the idle and unstable decision", function()
+  local function entry(fields)
+    local e = { payloads = { "explosive" } }
+    for k, v in pairs(fields) do
+      e[k] = v
+    end
+    return e
+  end
+
+  it("turns a monster feral after idle_ticks of idling", function()
+    assert.is_false(Feral.decide(entry({}), 1000, 0.99))
+    assert.is_false(Feral.decide(entry({ idle_since = 1000 }), 1000 + f.idle_ticks - 1, 0.99))
+    assert.is_true(Feral.decide(entry({ idle_since = 1000 }), 1000 + f.idle_ticks, 0.99))
+  end)
+
+  it("never rolls on the first check", function()
+    assert.are.equal(0, Feral.unstable_chance(1, 0))
+    assert.is_false(Feral.decide(entry({}), 600, 0))
+  end)
+
+  it("rolls the chance for the time since the last check", function()
+    local chance = 1 - (1 - f.unstable_per_minute) ^ (600 / 3600)
+    assert.are.near(chance, Feral.unstable_chance(1, 600), 1e-12)
+    local e = entry({ checked_at = 0 })
+    assert.is_true(Feral.decide(e, 600, chance / 2))
+    assert.is_false(Feral.decide(e, 600, chance * 2))
+  end)
+
+  it("grows the chance with each payload", function()
+    assert.is_true(Feral.unstable_chance(2, 600) > Feral.unstable_chance(1, 600))
+  end)
+
+  it("never decides for a feral entry", function()
+    assert.is_false(Feral.decide(entry({ feral = true, idle_since = 0 }), 10 ^ 9, 0))
+  end)
+
+  it("copes with an entry that has no payload list", function()
+    assert.is_false(Feral.decide({ checked_at = 0 }, 600, 0))
+  end)
+end)
