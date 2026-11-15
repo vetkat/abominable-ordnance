@@ -51,8 +51,9 @@ step after Capture is a machine or a recipe, so you can automate it.
 4. **Crossbreed (optional).** Jazz pods combine two embryos of different
    species into a hybrid egg, which goes to the incubator like any other
    egg.
-5. **Store and ship.** Stasis wards slow the spoil timer 20 times on the way
-   (see [Logistics and delivery](#logistics-and-delivery)).
+5. **Store and ship.** Stasis wards slow the spoil timer 20 times on the way.
+   With Space Age, a cryo ward made on Aquilo slows it 100 times (see
+   [Logistics and delivery](#logistics-and-delivery)).
 6. **Fire.** The larva launcher and artillery fire loaded larvae as
    long-range ammo. The larva turns into its full monster where it lands.
 7. **Detonate.** The monster attacks the area where it lands, applies its
@@ -288,6 +289,9 @@ launcher and artillery fire loaded larvae.
   spoil progress, and its timer runs 20 times more slowly. The probe
   confirmed this for assembler packs and unpacks and for hand-craft packs.
   Warded items stack and travel by belt, train or rocket.
+- **Cryo ward (Space Age).** A cryogenic plant on Aquilo makes a cryo ward
+  from lithium plates and cold fluoroketone. It slows the spoil timer 100
+  times and ships to any planet.
 - **Larva launcher.** One new artillery turret fires loaded larvae as
   ammo, with and without Space Age. The loading chamber packs each larva
   with a shared larva rocket casing, so no larva needs a separate rocket
@@ -515,6 +519,10 @@ Answered:
   turret? A new building, the larva launcher, used in both modes.
 - [x] Hybrid larvae: how many hybrid eggs make one larva? Ten, the same as
   for plain eggs. A hybrid larva then costs 20 embryos.
+- [x] Stasis ward materials: two wards. The base ward stays the same in
+  both modes. Space Age adds a cryo ward made on Aquilo from cold
+  fluoroketone and lithium plates, which slows spoiling 100 times
+  (`docs/superpowers/specs/2026-11-15-cryo-ward-design.md`).
 
 Open:
 
@@ -524,11 +532,6 @@ Open:
   above the monster for 3 s.
 - [ ] Artillery shells (version 2): larva rockets are already artillery
   ammo. Should artillery shells reuse them, with no new item per larva?
-- [ ] Stasis ward materials: the ward could use Aquilo materials, which fits
-  the cold theme. Without Space Age it needs a substitute. Options: a
-  different recipe per mode, a mod-made cryo gel in vanilla, or one base
-  ward for both modes plus an Aquilo upgrade tier in Space Age. The ward is
-  a version 1 tech, and Aquilo comes late.
 - [ ] Spoiled loaded larvae: does the monster start on your side, as
   slice 2 builds it, or start feral?
 - [ ] Captive spawners: do they give the mod's own biter egg or Space Age's
