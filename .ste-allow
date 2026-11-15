@@ -10,6 +10,7 @@ ing-form | locale/en/locale.cfg | breeding | the name of the breeding pod
 ing-form | docs/superpowers/specs/*-lifecycle-design.md | | names of game parts and research (Breeding pod, Sulfur processing)
 ing-form | docs/superpowers/specs/*-ordnance-design.md | | names of game parts and research (Loading chamber, Ordnance loading, the Launching notes)
 ing-form | docs/superpowers/specs/*-launcher-design.md | | names of game parts and events (Casing, Landing, Spoiling, Ordnance loading)
+ing-form | docs/superpowers/specs/*-feral-design.md | | names of game events and states (Going feral, Replacing a unit)
 
 # The review reports record what reviewers said and quote the old spec,
 # including its American spellings.
