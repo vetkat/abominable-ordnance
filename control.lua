@@ -299,7 +299,7 @@ local function feral_tick(tick)
   local ids, cursor = Trail.batch(storage.loaded, storage.feral_cursor, f.batch)
   storage.feral_cursor = cursor
   for _, id in ipairs(ids) do
-    FeralShell.check(id, tick, random())
+    FeralShell.check(id, tick, random)
   end
 end
 

@@ -26,6 +26,55 @@ local function with_entry(position, item, after)
   end)
 end
 
+-- Stops the background batch check for the length of a test, so that
+-- it can't touch the entry. restore() puts the schedule back.
+local function pause_batch_check()
+  local next_tick, cursor = storage.feral_next_tick, storage.feral_cursor
+  storage.feral_next_tick = game.tick + 1000000
+  storage.feral_cursor = nil
+  return function()
+    storage.feral_next_tick = next_tick
+    storage.feral_cursor = cursor
+  end
+end
+
+-- Polls every tick, up to limit ticks, until done() is true. Then it
+-- calls finish(reached).
+local function poll(limit, done, finish)
+  if done() or limit <= 0 then
+    finish(done())
+    return
+  end
+  after_ticks(1, function()
+    poll(limit - 1, done, finish)
+  end)
+end
+
+-- A native of this species stands in range of a tamed monster that has
+-- idled for a while. The check must clear the idle clock. The native
+-- stays idle, so it can't fight.
+local function native_clears_idle(position, native_name)
+  with_entry(position, "ao-biter-larva-explosive", function(entry)
+    local restore = pause_batch_check()
+    local p = entry.unit.position
+    local native = surface().create_entity({
+      name = native_name,
+      position = { p.x + 10, p.y },
+      force = "enemy",
+    })
+    native.disabled_by_script = true
+    entry.idle_since = game.tick - 100
+    FeralShell.check(entry.unit.unit_number, game.tick, function()
+      return 0.99
+    end)
+    local idle = entry.idle_since
+    restore()
+    native.destroy()
+    entry.unit.destroy()
+    assert(idle == nil, native_name .. " did not clear the idle clock")
+  end)
+end
+
 test("the feral force is at war with the natives, players and the tamed force", function()
   local feral = game.forces[Names.FERAL]
   assert(feral, "no feral force")
@@ -172,7 +221,9 @@ end)
 test("an idle loaded monster goes feral at its next check", function()
   with_entry({ 3240, 3000 }, "ao-biter-larva-explosive", function(entry)
     entry.idle_since = game.tick - f.idle_ticks
-    FeralShell.check(entry.unit.unit_number, game.tick, 0.99)
+    FeralShell.check(entry.unit.unit_number, game.tick, function()
+      return 0.99
+    end)
     local feral = entry.feral
     entry.unit.destroy()
     assert(feral, "the idle monster stayed tamed")
@@ -180,36 +231,82 @@ test("an idle loaded monster goes feral at its next check", function()
 end)
 
 test("a native in range clears the idle clock", function()
-  with_entry({ 3280, 3000 }, "ao-biter-larva-explosive", function(entry)
+  native_clears_idle({ 3280, 3000 }, "small-biter")
+end)
+
+-- The "no command" branch of the batch check has no in-game test. In
+-- Factorio 2.1 has_command reads true for a fresh unit and stays true
+-- after a command ends, because the unit falls back to a default
+-- command. The branch is a backup for a state that a test can't make.
+-- The re-hunt on completion below covers the real path.
+
+test("a feral monster whose wander ends hunts a chest in range", function()
+  with_entry({ 3500, 3000 }, "ao-biter-larva-explosive", function(entry)
+    local restore = pause_batch_check()
+    entry.unit.disabled_by_script = false
+    FeralShell.go_feral(entry, game.tick)
     local p = entry.unit.position
-    local native = surface().create_entity({
-      name = "small-biter",
-      position = { p.x + 10, p.y },
-      force = "enemy",
+    local chest = Helpers.chest(surface(), { p.x + 20, p.y })
+    assert(entry.hunting == false, "the precondition failed: the monster hunts with no target")
+    entry.unit.commandable.set_command({
+      type = defines.command.wander,
+      radius = 2,
+      ticks_to_wait = 5,
     })
-    native.disabled_by_script = true
-    entry.idle_since = game.tick - 100
-    FeralShell.check(entry.unit.unit_number, game.tick, 0.99)
-    local idle = entry.idle_since
-    native.destroy()
-    entry.unit.destroy()
-    assert(idle == nil, "the idle clock still runs")
+    local ended = false
+    poll(300, function()
+      ended = ended or not entry.unit.commandable.has_command
+      return entry.hunting
+    end, function(reached)
+      local command = entry.unit.commandable.command
+      local seen_ended = ended
+      local hunting = entry.hunting
+      local chest_x = chest.position.x
+      restore()
+      chest.destroy()
+      entry.unit.destroy()
+      log("has_command read false after the wander ended: " .. tostring(seen_ended))
+      assert(reached and hunting, "the monster never hunted")
+      assert(command and command.type == defines.command.attack_area, "no attack_area command")
+      assert(math.abs(command.destination.x - chest_x) < 1, "the hunt aims elsewhere")
+    end)
   end)
 end)
 
-test("a feral monster with no command gets one at its next check", function()
-  with_entry({ 3320, 3000 }, "ao-biter-larva-explosive", function(entry)
+test("a second failed wander inside the mark window waits for the batch check", function()
+  with_entry({ 3520, 3000 }, "ao-biter-larva-explosive", function(entry)
+    local restore = pause_batch_check()
+    entry.unit.disabled_by_script = false
     FeralShell.go_feral(entry, game.tick)
-    entry.unit.commandable.set_command({
-      type = defines.command.stop,
-      ticks_to_wait = 1,
-    })
-    after_ticks(5, function()
-      FeralShell.check(entry.unit.unit_number, game.tick, 0.99)
-      local has_command = entry.unit.commandable.has_command
-      entry.unit.destroy()
-      assert(has_command, "the feral monster has no command")
+    local number = entry.unit.unit_number
+    local function fail_after(set_up)
+      entry.unit.commandable.set_command({
+        type = defines.command.attack_area,
+        destination = entry.unit.position,
+        radius = 1,
+      })
+      entry.hunting = false
+      set_up()
+      FeralShell.completed({
+        unit_number = number,
+        result = defines.behavior_result.fail,
+        was_distracted = false,
+        tick = game.tick,
+      })
+      return entry.unit.commandable.command.type
+    end
+    local recent = fail_after(function()
+      entry.failed_at = game.tick - 1
     end)
+    local first = fail_after(function()
+      entry.failed_at = nil
+    end)
+    local marked_at = entry.failed_at
+    restore()
+    entry.unit.destroy()
+    assert(recent == defines.command.attack_area, "a recent failure rewandered at once")
+    assert(first == defines.command.wander, "a first failure did not rewander")
+    assert(marked_at == game.tick, "a failed wander did not mark the monster")
   end)
 end)
 
@@ -275,33 +372,10 @@ test("a marked monster wanders instead of hunting", function()
   end)
 end)
 
-test("a monster that dies under the feral cursor does not stop the check", function()
-  with_entry({ 3440, 3000 }, "ao-biter-larva-explosive", function(first)
-    storage.feral_cursor = first.unit.unit_number
-    first.unit.destroy()
-    after_ticks(2, function()
-      local cursor = storage.feral_cursor
-      assert(cursor == nil or storage.loaded[cursor] ~= nil, "the cursor points at a removed entry")
-    end)
-  end)
-end)
+-- The cursor moving past a removed monster is core: Trail.forget, covered
+-- in spec/core/trail_spec.lua.
 
 tags("space-age")
 test("a Gleba native keeps a tamed monster from idling", function()
-  with_entry({ 3480, 3000 }, "ao-biter-larva-explosive", function(entry)
-    local p = entry.unit.position
-    local native = surface().create_entity({
-      name = "small-strafer-pentapod",
-      position = { p.x + 10, p.y },
-      force = "enemy",
-    })
-    entry.idle_since = game.tick - 100
-    FeralShell.check(entry.unit.unit_number, game.tick, 0.99)
-    local idle = entry.idle_since
-    if native.valid then
-      native.destroy()
-    end
-    entry.unit.destroy()
-    assert(idle == nil, "a spider unit did not count as a native")
-  end)
+  native_clears_idle({ 3480, 3000 }, "small-strafer-pentapod")
 end)

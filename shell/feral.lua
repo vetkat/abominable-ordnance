@@ -114,9 +114,12 @@ function FeralShell.scan_player(player, tick)
 end
 
 -- The batch check for one loaded monster. A feral monster without a
--- command hunts again. A tamed monster updates its idle clock and may
--- go feral. roll is a random number in [0, 1) from control.lua.
-function FeralShell.check(id, tick, roll)
+-- command hunts again, as a backup: in Factorio 2.1 has_command stays
+-- true after a command ends, so FeralShell.completed does the re-hunt.
+-- A tamed monster updates its idle clock and may go feral. random is a
+-- function from control.lua that gives a number in [0, 1). The core
+-- calls it only when the unstable roll needs it.
+function FeralShell.check(id, tick, random)
   local f = Balance.feral
   local entry = storage.loaded[id]
   if not entry or not entry.unit.valid then
@@ -138,8 +141,8 @@ function FeralShell.check(id, tick, roll)
     force = "enemy",
     limit = 1,
   })
+  entry.idle_since = Feral.idle_since(entry.idle_since, natives > 0, tick)
   if natives > 0 then
-    entry.idle_since = nil
     if not unit.commandable.has_command then
       unit.commandable.set_command({
         type = defines.command.attack_area,
@@ -147,10 +150,8 @@ function FeralShell.check(id, tick, roll)
         radius = f.search_radius,
       })
     end
-  elseif entry.idle_since == nil then
-    entry.idle_since = tick
   end
-  local goes = Feral.decide(entry, tick, roll)
+  local goes = Feral.decide(entry, tick, random)
   entry.checked_at = tick
   if goes then
     FeralShell.go_feral(entry, tick)
@@ -158,25 +159,35 @@ function FeralShell.check(id, tick, roll)
 end
 
 -- A feral monster's command ended. The event also comes for unit
--- groups, so the unit number must match the entry's unit. After a
--- distraction the original command resumes, so the handler ignores that
--- failure. Any other failure ends in a wander, so an unreachable target can't
--- start a loop of failed commands. A failed hunt also marks the monster.
+-- groups, and a group number can equal a unit number, so the entry's
+-- unit must carry the event's number. After a distraction the original
+-- command resumes, so the handler ignores it.
+--
+-- A success sends the monster hunting again. Hunt wanders while a
+-- failure mark holds, so this makes no loop. A failure sets the mark.
+-- The monster wanders at once unless it already failed a wander in the
+-- mark window. Then it waits for the batch check, so a stuck unit
+-- can't fail-wander every few ticks.
 function FeralShell.completed(event)
   local entry = storage.loaded[event.unit_number]
   if not entry or not entry.feral or not entry.unit.valid then
     return
   end
-  if entry.unit.unit_number ~= event.unit_number then
+  if entry.unit.unit_number ~= event.unit_number or event.was_distracted then
     return
   end
-  if event.result ~= defines.behavior_result.fail or event.was_distracted then
+  if event.result == defines.behavior_result.success then
+    FeralShell.hunt(entry, event.tick)
     return
   end
-  if Feral.marks(true, event.was_distracted, entry.hunting) then
-    entry.failed_at = event.tick
+  if event.result ~= defines.behavior_result.fail then
+    return
   end
-  FeralShell.wander(entry)
+  local rewander = Feral.wanders_after_failure(entry, event.tick)
+  entry.failed_at = event.tick
+  if rewander then
+    FeralShell.wander(entry)
+  end
 end
 
 return FeralShell

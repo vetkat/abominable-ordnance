@@ -57,7 +57,7 @@ mod uses [semantic versioning](https://semver.org/spec/v2.0.0.html).
 - Loaded monsters also go feral after 5 minutes with no natives within
   32 tiles, or by a small unstable chance: 0.2% per minute per payload.
   A feral monster whose attack fails wanders for about 50 s before it
-  hunts again.
+  hunts again. A feral monster whose wander ends hunts again at once.
 
 ### Fixed
 

@@ -518,6 +518,8 @@ Answered:
 
 Open:
 
+- [ ] Pheromone flare: should the remote's flare release pollution to
+  draw native attacks?
 - [ ] Do feral monsters warn the player, and how? Slice 4 shows "Feral!"
   above the monster for 3 s.
 - [ ] Artillery shells (version 2): larva rockets are already artillery
