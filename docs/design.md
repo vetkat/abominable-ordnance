@@ -264,6 +264,9 @@ force, which is hostile to everyone, so the natives fight it too.
 - **Balance levers.** Breeding time, feed cost, spoil time, payload cap per
   species, and the one-nuke-per-monster rule.
 
+The larva targeting remote's flare could release pollution at the target
+and draw native attacks, as a pheromone flare. Slice 4 decides.
+
 Feral monsters can be re-tamed with a pacifier facehugger (see
 [Facehuggers](#facehuggers)), which brings them back with their payload
 intact.
@@ -278,10 +281,15 @@ launcher and artillery fire loaded larvae.
   into its warded version, and another recipe unpacks it. A recipe's output
   keeps its ingredients' freshness, so the spoil timer continues where it
   stopped. Warded items stack and travel by belt, train or rocket.
-- **Larva launcher.** A new turret that fires larva rockets: loaded larvae
-  and facehuggers packed into long-range rocket ammo. The mod uses this one
-  launcher with and without Space Age. It does not use the Space Age rocket
-  turret.
+- **Larva launcher.** One new artillery turret fires loaded larvae as
+  ammo, with and without Space Age. The loading chamber packs each larva
+  with a shared larva rocket casing, so no larva needs a separate rocket
+  item. It fires at nests and worms, and at spots that the larva targeting
+  remote marks. The vanilla artillery remote does not fire it (checked in
+  2.1.24). On 2026-11-14 the maintainer dropped the planned
+  `data-final-fixes` change to the vanilla flare, after the probe showed
+  this (see "Separate remotes" in the
+  [launcher spec](superpowers/specs/2026-11-14-launcher-design.md)).
 - **Artillery shells.** Loaded larvae packed into an artillery shell for long
   range. Every species except the Abomination fits.
 - **Abomination launcher.** A large dedicated launcher for the final form,
@@ -355,14 +363,14 @@ It proves the core loop before adding planets. Ticked items are in the mod.
   poison capsule
 - [x] One generated item for each species × payload larva
 - [x] Death effects for all three payloads, plus the acid trail while alive
-- [ ] Larva rockets and the larva launcher. The monster appears where it
+- [x] Larva rockets and the larva launcher. The monster appears where it
   lands.
 - [ ] Feral behaviour: monsters attack everything when a player comes too
   close, when they stay idle, or by a chance per payload
 - [x] Spoil outcomes: eggs hatch wild, loaded larvae become loaded monsters
 - [ ] Stasis ward that pauses and resumes the spoil timer
-- [ ] First four research techs (Monster husbandry and Ordnance loading are
-  in the mod, Larva rockets and Stasis ward are not)
+- [ ] First four research techs (Monster husbandry, Ordnance
+  loading and Larva rockets are in the mod, Stasis ward is not)
 - [ ] Runs on vanilla Factorio 2.1 and with Space Age
 
 ### Version 2
@@ -398,9 +406,12 @@ hard parts are prototype count, demolishers and the player transformation.
   mod enables spoilage itself with `"spoiling_required": true` in its
   info.json.
 - **Launching.** Larva rockets and artillery shells whose projectile runs
-  the loaded larva's `script` effect on impact. The script then spawns the
-  loaded unit at the landing spot and records its payload. A `create-entity`
-  trigger cannot record the payload.
+  the loaded larva's `script` effect on impact. The script spawns the
+  loaded unit at the landing spot and records its payload, which a
+  `create-entity` trigger cannot do. A landing runs its own
+  `ao-land-<species>-<payload>` effect, which reads `target_position`. The
+  spoil effect stays `ao-hatch-`. The script deals the blast, because an
+  enemy trigger force also hurt the tamed force.
 - **Live and death effects.** Track loaded units in `storage`. Live effects
   run from `on_nth_tick`. Death effects come from `on_entity_died`, which
   spawns the matching explosion or cloud.
@@ -432,10 +443,9 @@ hard parts are prototype count, demolishers and the player transformation.
   slots make thousands. The version 2 spec must choose between a short list
   of allowed combinations and one `item-with-tags` per species. Tagged items
   don't stack, and normal recipes can't make them.
-- **Ammo count.** Each loaded larva may also
-  need a warded version, a larva rocket and an artillery shell. That
-  multiplies the count by up to 4, unless the rocket and shell carry the
-  larva in another way.
+- **Ammo count.** Larva rockets are the loaded larvae, so the launcher adds
+  no item for each larva. Only the warded version and an artillery shell
+  could still add items.
 - **Hybrid mechanics.** The engine has no unit that walks over walls,
   tunnels, or turns from a unit into a turret. The Skitterpod, Burrower and
   Crawling worm need script work or a simpler trait. In Space Age, pentapods
@@ -463,6 +473,9 @@ shape the whole mod.
 | One larva launcher in both modes | Space Age rocket turret, or gun-turret ammo | One delivery path halves the test matrix |
 | Spawn loaded monsters from a `script` effect | A `create-entity` trigger | Only the script can record the payload |
 | Hatchlings as plain units | Linked-chain demolishers | A chain of linked entities is too large to launch |
+| The loaded larva is the launcher's ammo, with a shared casing | A separate rocket item per larva, or one generic rocket | A rocket per larva doubles the items. A generic rocket can't carry which larva is inside |
+| Range upgrades swap the launcher prototype | The `artillery-range` research effect | That effect also extends vanilla artillery |
+| A landing has its own `ao-land-` effect ID | The spoil effect `ao-hatch-` | A landing reads the target position and needs a fallback when no spot is free |
 | Stasis ward from plain recipes | A script-managed container or tags | Recipes keep freshness and need no script, and the warded items stack |
 | One item per species × payload in version 1 | One `item-with-tags` per species | Tagged items don't stack. Version 2 decides again for multiple slots |
 
@@ -493,6 +506,13 @@ Answered:
 
 Open:
 
+- [ ] Artillery shells (version 2): larva rockets are already artillery
+  ammo. Should artillery shells reuse them, with no new item per larva?
+- [ ] Stasis ward materials: the ward could use Aquilo materials, which fits
+  the cold theme. Without Space Age it needs a substitute. Options: a
+  different recipe per mode, a mod-made cryo gel in vanilla, or one base
+  ward for both modes plus an Aquilo upgrade tier in Space Age. The ward is
+  a version 1 tech, and Aquilo comes late.
 - [ ] Spoiled loaded larvae: does the monster start on your side, as
   slice 2 builds it, or start feral?
 - [ ] Captive spawners: do they give the mod's own biter egg or Space Age's

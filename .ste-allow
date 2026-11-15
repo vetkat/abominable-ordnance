@@ -36,3 +36,7 @@ ing-form | locale/en/locale.cfg | loading | the names of the Loading chamber and
 phrasal-verb | docs/superpowers/reviews/*.md | | records the reviewers' wording
 progressive | docs/superpowers/reviews/*.md | | records the reviewers' wording
 vague-association | docs/superpowers/reviews/*.md | | records the reviewers' wording
+
+# Names of a Space Age planet and a proposed item in the design.
+spelling | docs/design.md | Aquilo | the Space Age planet
+spelling | docs/design.md | cryo | part of the proposed item name, cryo gel

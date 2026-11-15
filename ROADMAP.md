@@ -24,7 +24,7 @@ Slices 1 (lifecycle) and 2 (ordnance) ship in this release.
   vanilla units ([design][technical])
 - [x] Death effects for the three payloads, and the acid trail while alive
   ([design][ordnance-loading])
-- [ ] Larva rockets and the larva launcher, in both modes
+- [x] Larva rockets and the larva launcher, in both modes
   ([design][logistics-and-delivery])
 - [ ] Feral behaviour: too close, idle, or by a chance per payload
   ([design][feral-behaviour-and-risks])

@@ -234,6 +234,9 @@ function LauncherPrototypes.prototypes(opts)
   }
   for level = 1, Balance.launcher.max_level do
     out[#out + 1] = upgrade(Names.SPEED_TECH, level, speed)
+    -- Range techs have no effect in the game. shell/launcher.lua reads
+    -- them and swaps the launchers to the matching level.
+    out[#out + 1] = upgrade(Names.RANGE_TECH, level, {})
   end
   return out
 end

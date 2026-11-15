@@ -1,3 +1,5 @@
+local Balance = require("core.balance")
+local Launcher = require("core.launcher")
 local LauncherPrototypes = require("core.prototypes.launcher")
 local Stubs = require("spec.support.stubs")
 
@@ -49,7 +51,7 @@ describe("the launcher prototypes", function()
     assert.are_not.equal(opts.turret.circuit_connector, t.circuit_connector)
   end)
 
-  it("freeze on Aquilo only without Space Age", function()
+  it("keep warm on cold planets only with Space Age", function()
     assert.is_nil(build()["artillery-turret/ao-larva-launcher"].heating_energy)
     local t = build({ 0 }, true)["artillery-turret/ao-larva-launcher"]
     assert.are.equal("200kW", t.heating_energy)
@@ -154,5 +156,55 @@ describe("the launcher prototypes", function()
   it("build only the levels it is asked for", function()
     local all = build({ 0 })
     assert.is_nil(all["artillery-turret/ao-larva-launcher-1"])
+  end)
+end)
+
+describe("the launcher levels", function()
+  local all = build({ 0, 1, 2, 3 })
+
+  it("build one turret and one gun per level", function()
+    for level, range in pairs({ [0] = 64, [1] = 80, [2] = 96, [3] = 112 }) do
+      local turret = all["artillery-turret/" .. Launcher.name(level)]
+      assert.truthy(turret, "no turret for level " .. level)
+      assert.are.equal(Launcher.gun(level), turret.gun)
+      local gun = all["gun/" .. Launcher.gun(level)]
+      assert.are.equal(range, gun.attack_parameters.range)
+      assert.are.equal(1.5, turret.manual_range_modifier)
+    end
+  end)
+
+  it("hide levels 1 to 3 and let the launcher item place them", function()
+    for level = 1, 3 do
+      local turret = all["artillery-turret/" .. Launcher.name(level)]
+      assert.is_true(turret.hidden)
+      assert.are.same({ item = "ao-larva-launcher", count = 1 }, turret.placeable_by)
+      assert.are.equal("ao-larva-launcher", turret.minable.result)
+    end
+  end)
+
+  it("give no level a fast-replace group or a next upgrade", function()
+    for level = 0, 3 do
+      local turret = all["artillery-turret/" .. Launcher.name(level)]
+      assert.is_nil(turret.fast_replaceable_group)
+      assert.is_nil(turret.next_upgrade)
+    end
+  end)
+
+  it("add three range technologies with no effects", function()
+    local u = Balance.upgrade_research
+    for i = 1, 3 do
+      local tech = all["technology/ao-larva-launcher-range-" .. i]
+      assert.truthy(tech, "no range tech " .. i)
+      assert.are.same({}, tech.effects)
+      local before = i == 1 and "ao-larva-rockets" or "ao-larva-launcher-range-" .. (i - 1)
+      assert.are.same({ before }, tech.prerequisites)
+      assert.are.equal(u.counts[i], tech.unit.count)
+      assert.are.equal(u.time, tech.unit.time)
+      assert.is_true(tech.upgrade)
+      -- The packs are not in Balance: the range chain uses the speed chain's.
+      local speed = all["technology/ao-larva-launcher-speed-" .. i]
+      assert.are.same(speed.unit.ingredients, tech.unit.ingredients)
+      assert.are.equal(4, #tech.unit.ingredients)
+    end
   end)
 end)
