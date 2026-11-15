@@ -9,10 +9,21 @@ function Forces.cease_fire(name)
   if name == "enemy" then
     return false
   end
-  if name == "neutral" or name == Names.TAMED then
+  if name == "neutral" or name == Names.TAMED or name == Names.FERAL then
     return nil
   end
   return true
+end
+
+-- The cease-fire between the feral force and a force: false for war, or
+-- nil to leave the relation alone. The feral force is at war with every
+-- force except neutral and itself. This rule alone owns the pair of the
+-- tamed and the feral force.
+function Forces.feral_cease_fire(name)
+  if name == "neutral" or name == Names.FERAL then
+    return nil
+  end
+  return false
 end
 
 -- The tamed force has no research, but its kills still feed the egg
