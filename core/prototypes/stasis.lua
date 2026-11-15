@@ -79,6 +79,24 @@ local function locked(r)
   return Common.no_recycling(r)
 end
 
+-- Returns a copy of a prototype list in which every item that spoils has
+-- an explicit weight. The weight is the rocket lift weight over the stack
+-- size, which is the engine's default. Without it, Space Age derives a
+-- weight from the item's recipe. A warded item has another recipe, so it
+-- would weigh something else. A weight that a prototype sets stays. The input list
+-- and its prototypes stay as they are.
+function Stasis.weighted(list, lift_weight)
+  local out = {}
+  for i, p in ipairs(list) do
+    if p.spoil_ticks and not p.weight then
+      p = Common.copy(p)
+      p.weight = lift_weight / p.stack_size
+    end
+    out[i] = p
+  end
+  return out
+end
+
 -- A warded item is a new plain item. It never copies the source, so a
 -- larva rocket's ammo fields stay out.
 local function warded(source)
@@ -90,7 +108,7 @@ local function warded(source)
   )
   p.spoil_ticks = source.spoil_ticks * Balance.stasis.factor
   p.spoil_to_trigger_result = Common.copy(source.spoil_to_trigger_result)
-  p.weight = source.weight or Balance.stasis.rocket_lift_weight / source.stack_size
+  p.weight = source.weight
   p.auto_recycle = false
   return p
 end

@@ -6,10 +6,16 @@ local Names = require("core.names")
 local Stasis = require("core.prototypes.stasis")
 local Stubs = require("spec.support.stubs")
 
-local function sources()
+local LIFT = 1000000
+
+local function raw_sources()
   local list = Lifecycle.prototypes(Stubs.lifecycle_opts(false))
   Common.append(list, (Ordnance.prototypes(Stubs.ordnance_opts())))
   return list
+end
+
+local function sources()
+  return Stasis.weighted(raw_sources(), LIFT)
 end
 
 local function build()
@@ -70,21 +76,49 @@ describe("the stasis ward", function()
     end
   end)
 
-  it("gives a warded item the default weight of its source item", function()
-    local all, src = build()
-    local expected = Balance.stasis.rocket_lift_weight / src["item/ao-biter-egg"].stack_size
-    assert.are.equal(expected, all["item/ao-warded-biter-egg"].weight)
+  it("gives every lifecycle item a default weight of the lift weight over its stack", function()
+    local _, src = build()
+    for _, name in ipairs(Stasis.lifecycle_names()) do
+      local source = src["item/" .. name] or src["ammo/" .. name]
+      assert.are.equal(LIFT / source.stack_size, source.weight, name)
+    end
   end)
 
-  it("copies a weight that the source item sets", function()
-    local src = sources()
-    for _, p in ipairs(src) do
+  it("keeps a weight that a prototype sets and leaves other prototypes alone", function()
+    local raw = raw_sources()
+    local egg, recipes
+    for _, p in ipairs(raw) do
       if p.name == "ao-biter-egg" then
+        egg = p
         p.weight = 777
       end
     end
-    local all = Stubs.by_name(Stasis.prototypes(src))
-    assert.are.equal(777, all["item/ao-warded-biter-egg"].weight)
+    local out = Stasis.weighted(raw, LIFT)
+    local by_name = Stubs.by_name(out)
+    assert.are.equal(777, by_name["item/ao-biter-egg"].weight)
+    for _, p in ipairs(out) do
+      if p.type == "recipe" then
+        recipes = true
+        assert.is_nil(p.weight)
+      end
+    end
+    assert.is_true(recipes)
+    assert.are.equal(#raw, #out)
+    assert.is_not_nil(egg)
+  end)
+
+  it("does not change the list that it weighs", function()
+    local raw = raw_sources()
+    Stasis.weighted(raw, LIFT)
+    assert.is_nil(Stubs.by_name(raw)["item/ao-biter-egg"].weight)
+  end)
+
+  it("gives every warded item the weight of its source item", function()
+    local all, src = build()
+    for _, name in ipairs(Stasis.lifecycle_names()) do
+      local source = src["item/" .. name] or src["ammo/" .. name]
+      assert.are.equal(source.weight, all["item/" .. Stasis.warded_name(name)].weight, name)
+    end
   end)
 
   it("makes a warded rocket a plain item with no ammo type", function()

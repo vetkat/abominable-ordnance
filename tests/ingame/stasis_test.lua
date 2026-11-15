@@ -1,6 +1,7 @@
 local Helpers = require("__abominable-ordnance__/tests/ingame/helpers")
 local Names = require("core.names")
 local Species = require("core.species")
+local Stasis = require("core.prototypes.stasis")
 
 local BITER = Species.ALL[1]
 local ROCKET = "ao-biter-larva-explosive"
@@ -240,8 +241,14 @@ test("quality modules lift no pack or unpack, but lift a plain recipe", function
 end)
 
 tags("space-age")
-test("a warded item weighs the same as its source item", function()
-  local plain = prototypes.item[BITER.egg].weight
-  local warded = prototypes.item["ao-warded-biter-egg"].weight
-  assert(plain == warded, "egg " .. plain .. ", warded egg " .. warded)
+test("every warded item weighs the same as its source item", function()
+  local differ = {}
+  for _, name in ipairs(Stasis.lifecycle_names()) do
+    local plain = prototypes.item[name].weight
+    local warded = prototypes.item[Stasis.warded_name(name)].weight
+    if plain ~= warded then
+      differ[#differ + 1] = name .. " " .. plain .. " vs " .. warded
+    end
+  end
+  assert(#differ == 0, "weights differ: " .. table.concat(differ, "; "))
 end)
