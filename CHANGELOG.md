@@ -49,6 +49,11 @@ mod uses [semantic versioning](https://semver.org/spec/v2.0.0.html).
   its spoil progress. A warded item that spoils still hatches its
   monster, and its ward is lost. On a space platform no monster hatches, and
   the item is lost with its ward.
+- Loaded monsters go feral when a player with a character comes within
+  their feral radius: 5 tiles for a small monster, 1 more per size step.
+  A feral monster joins its own force, at war with everyone, hunts the
+  nearest enemy within 64 tiles, and its payload still goes off when it
+  dies. Feral kills drop no nest loot.
 
 ### Fixed
 

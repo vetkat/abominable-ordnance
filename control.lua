@@ -8,6 +8,7 @@ local Loot = require("core.loot")
 local Names = require("core.names")
 local Payloads = require("core.payloads")
 local Species = require("core.species")
+local FeralShell = require("shell.feral")
 local LauncherShell = require("shell.launcher")
 local Setup = require("shell.setup")
 local Tamed = require("shell.tamed")
@@ -223,7 +224,7 @@ local function set_off(entity)
     return
   end
   for _, effect in ipairs(Payloads.on_death(entry.payloads, entity.position, entity_exists)) do
-    effect.force = Names.TAMED
+    effect.force = FeralShell.force_of(entry)
     effect.cause = entity
     entity.surface.create_entity(effect)
   end
@@ -271,9 +272,20 @@ script.on_event(defines.events.on_tick, function(event)
       entry.unit.surface.create_entity({
         name = entry.trail,
         position = entry.unit.position,
-        force = Names.TAMED,
+        force = FeralShell.force_of(entry),
       })
     end
+  end
+end)
+
+-- The too-close scan: one search around each connected player every
+-- scan_ticks, so the cost grows with players, not with monsters.
+script.on_nth_tick(Balance.feral.scan_ticks, function(event)
+  if not FeralShell.available() then
+    return
+  end
+  for _, player in pairs(game.connected_players) do
+    FeralShell.scan_player(player, event.tick)
   end
 end)
 
