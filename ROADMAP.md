@@ -28,6 +28,9 @@ Slices 1 (lifecycle) and 2 (ordnance) ship in this release.
   ([design][logistics-and-delivery])
 - [x] Feral behaviour: too close, idle, or by a chance per payload
   ([design][feral-behaviour-and-risks])
+- [ ] Payload damage follows the payload: explosive hurts everything,
+  poison living things, acid everything except rocks
+  ([design][ordnance-loading])
 - [x] Spoil outcomes: eggs hatch wild, loaded larvae become loaded monsters
   ([design][lifecycle])
 - [x] Stasis ward that slows the spoil timer 20 times
