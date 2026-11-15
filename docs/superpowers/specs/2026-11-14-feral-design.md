@@ -170,8 +170,9 @@ that change how the game feels.
 
   The monster gets an `attack_area` command at that target. With no
   target in range, it gets a wander command with radius 32 that ends
-  after `rewander_ticks`. The next batch check then searches again, so a
-  base built later still draws it, and it never stands still for good.
+  after `rewander_ticks`. The completion handler then searches again,
+  so a base built later still draws it, and it never stands still for
+  good.
   An attack that fails, for example at a target across water, ends in a
   wander instead of a new search at once (see "Failed commands").
 - **Spoiled loaded larvae stay tamed at first.** Slice 2 already works
@@ -332,17 +333,23 @@ looks up `storage.loaded[event.unit_number]` and ignores the event when
 there is no feral entry, or when the entry's unit has another unit
 number.
 
-- With `defines.behavior_result.fail`, the shell gives the unit a wander
-  command for `rewander_ticks`. It does not search for a new target at
-  once, so an unreachable target can't start a loop of failed commands.
+- Any `fail` that no distraction caused marks the monster:
+  `entry.failed_at` takes the current tick. This includes a failed
+  wander, so a stuck unit can't fail-wander every few ticks.
+- After a `fail`, the shell gives the unit a wander command for
+  `rewander_ticks`. It does not search for a new target at once, so an
+  unreachable target can't start a loop of failed commands. If the unit
+  already failed within the window, it gets no new command. The
+  handler sets `entry.awaiting_check = true`, and the next batch check
+  hunts again. A hunt or a wander clears the flag.
 - A `fail` with `was_distracted = true` came from a distraction, not from
   the hunt. The probe checks if the original command resumes after
   such a failure. If it does, the shell ignores the event. If not, it
   gives the wander only.
-- Any other `fail` of a hunt's `attack_area` marks the monster:
-  `entry.failed_at` takes the current tick. The shell sets
-  `entry.hunting = true` when it gives that command. So a failed wander
-  never marks the monster.
+- A `success` sends the monster hunting again at once. If the search
+  returns the same valid `entry.last_target` as the last hunt, the unit
+  gets a wander instead. This stops a loop of attacks on a target that
+  the monster can't harm. A wander clears `last_target`.
 - The probe-table fallback can treat a `success` as a failure. That
   marks the monster too.
 - While `failed_at` is less than `retry_wanders × rewander_ticks` ago,
@@ -441,6 +448,11 @@ The rules in `docs/architecture.md` apply. New and changed modules:
   water, it tries at most one attack per `retry_wanders × rewander_ticks`.
   After that time it hunts again.
 - A `fail` caused by a distraction does not mark the monster.
+- A success that returns the same valid target gives a wander, not
+  another attack. A different target gets an `attack_area`.
+- A tamed monster near a native gets an `attack_area` from the check
+  when its command is another type. One that already has an
+  `attack_area` keeps it.
 - A feral monster that wanders with no target in range searches again
   after `rewander_ticks`. A player chest placed within `seek_distance`
   during the wander becomes its target.
@@ -484,7 +496,8 @@ Each PR follows the workflow in `CLAUDE.md`, with a CHANGELOG entry.
 - **Feral entries in the batch.** Feral monsters stay in
   `storage.loaded`, so they take batch slots. At large counts, tamed
   monsters get their idle check less often. A feral entry that
-  needs no restart costs only one `has_command` call, and the batch size bounds
+  needs no restart costs only a read of `awaiting_check` and
+  `has_command`, and the batch size bounds
   the cost per tick.
 - **Players near a launcher.** A rocket that spoils inside a launcher
   hatches next to it. If a player stands there, the monster goes feral
