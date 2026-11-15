@@ -57,8 +57,9 @@ local function base_kind()
       time = Balance.stasis.research.time,
       packs = PACKS,
     },
-    -- The prototypes of other mods that the kind needs. The base ward
-    -- needs none here: data.lua asserts its vanilla ingredients.
+    -- The prototypes of other mods that the kind needs. The builder does
+    -- not read this field: Stasis.kinds does, when it picks the kinds.
+    -- The base ward needs none: data.lua asserts its vanilla ingredients.
     needs = {},
   }
 end
@@ -253,6 +254,9 @@ end
 -- lifecycle items. Lifecycle.prototypes and Ordnance.prototypes
 -- return such lists.
 function Stasis.prototypes(sources, kinds)
+  if not kinds then
+    error("stasis: Stasis.prototypes needs a list of kinds")
+  end
   local by_name = {}
   for _, p in ipairs(sources) do
     if p.spoil_ticks then
