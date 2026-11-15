@@ -168,3 +168,140 @@ test("a feral monster kill drops no nest loot", function()
     end)
   end)
 end)
+
+test("an idle loaded monster goes feral at its next check", function()
+  with_entry({ 3240, 3000 }, "ao-biter-larva-explosive", function(entry)
+    entry.idle_since = game.tick - f.idle_ticks
+    FeralShell.check(entry.unit.unit_number, game.tick, 0.99)
+    local feral = entry.feral
+    entry.unit.destroy()
+    assert(feral, "the idle monster stayed tamed")
+  end)
+end)
+
+test("a native in range clears the idle clock", function()
+  with_entry({ 3280, 3000 }, "ao-biter-larva-explosive", function(entry)
+    local p = entry.unit.position
+    local native = surface().create_entity({
+      name = "small-biter",
+      position = { p.x + 10, p.y },
+      force = "enemy",
+    })
+    native.disabled_by_script = true
+    entry.idle_since = game.tick - 100
+    FeralShell.check(entry.unit.unit_number, game.tick, 0.99)
+    local idle = entry.idle_since
+    native.destroy()
+    entry.unit.destroy()
+    assert(idle == nil, "the idle clock still runs")
+  end)
+end)
+
+test("a feral monster with no command gets one at its next check", function()
+  with_entry({ 3320, 3000 }, "ao-biter-larva-explosive", function(entry)
+    FeralShell.go_feral(entry, game.tick)
+    entry.unit.commandable.set_command({
+      type = defines.command.stop,
+      ticks_to_wait = 1,
+    })
+    after_ticks(5, function()
+      FeralShell.check(entry.unit.unit_number, game.tick, 0.99)
+      local has_command = entry.unit.commandable.has_command
+      entry.unit.destroy()
+      assert(has_command, "the feral monster has no command")
+    end)
+  end)
+end)
+
+test("a failed hunt marks the monster, a distraction does not", function()
+  with_entry({ 3360, 3000 }, "ao-biter-larva-explosive", function(entry)
+    FeralShell.go_feral(entry, game.tick)
+    local number = entry.unit.unit_number
+    entry.hunting = true
+    FeralShell.completed({
+      unit_number = number,
+      result = defines.behavior_result.fail,
+      was_distracted = true,
+      tick = game.tick,
+    })
+    local after_distraction = entry.failed_at
+    local still_hunting = entry.hunting
+    FeralShell.completed({
+      unit_number = number,
+      result = defines.behavior_result.fail,
+      was_distracted = false,
+      tick = game.tick,
+    })
+    local after_fail = entry.failed_at
+    local hunting = entry.hunting
+    entry.unit.destroy()
+    assert(after_distraction == nil, "a distraction marked the monster")
+    assert(still_hunting == true, "a distraction ended the hunt")
+    assert(after_fail == game.tick, "a failed hunt did not mark the monster")
+    assert(hunting == false, "the monster still hunts after a failure")
+  end)
+end)
+
+test("a failure of another unit number leaves the entry alone", function()
+  with_entry({ 3380, 3000 }, "ao-biter-larva-explosive", function(entry)
+    FeralShell.go_feral(entry, game.tick)
+    entry.hunting = true
+    FeralShell.completed({
+      unit_number = entry.unit.unit_number + 1000000,
+      result = defines.behavior_result.fail,
+      was_distracted = false,
+      tick = game.tick,
+    })
+    local failed_at = entry.failed_at
+    entry.unit.destroy()
+    assert(failed_at == nil, "another unit's failure marked the monster")
+  end)
+end)
+
+test("a marked monster wanders instead of hunting", function()
+  with_entry({ 3400, 3000 }, "ao-biter-larva-explosive", function(entry)
+    local p = entry.unit.position
+    local chest = Helpers.chest(surface(), { p.x + 20, p.y })
+    FeralShell.go_feral(entry, game.tick)
+    entry.failed_at = game.tick
+    FeralShell.hunt(entry, game.tick + 1)
+    local while_marked = entry.hunting
+    FeralShell.hunt(entry, game.tick + f.retry_wanders * f.rewander_ticks)
+    local afterwards = entry.hunting
+    chest.destroy()
+    entry.unit.destroy()
+    assert(while_marked == false, "a marked monster hunted")
+    assert(afterwards == true, "the mark did not end")
+  end)
+end)
+
+test("a monster that dies under the feral cursor does not stop the check", function()
+  with_entry({ 3440, 3000 }, "ao-biter-larva-explosive", function(first)
+    storage.feral_cursor = first.unit.unit_number
+    first.unit.destroy()
+    after_ticks(2, function()
+      local cursor = storage.feral_cursor
+      assert(cursor == nil or storage.loaded[cursor] ~= nil, "the cursor points at a removed entry")
+    end)
+  end)
+end)
+
+tags("space-age")
+test("a Gleba native keeps a tamed monster from idling", function()
+  with_entry({ 3480, 3000 }, "ao-biter-larva-explosive", function(entry)
+    local p = entry.unit.position
+    local native = surface().create_entity({
+      name = "small-strafer-pentapod",
+      position = { p.x + 10, p.y },
+      force = "enemy",
+    })
+    entry.idle_since = game.tick - 100
+    FeralShell.check(entry.unit.unit_number, game.tick, 0.99)
+    local idle = entry.idle_since
+    if native.valid then
+      native.destroy()
+    end
+    entry.unit.destroy()
+    assert(idle == nil, "a spider unit did not count as a native")
+  end)
+end)
