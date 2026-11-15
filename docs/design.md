@@ -245,16 +245,20 @@ monster goes feral in three ways:
 
 - **Too close.** A player stands inside its feral radius.
 - **Idle.** It has had nothing to fight for 5 minutes, for example after it
-  cleared a nest or landed on a planet with no natives.
+  cleared a nest or landed on a planet with no natives. Idle means no entity
+  of the natives within 32 tiles.
 - **Unstable.** Every minute it has a small chance to go feral, and the
   chance grows with each payload it carries.
 
 Feral monsters attack the nearest target, including you and your buildings,
 and their payload still goes off when they die. A feral monster joins its own
-force, which is hostile to everyone, so the natives fight it too.
+force, which is hostile to everyone, so the natives fight it too. A feral
+monster hunts the nearest enemy within 64 tiles. A failed hunt makes it
+wander for about 50 s before it hunts again.
 
 - **Feral radius.** Grows with payload count and monster size. For a
   one-slot biter it is around 5 tiles. For the Abomination it is around 20.
+  It grows by 1 tile per size step.
 - **Spoiled larvae.** A loaded larva that spoils, warded or not, becomes
   its full monster at once, already loaded. A nuke larva that spoils on a belt
   is a serious risk. Spoiled eggs hatch a wild, unloaded
@@ -265,7 +269,8 @@ force, which is hostile to everyone, so the natives fight it too.
   species, and the one-nuke-per-monster rule.
 
 The larva targeting remote's flare could release pollution at the target
-and draw native attacks, as a pheromone flare. Slice 4 decides.
+and draw native attacks, as a pheromone flare. An open question for a later
+version.
 
 Feral monsters can be re-tamed with a pacifier facehugger (see
 [Facehuggers](#facehuggers)), which brings them back with their payload
@@ -367,7 +372,7 @@ It proves the core loop before adding planets. Ticked items are in the mod.
 - [x] Death effects for all three payloads, plus the acid trail while alive
 - [x] Larva rockets and the larva launcher. The monster appears where it
   lands.
-- [ ] Feral behaviour: monsters attack everything when a player comes too
+- [x] Feral behaviour: monsters attack everything when a player comes too
   close, when they stay idle, or by a chance per payload
 - [x] Spoil outcomes: eggs hatch wild, loaded larvae become loaded monsters
 - [x] Stasis ward that slows the spoil timer 20 times
@@ -422,7 +427,9 @@ hard parts are prototype count, demolishers and the player transformation.
   monster force.
 - **Feral check.** Every 30 ticks as a starting value, search around each
   player with the largest feral radius and check the matches against
-  `storage`.
+  `storage`. The too-close scan uses the character's position, and only
+  players with a character count. A batched pass runs the idle and unstable
+  checks.
 - **Jazz.** A `working_sound` on the jazz pod with a short
   `audible_distance_modifier`.
 - **Demolisher hatchlings.** A full demolisher is a chain of linked
@@ -511,6 +518,8 @@ Answered:
 
 Open:
 
+- [ ] Do feral monsters warn the player, and how? Slice 4 shows "Feral!"
+  above the monster for 3 s.
 - [ ] Artillery shells (version 2): larva rockets are already artillery
   ammo. Should artillery shells reuse them, with no new item per larva?
 - [ ] Stasis ward materials: the ward could use Aquilo materials, which fits
