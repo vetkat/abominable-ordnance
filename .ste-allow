@@ -43,5 +43,11 @@ vague-association | docs/superpowers/reviews/*.md | | records the reviewers' wor
 # Names of a Space Age planet and a proposed item in the design.
 spelling | docs/design.md | Aquilo | the Space Age planet
 spelling | docs/superpowers/*/*.md | Aquilo | the Space Age planet
+spelling | docs/*.md | cryo | Space Age game term (cryogenic)
+spelling | docs/superpowers/*/*.md | cryo | Space Age game term (cryogenic)
+spelling | docs/*.md | fluoroketone | Space Age fluid name
+spelling | docs/superpowers/*/*.md | fluoroketone | Space Age fluid name
+spelling | docs/superpowers/*/*.md | railgun | Space Age weapon name
+spelling | docs/superpowers/*/*.md | railgun's | Space Age weapon name
 ing-form | docs/superpowers/specs/*-stasis-design.md | | names of recipes and actions (Packing, Unpacking, spoiling)
 spelling | docs/design.md | cryo | part of the proposed item name, cryo gel
