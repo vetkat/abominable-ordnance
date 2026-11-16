@@ -57,47 +57,64 @@ test("a poison hit hurts a biter and not a chest beside it", function()
   assert(#survivors == 1, #survivors .. " survivors")
 end)
 
-test("a hit spares the entity it is told to skip", function()
+test("a hit spares the entity it is told to skip and hurts the one beside it", function()
   local position = { 4040, 4000 }
   Helpers.arena(surface(), position)
-  local native = surface().create_entity({
-    name = "medium-biter",
-    position = position,
-    force = "enemy",
-  })
-  native.disabled_by_script = true
+  local function biter(dx)
+    local native = surface().create_entity({
+      name = "medium-biter",
+      position = { position[1] + dx, position[2] },
+      force = "enemy",
+    })
+    native.disabled_by_script = true
+    return native
+  end
+  local spared, other = biter(0), biter(1)
   Damage.hit({
     surface = surface(),
-    position = native.position,
-    radius = 2,
+    position = spared.position,
+    radius = 3,
     payload = "acid",
     damage = 10,
     force = "ao-tamed",
-    skip = native,
+    skip = spared,
   })
-  local whole = native.health == native.max_health
-  native.destroy()
-  assert(whole, "the skipped native is hurt")
+  local spared_whole = spared.health == spared.max_health
+  local other_hurt = other.health < other.max_health
+  spared.destroy()
+  other.destroy()
+  assert(spared_whole, "the skipped native is hurt")
+  assert(other_hurt, "the native that is not skipped is untouched")
 end)
 
 test("a hit still hurts a force's own chest when that force has friendly fire off", function()
   local position = { 4060, 3960 }
   Helpers.arena(surface(), position)
   local player = game.forces["player"]
+  local plain = Helpers.chest(surface(), { position[1] + 5, position[2] })
   local chest = Helpers.chest(surface(), { position[1] + 1, position[2] })
   local old = player.friendly_fire
   player.friendly_fire = false
-  Damage.hit({
-    surface = surface(),
-    position = { x = position[1], y = position[2] },
-    radius = 3,
-    payload = "explosive",
-    damage = 10,
-    force = "player",
-  })
+  -- A plain hit is the control: the engine swallows it. The flag goes
+  -- back before any assert, even when the hit itself fails.
+  local ok, err = pcall(function()
+    plain.damage(10, "player", "explosion")
+    Damage.hit({
+      surface = surface(),
+      position = { x = position[1], y = position[2] },
+      radius = 3,
+      payload = "explosive",
+      damage = 10,
+      force = "player",
+    })
+  end)
   player.friendly_fire = old
+  local plain_whole = plain.health == plain.max_health
   local was_hurt = chest.health < chest.max_health
+  plain.destroy()
   chest.destroy()
+  assert(ok, err)
+  assert(plain_whole, "control: a plain hit hurt the chest, so the engine does not swallow it")
   assert(was_hurt, "the chest is untouched")
 end)
 
@@ -108,6 +125,14 @@ end
 local function distance(a, b)
   local dx, dy = a.x - b.x, a.y - b.y
   return math.sqrt(dx * dx + dy * dy)
+end
+
+local function destroy_all(things)
+  for _, entity in pairs(things) do
+    if entity.valid then
+      entity.destroy()
+    end
+  end
 end
 
 local function with_entry(position, item, after)
@@ -138,24 +163,34 @@ test("an explosive death hurts the same targets as its landing, once", function(
     }
     targets.native.disabled_by_script = true
     targets.tamed.disabled_by_script = true
+    -- The control chest takes one hit of the death's size, so the loss
+    -- of one hit is known after resistances.
+    local control = surface().create_entity({
+      name = "steel-chest",
+      position = { p.x + 12, p.y },
+      force = "player",
+    })
+    local control_before = control.health
+    control.damage(Balance.payload_damage.explosive.damage, Names.TAMED, "explosion")
+    local one_hit = control_before - control.health
+    control.destroy()
+    local before = targets.chest.health
     entry.unit.die()
     after_ticks(2, function()
       local first = {}
       for name, entity in pairs(targets) do
         first[name] = hurt(entity)
       end
-      local chest_health = targets.chest.valid and targets.chest.health
+      local loss = targets.chest.valid and before - targets.chest.health
       after_ticks(60, function()
-        local once = targets.chest.valid and targets.chest.health == chest_health
-        for _, entity in pairs(targets) do
-          if entity.valid then
-            entity.destroy()
-          end
-        end
+        local later = targets.chest.valid and before - targets.chest.health
+        destroy_all(targets)
         for name in pairs(targets) do
           assert(first[name], name .. " is untouched")
         end
-        assert(once, "the chest took a second hit")
+        assert(one_hit > 0, "control: the control chest took no damage")
+        assert(loss == one_hit, "the chest lost " .. tostring(loss) .. ", one hit is " .. one_hit)
+        assert(later == one_hit, "the chest took a second hit")
       end)
     end)
   end)
@@ -181,27 +216,26 @@ test("the first of two explosive monsters kills the second through the queue", f
     -- Only the second death reaches the chest.
     local chest = Helpers.chest(surface(), { second.position.x + 3, second.position.y })
     local radius = Balance.payload_damage.explosive.radius
-    assert(
-      distance(first.position, chest.position) > radius,
-      "precondition: the chest is within reach of the first"
-    )
-    assert(
-      distance(first.position, second.position) <= radius,
-      "precondition: the second is beyond reach of the first"
-    )
+    local out_of_reach = distance(first.position, chest.position) > radius
+    local in_reach = distance(first.position, second.position) <= radius
+    if not (out_of_reach and in_reach) then
+      destroy_all({ first, second, chest })
+      assert(out_of_reach, "precondition: the chest is within reach of the first")
+      assert(in_reach, "precondition: the second is beyond reach of the first")
+    end
     local ids = { first.unit_number, second.unit_number }
     first.die()
+    -- The death only queued its detonation, and no tick passed.
+    local second_alive = second.valid
+    local queued = next(storage.detonations) ~= nil
     after_ticks(3, function()
       local second_gone = not second.valid
       local chest_hurt = hurt(chest)
       local queue_empty = next(storage.detonations) == nil
       local entries_left = storage.loaded[ids[1]] ~= nil or storage.loaded[ids[2]] ~= nil
-      if chest.valid then
-        chest.destroy()
-      end
-      if second.valid then
-        second.destroy()
-      end
+      destroy_all({ chest, second })
+      assert(second_alive, "the first death killed the second inside its own event")
+      assert(queued, "the first death left nothing in the queue")
       assert(second_gone, "the first death did not kill the second monster")
       assert(chest_hurt, "the second death did not run")
       assert(queue_empty, "the queue still holds a detonation")
@@ -218,20 +252,27 @@ test(
     local gone = game.forces["ao-damage-gone"] or game.create_force("ao-damage-gone")
     local chest = Helpers.chest(surface(), { position[1] + 1, position[2] })
     Damage.queue(surface(), { x = position[1], y = position[2] }, { "explosive" }, gone.name)
+    local queued = next(storage.detonations) ~= nil
     game.merge_forces(gone, "player")
     after_ticks(3, function()
       local whole = chest.valid and chest.health == chest.max_health
       local empty = next(storage.detonations) == nil
       chest.destroy()
+      assert(queued, "precondition: the detonation did not reach the queue")
       assert(whole, "the chest took damage from a gone force")
       assert(empty, "the detonation is still in the queue")
     end)
   end
 )
 
-test("a feral monster's explosive death kills a nest and drops no eggs", function()
-  with_entry({ 4180, 4000 }, "ao-biter-larva-explosive", function(entry)
-    FeralShell.go_feral(entry, game.tick)
+-- Kills a nest (10 health) by the explosive death of a loaded monster
+-- beside it, and passes finish(nest_dead, eggs). A feral monster is on
+-- the feral force, which never earns loot.
+local function nest_death(position, feral, finish)
+  with_entry(position, "ao-biter-larva-explosive", function(entry)
+    if feral then
+      FeralShell.go_feral(entry, game.tick)
+    end
     local p = entry.unit.position
     local spawner = surface().create_entity({
       name = "biter-spawner",
@@ -245,12 +286,23 @@ test("a feral monster's explosive death kills a nest and drops no eggs", functio
     after_ticks(3, function()
       local dead = not spawner.valid
       local eggs = Helpers.count_items(surface(), spot, "ao-biter-egg")
-      if spawner.valid then
-        spawner.destroy()
-      end
-      assert(dead, "the nest survived")
-      assert(eggs == 0, eggs .. " eggs dropped")
+      destroy_all({ spawner })
+      finish(dead, eggs)
     end)
+  end)
+end
+
+test("a feral monster's explosive death kills a nest and drops no eggs", function()
+  nest_death({ 4180, 4000 }, true, function(dead, eggs)
+    assert(dead, "the nest survived")
+    assert(eggs == 0, eggs .. " eggs dropped")
+  end)
+end)
+
+test("a tamed monster's explosive death kills a nest and drops eggs", function()
+  nest_death({ 4220, 4000 }, false, function(dead, eggs)
+    assert(dead, "the nest survived")
+    assert(eggs >= 1, "control: the tamed kill dropped no eggs")
   end)
 end)
 
@@ -262,4 +314,23 @@ test("a configuration change creates the queue", function()
   local created = storage.detonations ~= nil and storage.detonation_counter == 0
   storage.detonations, storage.detonation_counter = detonations, counter
   assert(created, "the queue is missing after a configuration change")
+end)
+
+test("a save without the queue gets it from the first tick and the first death", function()
+  local detonations, counter = storage.detonations, storage.detonation_counter
+  storage.detonations = nil
+  storage.detonation_counter = nil
+  after_ticks(2, function()
+    local after_tick = storage.detonations ~= nil and storage.detonation_counter ~= nil
+    storage.detonations = nil
+    storage.detonation_counter = nil
+    local position = { x = 4260, y = 4000 }
+    Damage.queue(surface(), position, { "explosive" }, Names.TAMED)
+    local after_queue = storage.detonations ~= nil and storage.detonation_counter == 1
+    local queued = next(storage.detonations) ~= nil
+    storage.detonations, storage.detonation_counter = detonations or {}, counter or 0
+    assert(after_tick, "a tick did not create the queue")
+    assert(after_queue, "a death did not create the queue")
+    assert(queued, "the death is not in the queue")
+  end)
 end)

@@ -215,11 +215,24 @@ test(
       force = "player",
     })
     local chest = Helpers.chest(surface(), { to[1] + 1, to[2] })
+    local plain = Helpers.chest(surface(), { from[1] + 5, from[2] })
+    -- A plain hit is the control: with friendly fire off, the engine
+    -- swallows it. The flag goes back in the landing callback, or at
+    -- once when the shot itself fails.
     player.friendly_fire = false
-    fire(from, to, "ao-larva-projectile-biter-explosive", launcher)
+    plain.damage(10, "player", "explosion")
+    local plain_whole = plain.health == plain.max_health
+    plain.destroy()
+    local ok, err = pcall(fire, from, to, "ao-larva-projectile-biter-explosive", launcher)
+    if not ok then
+      player.friendly_fire = old
+      settle_blast(to, { chest = chest }, launcher)
+      error(err)
+    end
     once_landed(to, 1, 300, function(hatched)
       player.friendly_fire = old
       local hurt = settle_blast(to, { chest = chest }, launcher)
+      assert(plain_whole, "control: a plain hit hurt the chest, so the engine does not swallow it")
       assert(hatched, "the monster did not hatch within 300 ticks")
       assert(hurt.chest, "the chest is untouched")
     end)
@@ -241,12 +254,16 @@ test("a larva rocket that lands in water sets off its payload through the queue"
   local queue, queued = Damage.queue, 0
   ---@diagnostic disable-next-line: duplicate-set-field
   Damage.queue = function(on, position, payloads, force)
-    if position.x == to[1] and position.y == to[2] then
+    if math.abs(position.x - to[1]) < 1 and math.abs(position.y - to[2]) < 1 then
       queued = queued + #payloads
     end
     return queue(on, position, payloads, force)
   end
-  fire(from, to, "ao-larva-projectile-biter-poison")
+  local ok, err = pcall(fire, from, to, "ao-larva-projectile-biter-poison")
+  if not ok then
+    Damage.queue = queue
+    error(err)
+  end
   after_ticks(120, function()
     Damage.queue = queue
     local clouds = surface().find_entities_filtered({

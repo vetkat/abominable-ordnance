@@ -23,9 +23,7 @@ local function random()
   return r
 end
 
-local function entity_exists(name)
-  return prototypes.entity[name] ~= nil
-end
+local entity_exists = Damage.entity_exists
 
 -- Creates one of the units near a position, sized by the
 -- evolution there, and sends it to attack the area. A unit with no

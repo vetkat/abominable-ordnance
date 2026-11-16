@@ -9,7 +9,9 @@ local Trail = require("core.trail")
 
 local Damage = {}
 
-local function entity_exists(name)
+-- True when a prototype with this name exists. Another mod can remove
+-- one.
+function Damage.entity_exists(name)
   return prototypes.entity[name] ~= nil
 end
 
@@ -102,17 +104,28 @@ end
 
 -- One hit of a payload. hit has surface, position, radius, payload,
 -- damage and force (a force name). It may have cause (the entity that
--- set it off) and skip (an entity the hit spares). It checks each
--- target before the hit, because an earlier target's death can take a
--- later one with it. Returns the targets that still exist after the
--- hit.
+-- set it off) and skip (an entity the hit spares). No caller uses skip
+-- before the acid trail of PR 3. The hit checks each target first,
+-- because an earlier target's death can take a later one with it. It
+-- returns the targets that still exist.
+--
+-- The natives may deal the hit for a force with friendly fire off. Then
+-- the hit has no cause, because a cause from another force would
+-- mislead.
 function Damage.hit(hit)
   local kind = Payloads.damage_type(hit.payload)
   local survivors = {}
+  -- The attacker for each target force, read once per hit.
+  local attackers = {}
   for _, target in ipairs(Damage.targets(hit.surface, hit.position, hit.radius, hit.payload)) do
     if target.valid and target ~= hit.skip then
-      local attacker = Forces.attacker(hit.force, target.force.name, target.force.friendly_fire)
-      target.damage(hit.damage, attacker, kind, nil, hit.cause)
+      local force = target.force
+      local attacker = attackers[force.name]
+      if not attacker then
+        attacker = Forces.attacker(hit.force, force.name, force.friendly_fire)
+        attackers[force.name] = attacker
+      end
+      target.damage(hit.damage, attacker, kind, nil, attacker == hit.force and hit.cause or nil)
       if target.valid then
         survivors[#survivors + 1] = target
       end
@@ -121,8 +134,17 @@ function Damage.hit(hit)
   return survivors
 end
 
+-- A save from before the queue has neither field, and a mod update
+-- with the same version never runs on_configuration_changed. So the
+-- queue creates its fields when it finds them missing.
+local function ensure_queue()
+  storage.detonations = storage.detonations or {}
+  storage.detonation_counter = storage.detonation_counter or 0
+end
+
 -- Adds one detonation per payload to the queue. force is a force name.
 function Damage.queue(surface, position, payloads, force)
+  ensure_queue()
   for _, payload in ipairs(payloads) do
     storage.detonation_counter = storage.detonation_counter + 1
     storage.detonations[storage.detonation_counter] = {
@@ -142,7 +164,7 @@ function Damage.detonate(d)
   if not (surface and game.forces[d.force]) then
     return
   end
-  for _, plan in ipairs(Payloads.on_death({ d.payload }, d.position, entity_exists)) do
+  for _, plan in ipairs(Payloads.on_death({ d.payload }, d.position, Damage.entity_exists)) do
     for _, entity in ipairs(plan.entities) do
       entity.force = d.force
       surface.create_entity(entity)
@@ -162,8 +184,13 @@ end
 
 -- Runs up to detonation_batch detonations. Each one leaves the queue
 -- before it runs, so a detonation that kills more loaded monsters only
--- adds to the queue and never recurses.
+-- adds to the queue and never recurses. The order within a tick follows
+-- next(), not the counter. An empty queue costs one lookup.
 function Damage.run_detonations()
+  ensure_queue()
+  if next(storage.detonations) == nil then
+    return
+  end
   local ids = Trail.batch(storage.detonations, nil, Balance.payload_damage.detonation_batch)
   for _, id in ipairs(ids) do
     local d = storage.detonations[id]
