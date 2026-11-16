@@ -105,14 +105,8 @@ local function load_monster(monster, payload)
   monster.ai_settings.allow_destroy_when_commands_fail = false
   monster.ai_settings.allow_try_return_to_spawner = false
   local payloads = { payload.name }
-  local trail = Payloads.trail(payloads)
-  local entry = {
-    unit = monster,
-    payloads = payloads,
-    trail = trail and entity_exists(trail) and trail or nil,
-  }
-  storage.loaded[monster.unit_number] = entry
-  if entry.trail then
+  storage.loaded[monster.unit_number] = { unit = monster, payloads = payloads }
+  if Payloads.trail(payloads) then
     storage.trails[monster.unit_number] = true
   end
   script.register_on_object_destroyed(monster)
@@ -246,9 +240,10 @@ script.on_event(defines.events.on_object_destroyed, function(event)
   end
 end)
 
--- An acid-loaded monster leaves a small acid puddle where it walks. Each
--- tick visits at most Balance.trail_batch monsters, and a new pass starts
--- at most once per Balance.acid_trail_ticks.
+-- An acid-loaded monster leaves a small acid puddle where it walks, and
+-- one hit damages what stands around it. Each tick visits at most
+-- Balance.trail_batch monsters, and a new pass starts at most once per
+-- Balance.acid_trail_ticks.
 local function trail_tick(tick)
   local go, next_tick =
     Trail.start(storage.trail_cursor, tick, storage.trail_next_tick, Balance.acid_trail_ticks)
@@ -260,13 +255,8 @@ local function trail_tick(tick)
   storage.trail_cursor = cursor
   for _, id in ipairs(ids) do
     local entry = storage.loaded[id]
-    -- Another mod can remove the trail entity after the monster hatched.
-    if entry and entry.unit.valid and entity_exists(entry.trail) then
-      entry.unit.surface.create_entity({
-        name = entry.trail,
-        position = entry.unit.position,
-        force = FeralShell.force_of(entry),
-      })
+    if entry and entry.unit.valid then
+      Damage.trail(entry, FeralShell.force_of(entry))
     end
   end
 end

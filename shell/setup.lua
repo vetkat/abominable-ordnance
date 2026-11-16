@@ -3,6 +3,7 @@
 -- tests can call it.
 local Damage = require("shell.damage")
 local LauncherShell = require("shell.launcher")
+local Payloads = require("core.payloads")
 local Tamed = require("shell.tamed")
 
 local Setup = {}
@@ -15,10 +16,12 @@ function Setup.on_init()
 end
 
 -- A save from slice 2 has acid monsters in storage.loaded but no trail
--- list. The rebuild adds them, and a second run changes nothing.
+-- list. The rebuild adds every monster whose payloads leave a trail, and
+-- a second run changes nothing. A stored entry.trail from an old save no
+-- longer matters.
 local function rebuild_trails()
   for id, entry in pairs(storage.loaded) do
-    if entry.trail then
+    if Payloads.trail(entry.payloads) then
       storage.trails[id] = true
     end
   end

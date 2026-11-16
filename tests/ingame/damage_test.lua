@@ -773,3 +773,86 @@ test("poison hurts a Gleba plant and a demolisher", function()
   assert(plant_hurt, "poison spared the Gleba plant")
   assert(worm_hurt, "poison spared the demolisher")
 end)
+
+-- The acid stickers within half a tile of an entity. A chest cannot
+-- carry a sticker, so this counts them by name nearby.
+local function stickers_on(entity)
+  return surface().count_entities_filtered({
+    name = "acid-sticker-big",
+    position = entity.position,
+    radius = 0.5,
+  })
+end
+
+-- Other tests leave hazards behind, so this test runs the pass by hand
+-- on a table of its own.
+test("an acid pool slows a native unit once per sticker and does not slow a chest", function()
+  local position = { 4960, 4000 }
+  Helpers.arena(surface(), position)
+  local native = surface().create_entity({
+    name = "big-biter",
+    position = { position[1] + 1.5, position[2] },
+    force = "enemy",
+  })
+  native.disabled_by_script = true
+  local chest = Helpers.chest(surface(), { position[1] - 1.5, position[2] })
+  local interval = Balance.payload_damage.hazard_interval
+  local ok, result = pcall(without, HAZARD_FIELDS, function()
+    storage.hazards, storage.hazard_counter = {}, 0
+    add_hazard({ x = position[1], y = position[2] }, "acid", 4 * interval)
+    Damage.run_hazards(game.tick)
+    Damage.run_hazards(game.tick + interval)
+    return {
+      stickers = native.valid and #(native.stickers or {}) or -1,
+      chest = stickers_on(chest),
+    }
+  end)
+  destroy_all({ native, chest })
+  assert(ok, result)
+  assert(result.stickers == 1, result.stickers .. " stickers on the native")
+  assert(result.chest == 0, result.chest .. " stickers on the chest")
+end)
+
+test("an acid monster's trail hurts a chest and another monster, never itself", function()
+  with_entry({ 5000, 4000 }, "ao-biter-larva-acid", function(entry)
+    local p = entry.unit.position
+    local chest = Helpers.chest(surface(), { p.x + 0.8, p.y })
+    local other = surface().create_entity({
+      name = "medium-biter",
+      position = { p.x - 0.8, p.y },
+      force = Names.TAMED,
+    })
+    other.disabled_by_script = true
+    after_ticks(2 * Balance.acid_trail_ticks, function()
+      local chest_hurt = hurt(chest)
+      local other_hurt = hurt(other)
+      local self_whole = entry.unit.health == entry.unit.max_health
+      local puddles = surface().count_entities_filtered({
+        name = Names.PUDDLE,
+        position = p,
+        radius = 2,
+      })
+      destroy_all({ chest, other, entry.unit })
+      assert(chest_hurt, "the trail spared the chest")
+      assert(other_hurt, "the trail spared the other tamed monster")
+      assert(self_whole, "the trail hurt its own monster")
+      assert(puddles >= 1, "no puddle look-alike")
+    end)
+  end)
+end)
+
+test("an old-save entry with the vanilla trail name drops the look-alike", function()
+  with_entry({ 5040, 4000 }, "ao-biter-larva-acid", function(entry)
+    entry.trail = "acid-splash-fire-spitter-small"
+    local p = entry.unit.position
+    after_ticks(2 * Balance.acid_trail_ticks, function()
+      local function count(name)
+        return surface().count_entities_filtered({ name = name, position = p, radius = 2 })
+      end
+      local lookalikes, vanilla = count(Names.PUDDLE), count("acid-splash-fire-spitter-small")
+      entry.unit.destroy()
+      assert(lookalikes >= 1, "no puddle look-alike")
+      assert(vanilla == 0, vanilla .. " vanilla puddles")
+    end)
+  end)
+end)

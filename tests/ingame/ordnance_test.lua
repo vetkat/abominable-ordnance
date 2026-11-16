@@ -185,16 +185,6 @@ test("another object's destruction leaves the loaded entries alone", function()
   end)
 end)
 
-test("an acid trail whose entity is missing does nothing", function()
-  with_loaded_monster({ 980, 700 }, "ao-biter-larva-acid", function(unit)
-    storage.loaded[unit.unit_number].trail = "ao-no-such-puddle"
-    after_ticks(Balance.acid_trail_ticks + 1, function()
-      assert(unit.valid, "the monster is gone")
-      unit.destroy()
-    end)
-  end)
-end)
-
 test("an acid monster is in the trail list", function()
   with_loaded_monster({ 1020, 700 }, "ao-biter-larva-acid", function(unit)
     assert(storage.trails[unit.unit_number], "the acid monster has no trail entry")
@@ -267,6 +257,9 @@ test("every payload effect entity exists", function()
     assert(prototypes.entity[payload.death.entity], payload.death.entity)
     if payload.trail then
       assert(prototypes.entity[payload.trail], payload.trail)
+    end
+    if payload.sticker then
+      assert(prototypes.entity[payload.sticker], payload.sticker)
     end
   end
 end)

@@ -121,10 +121,13 @@ function Damage.damage_type(payload, damage_prototypes)
   return nil
 end
 
+-- Only units and characters can carry a sticker.
+local MOBILE = { unit = true, character = true }
+
 -- One hit of a payload. hit has surface, position, radius, payload,
 -- damage and force (a force name). It may have cause (the entity that
--- set it off) and skip (an entity the hit spares). No caller uses skip
--- before the acid trail of PR 3. The hit checks each target first,
+-- set it off), skip (an entity the hit spares) and sticker (a sticker
+-- name for each mobile survivor). The hit checks each target first,
 -- because an earlier target's death can take a later one with it, and
 -- another mod's death handler can destroy the cause. It returns the
 -- targets that still exist, and the number of targets it damaged. When
@@ -154,6 +157,14 @@ function Damage.hit(hit)
       dealt = dealt + 1
       if target.valid then
         survivors[#survivors + 1] = target
+        if hit.sticker and MOBILE[target.type] then
+          hit.surface.create_entity({
+            name = hit.sticker,
+            position = target.position,
+            target = target,
+            force = hit.force,
+          })
+        end
       end
     end
   end
@@ -254,6 +265,13 @@ function Damage.run_detonations()
   end
 end
 
+-- The payload's sticker, or nil when it has none or another mod removed
+-- its prototype.
+local function sticker_of(payload)
+  local name = Payloads.sticker(payload)
+  return name and Damage.entity_exists(name) and name or nil
+end
+
 -- Deals the summed hits of one hazard visit. Returns false when the
 -- hazard's surface, force or payload no longer exists. Then the hazard
 -- must leave. Also returns the number of targets it damaged.
@@ -270,6 +288,7 @@ local function hazard_hit(hazard, count)
     payload = hazard.payload,
     damage = n.damage * count,
     force = hazard.force,
+    sticker = sticker_of(hazard.payload),
   })
   return true, dealt
 end
@@ -320,6 +339,31 @@ function Damage.run_hazards(tick)
     storage.hazards = {}
     storage.hazard_cursor = nil
   end
+end
+
+-- One trail step of a loaded monster: a puddle look-alike under it and
+-- one hit around it that spares the monster itself. The hit applies
+-- even when another mod removed the look-alike's vanilla puddle.
+function Damage.trail(entry, force)
+  local puddle, payload = Payloads.trail(entry.payloads)
+  if not payload then
+    return
+  end
+  local unit = entry.unit
+  if Damage.entity_exists(puddle) then
+    unit.surface.create_entity({ name = puddle, position = unit.position, force = force })
+  end
+  local n = Balance.payload_damage.trail
+  Damage.hit({
+    surface = unit.surface,
+    position = unit.position,
+    radius = n.radius,
+    payload = payload,
+    damage = n.damage,
+    force = force,
+    cause = unit,
+    skip = unit,
+  })
 end
 
 return Damage

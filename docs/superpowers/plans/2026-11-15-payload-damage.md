@@ -511,6 +511,22 @@ functional-core work loop goes here too.
   counts the look-alike from Task 10 on, not from Task 11. New acid
   monsters drop the look-alike from Task 10 on, so the commit stays
   green. Cost if wrong: none.
+- PR 3, Task 11: the new in-game tests use `x = 4960`, `5000` and
+  `5040`. The plan's spots 4500 to 4580 belong to tests of PR 2. Cost if
+  wrong: none.
+- PR 3, Task 11: the sticker test runs `Damage.run_hazards` by hand on a
+  table of its own, as the test of the drained table does. It runs two
+  hits and asserts one sticker on the native: the engine renews a
+  sticker of the same name and does not stack it. Cost if wrong: the
+  test does not cover the `on_tick` call, which the other hazard tests
+  cover.
+- PR 3, Task 11: the trail tests wait `2 * acid_trail_ticks`, not
+  `acid_trail_ticks + 2`. One full pass then always falls inside the
+  wait. Cost if wrong: a test fails when about 300 loaded monsters
+  from earlier tests still live.
+- PR 3, Task 11: only units and characters get the sticker, as the spec
+  says. The vanilla sticker also slows cars and spider vehicles. Cost
+  if wrong: a car in an acid pool takes damage but does not slow.
 
 ## Interface sheet
 
