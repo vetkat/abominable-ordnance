@@ -58,7 +58,8 @@ local function base_kind()
       packs = PACKS,
     },
     -- The prototypes of other mods that the kind needs. The builder does
-    -- not read this field: Stasis.kinds does, when it picks the kinds.
+    -- not read this. The kind picker that the next PR adds will drop a
+    -- kind whose needs are missing.
     -- The base ward needs none: data.lua asserts its vanilla ingredients.
     needs = {},
   }
@@ -243,7 +244,7 @@ local function kind_prototypes(kind, by_name)
     prerequisites = Common.copy(research.prerequisites),
     count = research.count,
     time = research.time,
-    packs = Common.copy(research.packs),
+    packs = research.packs,
     unlocks = unlocks,
   })
   return out

@@ -338,7 +338,7 @@ describe("the stasis ward", function()
       out = Stubs.by_name(Stasis.prototypes(list, { Stasis.BASE, kind }))
     end)
 
-    local function tints_ok(icons)
+    local function assert_kind_tint(icons)
       local last = icons[#icons]
       assert.are.same(kind.tint, last.tint)
     end
@@ -358,9 +358,10 @@ describe("the stasis ward", function()
 
     it("takes the names from the kind", function()
       for _, name in ipairs(Stasis.lifecycle_names()) do
-        assert.truthy(out["item/" .. kind.warded .. name:gsub("^ao%-", "")], name)
-        assert.truthy(out["recipe/" .. kind.pack .. name:gsub("^ao%-", "")], name)
-        assert.truthy(out["recipe/" .. kind.unpack .. name:gsub("^ao%-", "")], name)
+        local suffix = (name:gsub("^ao%-", ""))
+        assert.truthy(out["item/" .. kind.warded .. suffix], name)
+        assert.truthy(out["recipe/" .. kind.pack .. suffix], name)
+        assert.truthy(out["recipe/" .. kind.unpack .. suffix], name)
       end
       assert.are.equal("zz-warded-biter-egg", Stasis.warded_name(kind, "ao-biter-egg"))
       assert.are.equal("zz-pack-biter-egg", Stasis.pack_recipe(kind, "ao-biter-egg"))
@@ -371,7 +372,7 @@ describe("the stasis ward", function()
       for _, name in ipairs(Stasis.lifecycle_names()) do
         local source = src["item/" .. name] or src["ammo/" .. name]
         local w = out["item/" .. Stasis.warded_name(kind, name)]
-        assert.are.equal(source.spoil_ticks * 7, w.spoil_ticks, name)
+        assert.are.equal(source.spoil_ticks * kind.factor, w.spoil_ticks, name)
         local b = out["item/" .. Stasis.warded_name(Stasis.BASE, name)]
         assert.are.equal(source.spoil_ticks * Stasis.BASE.factor, b.spoil_ticks, name)
       end
@@ -399,8 +400,8 @@ describe("the stasis ward", function()
 
     it("tints every icon of the kind", function()
       for _, name in ipairs(Stasis.lifecycle_names()) do
-        tints_ok(out["item/" .. Stasis.warded_name(kind, name)].icons)
-        tints_ok(out["recipe/" .. Stasis.unpack_recipe(kind, name)].icons)
+        assert_kind_tint(out["item/" .. Stasis.warded_name(kind, name)].icons)
+        assert_kind_tint(out["recipe/" .. Stasis.unpack_recipe(kind, name)].icons)
       end
       assert.are.same(kind.tint, out["technology/" .. kind.research.name].icons[1].tint)
     end)
