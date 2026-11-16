@@ -316,21 +316,90 @@ test("a configuration change creates the queue", function()
   assert(created, "the queue is missing after a configuration change")
 end)
 
-test("a save without the queue gets it from the first tick and the first death", function()
-  local detonations, counter = storage.detonations, storage.detonation_counter
-  storage.detonations = nil
-  storage.detonation_counter = nil
-  after_ticks(2, function()
-    local after_tick = storage.detonations ~= nil and storage.detonation_counter ~= nil
+test(
+  "a save without the queue gets it from the first tick and from a call to Damage.queue",
+  function()
+    local detonations, counter = storage.detonations, storage.detonation_counter
     storage.detonations = nil
     storage.detonation_counter = nil
-    local position = { x = 4260, y = 4000 }
-    Damage.queue(surface(), position, { "explosive" }, Names.TAMED)
-    local after_queue = storage.detonations ~= nil and storage.detonation_counter == 1
-    local queued = next(storage.detonations) ~= nil
-    storage.detonations, storage.detonation_counter = detonations or {}, counter or 0
-    assert(after_tick, "a tick did not create the queue")
-    assert(after_queue, "a death did not create the queue")
-    assert(queued, "the death is not in the queue")
+    after_ticks(2, function()
+      local after_tick = storage.detonations ~= nil and storage.detonation_counter ~= nil
+      storage.detonations = nil
+      storage.detonation_counter = nil
+      local position = { x = 4260, y = 4000 }
+      Damage.queue(surface(), position, { "explosive" }, Names.TAMED)
+      local after_queue = storage.detonations ~= nil and storage.detonation_counter == 1
+      local queued = next(storage.detonations) ~= nil
+      storage.detonations, storage.detonation_counter = detonations or {}, counter or 0
+      assert(after_tick, "a tick did not create the queue")
+      assert(after_queue, "a death did not create the queue")
+      assert(queued, "the death is not in the queue")
+    end)
+  end
+)
+
+-- Kills a chest with 1 health by a hit of a player force. A player
+-- entity is the cause. Then finish(force, cause) gets the names that the
+-- death event reports. The test wraps the death event. The wrapper calls
+-- the mod's own handler for the types that control.lua filters. The
+-- original goes back before the asserts, even when the hit fails.
+local function kill_by_hit(position, friendly_fire, finish)
+  Helpers.arena(surface(), position)
+  local player = game.forces["player"]
+  local old = player.friendly_fire
+  local event_id = defines.events.on_entity_died
+  local original = script.get_event_handler(event_id)
+  local seen
+  script.on_event(event_id, function(event)
+    if event.entity.name == "steel-chest" then
+      seen = { force = event.force, cause = event.cause }
+    end
+    if original and (event.entity.type == "unit-spawner" or event.entity.type == "unit") then
+      original(event)
+    end
+  end)
+  after_ticks(1, function()
+    local chest = Helpers.chest(surface(), { position[1] + 1, position[2] })
+    local cause = Helpers.character(surface(), { position[1] - 3, position[2] })
+    chest.health = 1
+    player.friendly_fire = friendly_fire
+    local ok, err = pcall(Damage.hit, {
+      surface = surface(),
+      position = { x = position[1], y = position[2] },
+      radius = 3,
+      payload = "explosive",
+      damage = 10,
+      force = "player",
+      cause = cause,
+    })
+    player.friendly_fire = old
+    after_ticks(2, function()
+      script.on_event(event_id, original, {
+        { filter = "type", type = "unit-spawner" },
+        { filter = "type", type = "unit" },
+      })
+      local dead = not chest.valid
+      local force_name = seen and seen.force and seen.force.name
+      local cause_name = seen and seen.cause and seen.cause.name
+      destroy_all({ chest, cause })
+      assert(ok, err)
+      assert(dead, "the chest survived")
+      assert(seen, "the death event did not arrive")
+      finish(force_name, cause_name)
+    end)
+  end)
+end
+
+test("a hit that the natives deal for a force with friendly fire off has no cause", function()
+  kill_by_hit({ 4300, 4000 }, false, function(force_name, cause_name)
+    assert(force_name == "enemy", "the kill counts for " .. tostring(force_name))
+    assert(cause_name == nil, "the kill names the cause " .. tostring(cause_name))
+  end)
+end)
+
+test("a hit of a force with friendly fire on keeps its force and its cause", function()
+  kill_by_hit({ 4340, 4000 }, true, function(force_name, cause_name)
+    assert(force_name == "player", "the kill counts for " .. tostring(force_name))
+    assert(cause_name == "character", "the kill names the cause " .. tostring(cause_name))
   end)
 end)
