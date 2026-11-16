@@ -51,3 +51,8 @@ spelling | docs/superpowers/*/*.md | railgun | Space Age weapon name
 spelling | docs/superpowers/*/*.md | railgun's | Space Age weapon name
 ing-form | docs/superpowers/specs/*-stasis-design.md | | names of recipes and actions (Packing, Unpacking, spoiling)
 spelling | docs/design.md | cryo | part of the proposed item name, cryo gel
+
+# The payload damage plan names its throwaway probe folder and its
+# look-alike prototypes (plural "look-alikes").
+spelling | docs/superpowers/plans/*-payload-damage.md | scratchpad | the throwaway probe folder
+spelling | docs/superpowers/plans/*-payload-damage.md | alikes | the plural of look-alike
