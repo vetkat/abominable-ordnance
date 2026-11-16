@@ -308,13 +308,16 @@ end)
 -- The engine checks surface conditions when a player picks a recipe. It
 -- does not check them when a script sets one: a plant on Nauvis with
 -- set_recipe still crafts the ward. So the test pins the data that the
--- picker reads. The recipe asks for pressure 300, and Nauvis has another.
+-- picker reads. The Aquilo half only checks the wiring: the recipe got
+-- the pressure of the planet. The Nauvis half checks the condition: the
+-- recipe leaves Nauvis out.
 tags("space-age")
 test("the cryo ward recipe asks for Aquilo's pressure, and Nauvis has another", function()
   local conditions = prototypes.recipe[Names.CRYO_WARD].surface_conditions
   assert(conditions and #conditions == 1, "the recipe has no single surface condition")
   local c = conditions[1]
   assert(c.property == "pressure", "the condition is on " .. tostring(c.property))
+  assert(c.min == c.max, "the condition spans " .. c.min .. " to " .. c.max)
   local aquilo_pressure = game.planets["aquilo"].prototype.surface_properties["pressure"]
   assert(
     c.min <= aquilo_pressure and aquilo_pressure <= c.max,

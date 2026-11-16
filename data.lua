@@ -69,6 +69,9 @@ end
 -- planet and not from a number of our own.
 local aquilo = (data.raw.planet or {}).aquilo
 local pressure = aquilo and aquilo.surface_properties and aquilo.surface_properties.pressure
+if space_age and aquilo and not pressure then
+  log("Abominable Ordnance: Aquilo has no pressure, so the cryo ward uses the balance value")
+end
 local kinds, missing = Stasis.kinds({ space_age = space_age, has = has, pressure = pressure })
 for _, key in ipairs(missing) do
   log("Abominable Ordnance: no cryo ward, because " .. key .. " is missing")
