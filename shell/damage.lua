@@ -102,18 +102,33 @@ function Damage.targets(surface, position, radius, payload)
   return out
 end
 
+-- The damage type of a payload, or nil when the payload is unknown or
+-- another mod removed its damage type from damage_prototypes.
+function Damage.damage_type(payload, damage_prototypes)
+  local kind = Payloads.damage_type(payload)
+  if kind and damage_prototypes[kind] then
+    return kind
+  end
+  return nil
+end
+
 -- One hit of a payload. hit has surface, position, radius, payload,
 -- damage and force (a force name). It may have cause (the entity that
 -- set it off) and skip (an entity the hit spares). No caller uses skip
 -- before the acid trail of PR 3. The hit checks each target first,
--- because an earlier target's death can take a later one with it. It
--- returns the targets that still exist.
+-- because an earlier target's death can take a later one with it, and
+-- another mod's death handler can destroy the cause. It returns the
+-- targets that still exist. When another mod removed the damage type,
+-- the hit deals no damage.
 --
 -- The natives may deal the hit for a force with friendly fire off. Then
 -- the hit has no cause, because a cause from another force would
 -- mislead.
 function Damage.hit(hit)
-  local kind = Payloads.damage_type(hit.payload)
+  local kind = Damage.damage_type(hit.payload, prototypes.damage)
+  if not kind then
+    return {}
+  end
   local survivors = {}
   -- The attacker for each target force, read once per hit.
   local attackers = {}
@@ -125,7 +140,8 @@ function Damage.hit(hit)
         attacker = Forces.attacker(hit.force, force.name, force.friendly_fire)
         attackers[force.name] = attacker
       end
-      target.damage(hit.damage, attacker, kind, nil, attacker == hit.force and hit.cause or nil)
+      local cause = hit.cause and hit.cause.valid and attacker == hit.force and hit.cause or nil
+      target.damage(hit.damage, attacker, kind, nil, cause)
       if target.valid then
         survivors[#survivors + 1] = target
       end
@@ -161,6 +177,7 @@ end
 -- cause, because the monster no longer exists.
 function Damage.detonate(d)
   local surface = game.get_surface(d.surface)
+  -- When its force no longer exists, the queue drops the detonation.
   if not (surface and game.forces[d.force]) then
     return
   end
@@ -185,7 +202,9 @@ end
 -- Runs up to detonation_batch detonations. Each one leaves the queue
 -- before it runs, so a detonation that kills more loaded monsters only
 -- adds to the queue and never recurses. The order within a tick follows
--- next(), not the counter. An empty queue costs one lookup.
+-- next(), not the counter. An empty queue costs one lookup. A drained
+-- queue starts again as a fresh table. Then the next() of an idle tick
+-- does not scan the empty slots of a large backlog.
 function Damage.run_detonations()
   ensure_queue()
   if next(storage.detonations) == nil then
@@ -196,6 +215,9 @@ function Damage.run_detonations()
     local d = storage.detonations[id]
     storage.detonations[id] = nil
     Damage.detonate(d)
+  end
+  if next(storage.detonations) == nil then
+    storage.detonations = {}
   end
 end
 

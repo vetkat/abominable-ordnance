@@ -26,7 +26,7 @@ test("the class of a biter, a tree, a rock and a chest", function()
     })
     local class = Damage.class_of(entity)
     entity.destroy()
-    assert(class == thing[2], thing[1] .. " is " .. class)
+    assert(class == thing[2], thing[1] .. " is " .. tostring(class))
   end
 end)
 
@@ -224,10 +224,11 @@ test("the first of two explosive monsters kills the second through the queue", f
       assert(in_reach, "precondition: the second is beyond reach of the first")
     end
     local ids = { first.unit_number, second.unit_number }
+    local counter = storage.detonation_counter
     first.die()
     -- The death only queued its detonation, and no tick passed.
     local second_alive = second.valid
-    local queued = next(storage.detonations) ~= nil
+    local queued = storage.detonation_counter > counter
     after_ticks(3, function()
       local second_gone = not second.valid
       local chest_hurt = hurt(chest)
@@ -251,13 +252,14 @@ test(
     Helpers.arena(surface(), position)
     local gone = game.forces["ao-damage-gone"] or game.create_force("ao-damage-gone")
     local chest = Helpers.chest(surface(), { position[1] + 1, position[2] })
+    local counter = storage.detonation_counter
     Damage.queue(surface(), { x = position[1], y = position[2] }, { "explosive" }, gone.name)
-    local queued = next(storage.detonations) ~= nil
+    local queued = storage.detonation_counter > counter
     game.merge_forces(gone, "player")
     after_ticks(3, function()
       local whole = chest.valid and chest.health == chest.max_health
       local empty = next(storage.detonations) == nil
-      chest.destroy()
+      destroy_all({ chest })
       assert(queued, "precondition: the detonation did not reach the queue")
       assert(whole, "the chest took damage from a gone force")
       assert(empty, "the detonation is still in the queue")
@@ -306,13 +308,25 @@ test("a tamed monster's explosive death kills a nest and drops eggs", function()
   end)
 end)
 
-test("a configuration change creates the queue", function()
+-- Runs body with the queue taken out of storage, and puts the queue
+-- back before it re-raises an error of body.
+local function without_queue(body)
   local detonations, counter = storage.detonations, storage.detonation_counter
   storage.detonations = nil
   storage.detonation_counter = nil
-  Setup.on_configuration_changed()
-  local created = storage.detonations ~= nil and storage.detonation_counter == 0
+  local ok, result = pcall(body)
   storage.detonations, storage.detonation_counter = detonations, counter
+  if not ok then
+    error(result)
+  end
+  return result
+end
+
+test("a configuration change creates the queue", function()
+  local created = without_queue(function()
+    Setup.on_configuration_changed()
+    return storage.detonations ~= nil and storage.detonation_counter == 0
+  end)
   assert(created, "the queue is missing after a configuration change")
 end)
 
@@ -326,47 +340,65 @@ test(
       local after_tick = storage.detonations ~= nil and storage.detonation_counter ~= nil
       storage.detonations = nil
       storage.detonation_counter = nil
-      local position = { x = 4260, y = 4000 }
-      Damage.queue(surface(), position, { "explosive" }, Names.TAMED)
-      local after_queue = storage.detonations ~= nil and storage.detonation_counter == 1
-      local queued = next(storage.detonations) ~= nil
+      local ok, result = pcall(function()
+        local position = { x = 4260, y = 4000 }
+        Damage.queue(surface(), position, { "explosive" }, Names.TAMED)
+        return {
+          after_queue = storage.detonations ~= nil and storage.detonation_counter == 1,
+          queued = next(storage.detonations) ~= nil,
+        }
+      end)
       storage.detonations, storage.detonation_counter = detonations or {}, counter or 0
+      if not ok then
+        error(result)
+      end
       assert(after_tick, "a tick did not create the queue")
-      assert(after_queue, "a death did not create the queue")
-      assert(queued, "the death is not in the queue")
+      assert(result.after_queue, "a death did not create the queue")
+      assert(result.queued, "the death is not in the queue")
     end)
   end
 )
 
--- Kills a chest with 1 health by a hit of a player force. A player
--- entity is the cause. Then finish(force, cause) gets the names that the
--- death event reports. The test wraps the death event. The wrapper calls
--- the mod's own handler for the types that control.lua filters. The
--- original goes back before the asserts, even when the hit fails.
-local function kill_by_hit(position, friendly_fire, finish)
-  Helpers.arena(surface(), position)
-  local player = game.forces["player"]
-  local old = player.friendly_fire
+-- Wraps the death event: handler(event) runs first, then the mod's own
+-- handler for the types that control.lua filters. Returns a function
+-- that puts the original handler back. Its filters must match the
+-- on_entity_died filters in control.lua.
+local function wrap_deaths(handler)
   local event_id = defines.events.on_entity_died
   local original = script.get_event_handler(event_id)
-  local chest, cause, seen
-  -- Puts back the flag and the original handler. These filters must
-  -- match the on_entity_died filters in control.lua.
-  local function restore()
-    player.friendly_fire = old
+  script.on_event(event_id, function(event)
+    handler(event)
+    if original and (event.entity.type == "unit-spawner" or event.entity.type == "unit") then
+      original(event)
+    end
+  end)
+  return function()
     script.on_event(event_id, original, {
       { filter = "type", type = "unit-spawner" },
       { filter = "type", type = "unit" },
     })
   end
-  script.on_event(event_id, function(event)
+end
+
+-- Kills a chest with 1 health by a hit of a player force. A player
+-- entity is the cause. Then finish(force, cause) gets the names that the
+-- death event reports. The test wraps the death event. The original
+-- handler goes back before the asserts, even when the hit fails.
+local function kill_by_hit(position, friendly_fire, finish)
+  Helpers.arena(surface(), position)
+  local player = game.forces["player"]
+  local old = player.friendly_fire
+  local chest, cause, seen
+  local unwrap = wrap_deaths(function(event)
     if chest and event.entity == chest then
       seen = { force = event.force, cause = event.cause }
     end
-    if original and (event.entity.type == "unit-spawner" or event.entity.type == "unit") then
-      original(event)
-    end
   end)
+  -- Puts back the flag and the original handler.
+  local function restore()
+    player.friendly_fire = old
+    unwrap()
+  end
   after_ticks(1, function()
     local ok, err = pcall(function()
       chest = Helpers.chest(surface(), { position[1] + 1, position[2] })
@@ -413,5 +445,64 @@ test("a hit of a force with friendly fire on keeps its force and its cause", fun
   kill_by_hit({ 4340, 4000 }, true, function(force_name, cause_name)
     assert(force_name == "player", "the kill counts for " .. tostring(force_name))
     assert(cause_name == "character", "the kill names the cause " .. tostring(cause_name))
+  end)
+end)
+
+test("a payload whose damage type another mod removed has no damage type", function()
+  local known = Damage.damage_type("poison", prototypes.damage)
+  local removed = Damage.damage_type("poison", {})
+  local unknown = Damage.damage_type("glitter", prototypes.damage)
+  assert(known == "poison", "poison has the damage type " .. tostring(known))
+  assert(removed == nil, "a removed damage type gives " .. tostring(removed))
+  assert(unknown == nil, "an unknown payload gives " .. tostring(unknown))
+end)
+
+test("a hit goes on without its cause when a death handler destroys the cause", function()
+  local position = { 4380, 4000 }
+  Helpers.arena(surface(), position)
+  local cause = Helpers.character(surface(), { position[1] - 8, position[2] })
+  local chests = {
+    Helpers.chest(surface(), { position[1] + 1, position[2] }),
+    Helpers.chest(surface(), { position[1] - 1, position[2] }),
+  }
+  for _, chest in ipairs(chests) do
+    chest.health = 1
+  end
+  -- Another mod's handler: the first death destroys the cause.
+  local unwrap = wrap_deaths(function()
+    if cause.valid then
+      cause.destroy()
+    end
+  end)
+  local ok, err = pcall(Damage.hit, {
+    surface = surface(),
+    position = { x = position[1], y = position[2] },
+    radius = 3,
+    payload = "explosive",
+    damage = 10,
+    force = "player",
+    cause = cause,
+  })
+  unwrap()
+  local left = 0
+  for _, chest in ipairs(chests) do
+    left = left + (chest.valid and 1 or 0)
+  end
+  destroy_all(chests)
+  destroy_all({ cause })
+  assert(ok, err)
+  assert(left == 0, left .. " chests survived")
+end)
+
+test("a drained queue starts again as a fresh table", function()
+  local position = { x = 4420, y = 4000 }
+  Helpers.arena(surface(), { position.x, position.y })
+  Damage.queue(surface(), position, { "explosive" }, Names.TAMED)
+  local queue = storage.detonations
+  after_ticks(2, function()
+    local empty = next(storage.detonations) == nil
+    local fresh = storage.detonations ~= queue
+    assert(empty, "the queue still holds a detonation")
+    assert(fresh, "the drained queue is the old table")
   end)
 end)
