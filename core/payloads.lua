@@ -146,7 +146,8 @@ end
 -- One plan per payload of a monster that dies at a position. A plan
 -- names the payload, lists the entities to create, and carries the
 -- script hit (hit) or the hazard (hazard) when the payload has one. A
--- missing prototype takes the entities out, never the damage. An unknown payload gives no plan.
+-- missing prototype takes the entities out, never the damage. An
+-- unknown payload gives no plan.
 function Payloads.on_death(names, position, exists)
   local out = {}
   for _, name in ipairs(names) do

@@ -1,6 +1,7 @@
 -- Sets up storage and the tamed and feral forces, for a new game and for a save
 -- that gains or updates the mod. This module is shell, so the in-game
 -- tests can call it.
+local Damage = require("shell.damage")
 local LauncherShell = require("shell.launcher")
 local Tamed = require("shell.tamed")
 
@@ -9,10 +10,7 @@ local Setup = {}
 function Setup.on_init()
   storage.loaded = storage.loaded or {}
   storage.trails = storage.trails or {}
-  storage.detonations = storage.detonations or {}
-  storage.detonation_counter = storage.detonation_counter or 0
-  storage.hazards = storage.hazards or {}
-  storage.hazard_counter = storage.hazard_counter or 0
+  Damage.ensure_storage()
   Tamed.ensure()
 end
 

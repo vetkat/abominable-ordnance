@@ -18,8 +18,9 @@ function Damage.entity_exists(name)
 end
 
 -- The class sets, built once per load from the prototypes. Every client
--- builds the same sets from the same prototypes, and nothing changes
--- them after the build, so this cache never differs between clients.
+-- builds the same sets from the same prototypes. The only later change
+-- adds a payload's search types, which come from the same sets. So this
+-- cache never differs between clients.
 local classes
 
 -- The organic names, the rock names and the sorted types of the
@@ -39,7 +40,7 @@ local function build_classes()
     end
   end
   table.sort(types)
-  return { organic = organic, rock = rock, organic_types = types }
+  return { organic = organic, rock = rock, organic_types = types, search = {} }
 end
 
 local function class_sets()
@@ -60,16 +61,16 @@ function Damage.class_of(entity)
   return "building"
 end
 
--- The type filter of a payload's search, or nil to search everything.
+-- The type filter of a payload's search, or false to search everything.
 -- A payload that hurts buildings searches everything, because a
 -- building is any other entity. The others search their classes' types.
-local function search_types(payload)
+local function build_search(payload, c)
   if Payloads.hits(payload, "building") then
-    return nil
+    return false
   end
   local types = {}
   if Payloads.hits(payload, "organic") then
-    for _, t in ipairs(class_sets().organic_types) do
+    for _, t in ipairs(c.organic_types) do
       types[#types + 1] = t
     end
   end
@@ -77,6 +78,16 @@ local function search_types(payload)
     types[#types + 1] = "simple-entity"
   end
   return types
+end
+
+-- The type filter of a payload's search, or nil to search everything.
+-- Each payload's filter is built once. The search only reads it.
+local function search_types(payload)
+  local c = class_sets()
+  if c.search[payload] == nil then
+    c.search[payload] = build_search(payload, c)
+  end
+  return c.search[payload] or nil
 end
 
 -- The entities with health within radius of a position that the
@@ -93,11 +104,7 @@ function Damage.targets(surface, position, radius, payload)
     type = types,
   })
   for _, entity in pairs(found) do
-    if
-      entity.valid
-      and entity.is_entity_with_health
-      and Payloads.hits(payload, Damage.class_of(entity))
-    then
+    if entity.is_entity_with_health and Payloads.hits(payload, Damage.class_of(entity)) then
       out[#out + 1] = entity
     end
   end
@@ -153,17 +160,21 @@ function Damage.hit(hit)
   return survivors, dealt
 end
 
--- A save from before the queue has neither field, and a mod update
--- with the same version never runs on_configuration_changed. So the
--- queue creates its fields when it finds them missing.
-local function ensure_queue()
+-- Creates the fields of the queue and the hazards that are missing.
+-- Setup.on_init calls it. A save from before the queue or the hazards
+-- lacks them, and a mod update with the same version never runs
+-- on_configuration_changed. So the queue and the hazard pass call it
+-- too.
+function Damage.ensure_storage()
   storage.detonations = storage.detonations or {}
   storage.detonation_counter = storage.detonation_counter or 0
+  storage.hazards = storage.hazards or {}
+  storage.hazard_counter = storage.hazard_counter or 0
 end
 
 -- Adds one detonation per payload to the queue. force is a force name.
 function Damage.queue(surface, position, payloads, force)
-  ensure_queue()
+  Damage.ensure_storage()
   for _, payload in ipairs(payloads) do
     storage.detonation_counter = storage.detonation_counter + 1
     storage.detonations[storage.detonation_counter] = {
@@ -175,17 +186,10 @@ function Damage.queue(surface, position, payloads, force)
   end
 end
 
--- A save from before the hazards has neither field. Like the queue, the
--- hazard pass creates them when it finds them missing.
-local function ensure_hazards()
-  storage.hazards = storage.hazards or {}
-  storage.hazard_counter = storage.hazard_counter or 0
-end
-
 -- Stores the hazard of a plan. Its first hit is due at once, so the
 -- hazard pass deals it within its budget.
 local function start_hazard(d, plan)
-  ensure_hazards()
+  Damage.ensure_storage()
   storage.hazard_counter = storage.hazard_counter + 1
   storage.hazards[storage.hazard_counter] = Hazards.new(
     d.surface,
@@ -235,7 +239,7 @@ end
 -- queue starts again as a fresh table. Then the next() of an idle tick
 -- does not scan the empty slots of a large backlog.
 function Damage.run_detonations()
-  ensure_queue()
+  Damage.ensure_storage()
   if next(storage.detonations) == nil then
     return
   end
@@ -285,7 +289,7 @@ end
 -- queue. A hit only adds to the queue, so the table gains no key while
 -- the pass walks it.
 function Damage.run_hazards(tick)
-  ensure_hazards()
+  Damage.ensure_storage()
   if next(storage.hazards) == nil then
     return
   end
