@@ -20,7 +20,7 @@ describe("the cryo names and numbers", function()
     assert.are.equal(100, c.factor)
     assert.are.equal(1, c.pack_time)
     assert.are.same({ stack = 50, time = 4, lithium = 2, cold = 10, hot = 5 }, c.ward)
-    assert.are.same({ { property = "pressure", min = 300, max = 300 } }, c.surface_conditions)
+    assert.are.equal(300, c.pressure)
     assert.are.same({ count = 500, time = 60 }, c.research)
   end)
 end)
@@ -79,7 +79,7 @@ describe("the ward kinds", function()
   it("treat missing facts as nothing present", function()
     local kinds, missing = Stasis.kinds({ space_age = true })
     assert.are.same({ Stasis.BASE }, kinds)
-    assert.are.equal(5, #missing)
+    assert.are.equal(#Stasis.CRYO.needs, #missing)
   end)
 
   it("list what the cryo ward needs from Space Age", function()
@@ -93,7 +93,44 @@ describe("the ward kinds", function()
       "fluid/fluoroketone-hot",
       "recipe-category/cryogenics",
       "technology/cryogenic-science-pack",
+      "item/space-science-pack",
+      "item/cryogenic-science-pack",
+      "assembling-machine/cryogenic-plant",
+      "planet/aquilo",
     }, keys)
+  end)
+
+  it("drop the cryo kind when any one need is missing, and keep the base kind", function()
+    for _, need in ipairs(Stasis.CRYO.needs) do
+      local key = Stasis.key(need.type, need.name)
+      local has = has_all()
+      has[key] = nil
+      local kinds, missing = Stasis.kinds({ space_age = true, has = has })
+      assert.are.same({ Stasis.BASE }, kinds, key)
+      assert.are.same({ key }, missing, key)
+    end
+  end)
+
+  it("read the pressure of the ward recipe from the facts", function()
+    local kinds = Stasis.kinds({ space_age = true, has = has_all(), pressure = 123 })
+    assert.are.same(
+      { { property = "pressure", min = 123, max = 123 } },
+      kinds[2].recipe.surface_conditions
+    )
+  end)
+
+  it("fall back to the balance pressure when the facts give none", function()
+    local kinds = Stasis.kinds({ space_age = true, has = has_all() })
+    assert.are.same(
+      { { property = "pressure", min = 300, max = 300 } },
+      kinds[2].recipe.surface_conditions
+    )
+  end)
+
+  it("build the cryo kind without sharing a table between two kinds", function()
+    local a, b = Stasis.cryo_kind(10), Stasis.cryo_kind(20)
+    assert.are.equal(10, a.recipe.surface_conditions[1].min)
+    assert.are.equal(20, b.recipe.surface_conditions[1].min)
   end)
 end)
 
@@ -105,16 +142,14 @@ describe("the cryo ward", function()
       assert.is_nil(seen[key], key .. " twice")
       seen[key] = true
     end
-    assert.are.equal(
-      67,
-      (function()
-        local n = 0
-        for _ in pairs(seen) do
-          n = n + 1
-        end
-        return n
-      end)()
-    )
+    local base = #Stasis.prototypes(sources(), { Stasis.BASE })
+    local cryo_only = #Stasis.prototypes(sources(), { Stasis.CRYO }) - 1
+    local total = 0
+    for _ in pairs(seen) do
+      total = total + 1
+    end
+    assert.are.equal(base + cryo_only, total)
+    assert.are.equal(67, total)
   end)
 
   it("makes no cryo prototype from the base kind alone", function()
@@ -224,6 +259,7 @@ describe("the cryo ward", function()
     local cryo = all["item/ao-cryo-ward"].icons[1].tint
     assert.are_not.same(base, cryo)
     assert.are.same(cryo, Stasis.CRYO_TINT)
+    assert.are.same({ r = 0.3, g = 0.55, b = 1, a = 1 }, Stasis.CRYO_TINT)
     local warded = all["item/ao-cryo-warded-biter-egg"].icons
     assert.are.same(Stasis.CRYO_TINT, warded[#warded].tint)
   end)

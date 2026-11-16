@@ -252,34 +252,55 @@ local function aquilo(x, y)
   return on
 end
 
--- Calls fn once the plant is no longer frozen, within tries seconds.
-local function once_warm(plant, tries, fn)
+local function destroy_all(entities)
+  for _, entity in ipairs(entities) do
+    if entity.valid then
+      entity.destroy()
+    end
+  end
+end
+
+-- Calls fn once the plant is no longer frozen, within tries seconds. When
+-- the plant stays frozen, it destroys the entities in cleanup first, so
+-- the failure leaves nothing behind.
+local function once_warm(plant, tries, cleanup, fn)
   if not plant.frozen then
     return fn()
   end
-  assert(tries > 0, "the cryogenic plant stayed frozen")
+  if tries <= 0 then
+    destroy_all(cleanup)
+    error("the cryogenic plant stayed frozen")
+  end
   after_ticks(60, function()
-    once_warm(plant, tries - 1, fn)
+    once_warm(plant, tries - 1, cleanup, fn)
   end)
 end
 
 tags("space-age")
-test("a cryogenic plant on Aquilo makes a cryo ward and gives hot fluoroketone back", function()
+test("a heated cryogenic plant on Aquilo makes a cryo ward and stays unfrozen", function()
   local on = aquilo(8, 8)
   local plant = cryogenic_plant(on, 8.5, 8.5)
   local tower = heat(on, 8.5, 8.5)
-  once_warm(plant, 20, function()
+  once_warm(plant, 20, { plant, tower }, function()
     plant.set_recipe(Names.CRYO_WARD)
     plant.insert({ name = "lithium-plate", count = 2 })
     local poured = plant.insert_fluid({ name = "fluoroketone-cold", amount = 10 })
-    assert(poured == 10, "poured " .. poured .. " cold fluoroketone")
+    if poured ~= 10 then
+      destroy_all({ plant, tower })
+      error("poured " .. poured .. " cold fluoroketone")
+    end
     after_ticks(300, function()
       local wards = output(plant).get_item_count(Names.CRYO_WARD)
       local hot = plant.get_fluid_contents()["fluoroketone-hot"] or 0
-      tower.destroy()
-      plant.destroy()
-      assert(wards == 1, wards .. " cryo wards")
-      assert(hot >= 4.99, hot .. " hot fluoroketone back")
+      -- The unheated control freezes within 600 ticks. A plant that is
+      -- still warm after the same window got its heat from the tower.
+      after_ticks(300, function()
+        local frozen = plant.frozen
+        destroy_all({ plant, tower })
+        assert(wards == 1, wards .. " cryo wards")
+        assert(hot >= 4.99, hot .. " hot fluoroketone back")
+        assert(not frozen, "the heated plant froze")
+      end)
     end)
   end)
 end)

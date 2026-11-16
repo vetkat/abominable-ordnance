@@ -65,7 +65,11 @@ local has = {}
 for _, need in ipairs(Stasis.CRYO.needs) do
   has[Stasis.key(need.type, need.name)] = (data.raw[need.type] or {})[need.name] ~= nil
 end
-local kinds, missing = Stasis.kinds({ space_age = space_age, has = has })
+-- The ward recipe runs where Aquilo's pressure holds, so read it from the
+-- planet and not from a number of our own.
+local aquilo = (data.raw.planet or {}).aquilo
+local pressure = aquilo and aquilo.surface_properties and aquilo.surface_properties.pressure
+local kinds, missing = Stasis.kinds({ space_age = space_age, has = has, pressure = pressure })
 for _, key in ipairs(missing) do
   log("Abominable Ordnance: no cryo ward, because " .. key .. " is missing")
 end

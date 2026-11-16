@@ -26,14 +26,9 @@ local PACKS = {
   "chemical-science-pack",
 }
 
-local CRYO_PACKS = {
-  "automation-science-pack",
-  "logistic-science-pack",
-  "military-science-pack",
-  "chemical-science-pack",
-  "space-science-pack",
-  "cryogenic-science-pack",
-}
+local CRYO_PACKS = Common.copy(PACKS)
+CRYO_PACKS[#CRYO_PACKS + 1] = "space-science-pack"
+CRYO_PACKS[#CRYO_PACKS + 1] = "cryogenic-science-pack"
 
 -- The ward recipe fields that a kind may set beyond its ingredients.
 local WARD_RECIPE_FIELDS =
@@ -95,9 +90,12 @@ Stasis.BASE = base_kind()
 -- into Aquilo's loop. The pressure condition keeps the recipe on
 -- Aquilo. The plant takes quality modules, so the recipe allows no
 -- quality and no recycling: a ward made with quality and recycled would
--- give lithium plates a second roll.
-local function cryo_kind()
+-- give lithium plates a second roll. The recipe needs the pressure of
+-- Aquilo, which the data stage reads from the planet. Without a
+-- pressure, the kind falls back to the balance value.
+function Stasis.cryo_kind(pressure)
   local c = Balance.cryo
+  pressure = pressure or c.pressure
   return {
     name = Names.CRYO_WARD,
     factor = c.factor,
@@ -115,7 +113,7 @@ local function cryo_kind()
         fluid("fluoroketone-cold", c.ward.cold),
       },
       results = { item(Names.CRYO_WARD, 1), fluid("fluoroketone-hot", c.ward.hot) },
-      surface_conditions = c.surface_conditions,
+      surface_conditions = { { property = "pressure", min = pressure, max = pressure } },
       main_product = Names.CRYO_WARD,
       auto_recycle = false,
       allow_productivity = false,
@@ -134,18 +132,24 @@ local function cryo_kind()
       { type = "fluid", name = "fluoroketone-hot" },
       { type = "recipe-category", name = "cryogenics" },
       { type = "technology", name = "cryogenic-science-pack" },
+      { type = "item", name = "space-science-pack" },
+      { type = "item", name = "cryogenic-science-pack" },
+      { type = "assembling-machine", name = "cryogenic-plant" },
+      { type = "planet", name = "aquilo" },
     },
   }
 end
 
-Stasis.CRYO = cryo_kind()
+Stasis.CRYO = Stasis.cryo_kind()
 
 -- Picks the kinds to build from the facts of the data stage. The field
 -- space_age is true when Space Age is on. The field has is a set of
--- "type/name" keys for the prototypes that exist. Returns the kinds and
--- the keys that the cryo kind needs but has lacks. The base kind is
--- always in the list. The cryo kind joins it with Space Age when
--- nothing is missing.
+-- "type/name" keys for the prototypes that exist. The field pressure is
+-- the pressure of Aquilo, and may be nil.
+--
+-- Returns the kinds and the keys that the cryo kind needs but has lacks.
+-- The base kind is always in the list. The cryo kind joins it with Space
+-- Age when nothing is missing.
 function Stasis.kinds(facts)
   local kinds = { Stasis.BASE }
   if not facts.space_age then
@@ -160,7 +164,7 @@ function Stasis.kinds(facts)
     end
   end
   if #missing == 0 then
-    kinds[#kinds + 1] = Stasis.CRYO
+    kinds[#kinds + 1] = Stasis.cryo_kind(facts.pressure)
   end
   return kinds, missing
 end

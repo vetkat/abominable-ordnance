@@ -81,7 +81,8 @@ return {
     factor = 100,
     pack_time = 1,
     ward = { stack = 50, time = 4, lithium = 2, cold = 10, hot = 5 },
-    surface_conditions = { { property = "pressure", min = 300, max = 300 } },
+    -- The fallback when the data stage cannot read the pressure of Aquilo.
+    pressure = 300,
     research = { count = 500, time = 60 },
   },
   feral = {
