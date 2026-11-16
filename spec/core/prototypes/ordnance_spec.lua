@@ -160,40 +160,101 @@ end)
 
 describe("the look-alikes", function()
   local function build_with(opts)
-    return Stubs.by_name((Ordnance.prototypes(opts)))
+    return Stubs.by_name(Ordnance.lookalikes(opts))
   end
 
+  local function lookalikes()
+    return build_with(Stubs.lookalike_opts())
+  end
+
+  it("are not part of the data stage prototypes", function()
+    -- data-final-fixes.lua builds them, so a vanilla effect passed here
+    -- by mistake must not make one.
+    local opts = Stubs.ordnance_opts()
+    local vanilla = Stubs.lookalike_opts()
+    opts.cloud, opts.pool = vanilla.cloud, vanilla.pool
+    local all = Stubs.by_name((Ordnance.prototypes(opts)))
+    assert.is_nil(all["smoke-with-trigger/ao-poison-cloud"])
+    assert.is_nil(all["fire/ao-acid-pool"])
+  end)
+
   it("copy the vanilla cloud's looks, with no action, for the cloud's time", function()
-    local c = build()["smoke-with-trigger/ao-poison-cloud"]
+    local c = lookalikes()["smoke-with-trigger/ao-poison-cloud"]
     assert.are.equal("cloud.png", c.animation.filename)
     assert.is_nil(c.action)
     assert.are.equal(0, c.action_cooldown)
     assert.are.equal(1200, c.duration)
+    assert.are.equal("cluster", c.created_effect[1].type)
   end)
 
   it("copy the vanilla pool's looks, with no damage, no spread and the pool's time", function()
-    local p = build()["fire/ao-acid-pool"]
+    local p = lookalikes()["fire/ao-acid-pool"]
     assert.are.equal("pool.png", p.pictures[1].filename)
     assert.is_nil(p.on_damage_tick_effect)
-    assert.are.equal(0, p.damage_per_tick.amount)
+    assert.is_nil(p.created_effect)
+    assert.is_nil(p.on_fuel_added_action)
+    assert.is_nil(p.spawn_entity)
+    assert.are.same({ amount = 0, type = "acid" }, p.damage_per_tick)
     assert.are.equal(0, p.maximum_spread_count)
     assert.are.equal(900, p.initial_lifetime)
     assert.are.equal(900, p.maximum_lifetime)
     assert.are.equal(0, p.lifetime_increase_by)
   end)
 
+  it("give the pool the vanilla pool's damage type as it stands", function()
+    local opts = Stubs.lookalike_opts()
+    opts.pool.damage_per_tick.type = "corrosion"
+    local p = build_with(opts)["fire/ao-acid-pool"]
+    assert.are.same({ amount = 0, type = "corrosion" }, p.damage_per_tick)
+  end)
+
   it("leave the vanilla prototypes unchanged", function()
-    local opts = Stubs.ordnance_opts()
+    local opts = Stubs.lookalike_opts()
     build_with(opts)
     assert.are.same({ type = "direct" }, opts.cloud.action)
     assert.are.same({ type = "direct" }, opts.pool.on_damage_tick_effect)
+    assert.are.equal(5, opts.pool.damage_per_tick.amount)
   end)
 
   it("skip a look-alike whose vanilla prototype is missing", function()
-    local opts = Stubs.ordnance_opts()
+    local opts = Stubs.lookalike_opts()
     opts.cloud = nil
     local all = build_with(opts)
     assert.is_nil(all["smoke-with-trigger/ao-poison-cloud"])
     assert.truthy(all["fire/ao-acid-pool"])
+  end)
+
+  it("drop the cloud's created_effect when an entity it names was removed", function()
+    local opts = Stubs.lookalike_opts()
+    opts.entity_exists = function(name)
+      return name ~= "poison-cloud-visual-dummy"
+    end
+    local c = build_with(opts)["smoke-with-trigger/ao-poison-cloud"]
+    assert.is_nil(c.created_effect)
+    assert.are.equal("cloud.png", c.animation.filename)
+  end)
+
+  it("skip the pool when its damage type was removed", function()
+    local opts = Stubs.lookalike_opts()
+    opts.damage_exists = function(name)
+      return name ~= "acid"
+    end
+    local all = build_with(opts)
+    assert.is_nil(all["fire/ao-acid-pool"])
+    assert.truthy(all["smoke-with-trigger/ao-poison-cloud"])
+  end)
+
+  it("skip the pool when the vanilla pool has no damage per tick", function()
+    local opts = Stubs.lookalike_opts()
+    opts.pool.damage_per_tick = nil
+    assert.is_nil(build_with(opts)["fire/ao-acid-pool"])
+  end)
+
+  it("come in name order", function()
+    local names = {}
+    for _, p in ipairs(Ordnance.lookalikes(Stubs.lookalike_opts())) do
+      names[#names + 1] = p.name
+    end
+    assert.are.same({ "ao-acid-pool", "ao-poison-cloud" }, names)
   end)
 end)

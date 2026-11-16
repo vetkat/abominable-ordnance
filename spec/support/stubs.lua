@@ -30,6 +30,13 @@ function Stubs.ordnance_opts()
       height_from_ground = 1,
       action = { type = "direct", action_delivery = { type = "instant" } },
     },
+  }
+end
+
+-- Stand-ins for the vanilla poison cloud and big acid puddle, which the
+-- look-alikes copy. Every entity and damage type exists.
+function Stubs.lookalike_opts()
+  return {
     cloud = {
       type = "smoke-with-trigger",
       name = "poison-cloud",
@@ -37,18 +44,38 @@ function Stubs.ordnance_opts()
       duration = 1200,
       action = { type = "direct" },
       action_cooldown = 30,
+      created_effect = {
+        {
+          type = "cluster",
+          action_delivery = {
+            type = "instant",
+            target_effects = {
+              { type = "create-smoke", entity_name = "poison-cloud-visual-dummy" },
+            },
+          },
+        },
+      },
     },
     pool = {
       type = "fire",
       name = "acid-splash-fire-spitter-big",
       pictures = { { filename = "pool.png" } },
-      damage_per_tick = { amount = 0, type = "acid" },
+      damage_per_tick = { amount = 5, type = "acid" },
       on_damage_tick_effect = { type = "direct" },
+      created_effect = { type = "direct" },
+      on_fuel_added_action = { type = "direct" },
+      spawn_entity = "fire-flame-on-tree",
       maximum_spread_count = 100,
       initial_lifetime = 1920,
       maximum_lifetime = 1920,
       lifetime_increase_by = 20,
     },
+    entity_exists = function()
+      return true
+    end,
+    damage_exists = function()
+      return true
+    end,
   }
 end
 

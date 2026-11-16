@@ -219,8 +219,25 @@ end
 -- deals no damage of its own: shell/damage.lua deals the damage. Each
 -- returns nil when another mod removed the vanilla prototype.
 
--- The poison cloud, for as long as its hazard lasts.
-local function cloud(vanilla)
+-- True when every entity_name in a trigger names an entity that exists.
+local function names_exist(trigger, entity_exists)
+  if type(trigger) ~= "table" then
+    return true
+  end
+  for key, value in pairs(trigger) do
+    if key == "entity_name" and not entity_exists(value) then
+      return false
+    end
+    if not names_exist(value, entity_exists) then
+      return false
+    end
+  end
+  return true
+end
+
+-- The poison cloud, for as long as its hazard lasts. It drops its
+-- created_effect when another mod removed an entity that it names.
+local function cloud(vanilla, entity_exists)
   if not vanilla then
     return nil
   end
@@ -230,20 +247,29 @@ local function cloud(vanilla)
   p.action = nil
   p.action_cooldown = 0
   p.duration = Balance.payload_damage.poison.ticks
+  if not names_exist(p.created_effect, entity_exists) then
+    p.created_effect = nil
+  end
   return p
 end
 
--- An acid puddle that never spreads. With a lifetime, it lasts exactly
--- that long. Without one, it keeps the vanilla lifetime.
-local function puddle(vanilla, name, lifetime)
-  if not vanilla then
+-- An acid puddle that never spreads and never acts. It keeps the
+-- vanilla damage type, and it is nil when another mod removed that
+-- type. With a lifetime, it lasts exactly that long. Without one, it
+-- keeps the vanilla lifetime.
+local function puddle(vanilla, name, lifetime, damage_exists)
+  local kind = vanilla and vanilla.damage_per_tick and vanilla.damage_per_tick.type
+  if not (kind and damage_exists(kind)) then
     return nil
   end
   local p = Common.copy(vanilla)
   p.name = name
   p.hidden = true
-  p.damage_per_tick = { amount = 0, type = "acid" }
+  p.damage_per_tick = { amount = 0, type = kind }
   p.on_damage_tick_effect = nil
+  p.created_effect = nil
+  p.on_fuel_added_action = nil
+  p.spawn_entity = nil
   p.maximum_spread_count = 0
   if lifetime then
     p.initial_lifetime = lifetime
@@ -253,27 +279,22 @@ local function puddle(vanilla, name, lifetime)
   return p
 end
 
--- The look-alikes whose vanilla prototype exists.
-local function lookalikes(opts)
+-- The look-alikes, in name order, for data-final-fixes.lua. The opts
+-- hold the vanilla poison cloud and big acid puddle as they stand then,
+-- either of which can be nil. They also hold entity_exists(name) and
+-- damage_exists(name), which read the data stage.
+function Ordnance.lookalikes(opts)
   local out = {}
-  for _, p in pairs({
-    cloud(opts.cloud),
-    puddle(opts.pool, Names.POOL, Balance.payload_damage.acid.ticks),
-  }) do
-    out[#out + 1] = p
-  end
-  table.sort(out, function(a, b)
-    return a.name < b.name
-  end)
+  out[#out + 1] =
+    puddle(opts.pool, Names.POOL, Balance.payload_damage.acid.ticks, opts.damage_exists)
+  out[#out + 1] = cloud(opts.cloud, opts.entity_exists)
   return out
 end
 
 -- Returns the prototypes, and the names of the recipes that Monster
 -- husbandry unlocks. The opts hold the graphics_set and working_sound
 -- to copy for the incubator and the chamber. They also hold the vanilla
--- artillery projectile, whose looks the larva rockets copy, and the
--- vanilla poison cloud and big acid puddle, which the look-alikes copy.
--- The cloud and the puddle can be nil.
+-- artillery projectile, whose looks the larva rockets copy.
 function Ordnance.prototypes(opts)
   local out = {}
   local incubation_protos, husbandry = incubation(opts.incubator)
@@ -283,7 +304,6 @@ function Ordnance.prototypes(opts)
     husbandry,
     loading_protos,
     loading_recipes,
-    lookalikes(opts),
   }) do
     Common.append(out, list)
   end

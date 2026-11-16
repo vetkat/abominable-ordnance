@@ -67,6 +67,10 @@ end
 it passes the centrifuge's graphics to `Ordnance.prototypes`, which
 returns the incubator.
 
+`data-final-fixes.lua` is a second shell. It builds the look-alikes with
+`Ordnance.lookalikes` from the vanilla effects as they stand after every
+mod's data and data-updates stages.
+
 The builders then need no game, so busted tests them like any core module.
 
 ## Determinism

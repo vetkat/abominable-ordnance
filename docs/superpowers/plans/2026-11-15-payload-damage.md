@@ -479,6 +479,20 @@ functional-core work loop goes here too.
   puts the cursor on the first of them. The spec's numbers table gains
   the row. Cost if wrong: one tick can damage 200 targets plus one hit's
   targets, about 350 on a dense nest.
+- PR 2, review fix: `data-final-fixes.lua` builds the look-alikes with
+  `Ordnance.lookalikes`, from the vanilla effects as they stand then. A
+  mod whose own `data-final-fixes.lua` loads after this one and removes
+  a source can still break the load. Cost if wrong: that load fails with
+  a missing prototype error.
+- PR 2, review fix: the cloud drops its whole `created_effect` when any
+  `entity_name` in it names a missing entity. The check reads only
+  `entity_name` keys. Cost if wrong: a removed entity under another key
+  still breaks the load, and a cloud without its dummy shows a thinner
+  cloud.
+- PR 2, review fix: the pool keeps the vanilla pool's damage type, and
+  there is no pool when that type is missing. A missing acid type also
+  stops the acid damage, so the pool would only mislead. Cost if wrong:
+  an acid death shows no pools while another mod removes the type.
 - PR 2, review fix: `wrap_deaths` in `tests/ingame/damage_test.lua`
   wraps the death event for `kill_by_hit` and for the test of a cause
   that a death handler destroys. Cost if wrong: none.

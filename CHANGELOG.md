@@ -91,6 +91,9 @@ mod uses [semantic versioning](https://semver.org/spec/v2.0.0.html).
   its total damage stays the same.
 - If another mod removes the explosion, poison or acid damage type,
   that payload deals no damage and the game goes on.
+- If another mod removes the vanilla poison cloud, the big acid puddle
+  or an entity that they name, the game still loads. Then the cloud or
+  the pools show less or nothing, and the damage still applies.
 
 ### Fixed
 
