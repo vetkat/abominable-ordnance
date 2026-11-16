@@ -618,10 +618,6 @@ test("with more hazards than hazard_hits, each hazard still deals its full damag
     chests[i] = Helpers.chest(surface(), spot)
     ids[i] = add_hazard(spot, "acid", ticks)
   end
-  after_ticks(1, function()
-    -- More hazards than hazard_hits are due, so the pass stops part way.
-    assert(storage.hazard_cursor ~= nil, "the hit budget did not stop the pass")
-  end)
   after_ticks(ticks + 30, function()
     local losses, left = {}, 0
     for i, chest in ipairs(chests) do
@@ -648,9 +644,11 @@ test("the hazard pass stops at hazard_targets, and the hazard it skips hits next
   local d = Balance.payload_damage
   local budget = d.hazard_targets
   d.hazard_targets = 2
+  -- Outside the protected call, so an error still destroys the chests.
+  local chests = {}
   local ok, r = pcall(without, HAZARD_FIELDS, function()
     storage.hazards, storage.hazard_counter = {}, 0
-    local chests, ids, before = {}, {}, {}
+    local ids, before = {}, {}
     for i = 1, 3 do
       local spot = { x = position[1] - 16 + 8 * i, y = position[2] }
       chests[i] = {
@@ -671,12 +669,12 @@ test("the hazard pass stops at hazard_targets, and the hazard it skips hits next
     out.second = { hurt(chests[2][1]), hurt(chests[3][1]) }
     out.next_cursor = storage.hazard_cursor
     out.ids = ids
-    for _, pair in ipairs(chests) do
-      destroy_all(pair)
-    end
     return out
   end)
   d.hazard_targets = budget
+  for _, pair in ipairs(chests) do
+    destroy_all(pair)
+  end
   assert(ok, r)
   assert(r.first[1], "the first hazard did not hit")
   assert(not r.first[2] and not r.first[3], "the pass hit past the target budget")

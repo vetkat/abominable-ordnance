@@ -132,13 +132,13 @@ test("a native biter that dies sets off nothing", function()
   local biter =
     surface().create_entity({ name = "small-biter", position = position, force = "enemy" })
   -- A death only queues its detonations, and the queue runs on a later
-  -- tick. So the test checks the counters at once, and the entities
-  -- after the queue runs.
+  -- tick. So the test checks the queue at once, and the hazards and the
+  -- entities after the queue runs.
   local detonations, hazards = storage.detonation_counter, storage.hazard_counter
   biter.die()
   local queued = storage.detonation_counter ~= detonations
-  local hazard = storage.hazard_counter ~= hazards
   after_ticks(2, function()
+    local hazard = storage.hazard_counter ~= hazards
     local effects = surface().count_entities_filtered({
       position = position,
       radius = 6,
