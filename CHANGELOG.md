@@ -69,9 +69,6 @@ mod uses [semantic versioning](https://semver.org/spec/v2.0.0.html).
 
 - The stasis ward builder takes a list of ward kinds, so a second ward
   can share it. Nothing changes in the game.
-
-### Changed
-
 - Each payload decides what its landing blast and its death effect
   hurt, with its own damage type. Explosive hurts everything, rocks
   included. Poison hurts living things only. Acid hurts everything
