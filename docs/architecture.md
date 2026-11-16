@@ -13,7 +13,8 @@ the game.
 
 `control.lua` holds the event handlers. The folder `shell/` holds game API
 code that `control.lua` and the in-game tests both call, for example the
-force setup in `shell/tamed.lua`. All other shell code stays in
+force setup in `shell/tamed.lua` and the payload damage in
+`shell/damage.lua`. All other shell code stays in
 `control.lua`. The in-game tests live in `tests/ingame/`. `make ingame`
 runs them in a real Factorio with the factorio-test mod.
 
@@ -31,25 +32,30 @@ core needs a fact from the game, the shell passes it in: a plain value, or
 a function such as `entity_exists`.
 
 A simplified pair from the mod shows the split. The full code is
-`Payloads.on_death` in `core/payloads.lua` and `set_off` in
-`control.lua`. The core returns the effects as data:
+`Payloads.on_death` in `core/payloads.lua` and `Damage.detonate` in
+`shell/damage.lua`. The core returns one plan per payload as data:
 
 ```lua
 -- core: a pure function
 function Payloads.on_death(names, position, exists)
-  -- returns a list of create_entity tables, one per effect
+  -- Returns one plan per payload: the entities to create, and the hit
+  -- for the shell to deal.
 end
 ```
 
-The shell reads `storage`, calls the core, adds the force and the cause,
-and creates the entities:
+The shell reads the detonation from `storage`, calls the core, adds the
+force, creates the entities and deals the hit:
 
 ```lua
--- shell: control.lua
-local entry = storage.loaded[entity.unit_number]
-for _, effect in ipairs(Payloads.on_death(entry.payloads, entity.position, entity_exists)) do
-  effect.force = Names.TAMED
-  entity.surface.create_entity(effect)
+-- shell: shell/damage.lua
+for _, plan in ipairs(Payloads.on_death({ d.payload }, d.position, entity_exists)) do
+  for _, entity in ipairs(plan.entities) do
+    entity.force = d.force
+    surface.create_entity(entity)
+  end
+  if plan.hit then
+    Damage.hit({ surface = surface, position = d.position, payload = plan.payload, ... })
+  end
 end
 ```
 

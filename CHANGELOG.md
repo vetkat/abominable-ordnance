@@ -69,6 +69,18 @@ mod uses [semantic versioning](https://semver.org/spec/v2.0.0.html).
 
 - The stasis ward builder takes a list of ward kinds, so a second ward
   can share it. Nothing changes in the game.
+- Each payload decides what its landing blast and its death effect
+  hurt, with its own damage type. Explosive hurts everything, rocks
+  included. Poison hurts living things only. Acid hurts everything
+  except rocks. Your own buildings, your character and tamed monsters
+  count too, so an explosive death next to your wall damages the wall.
+- An explosive death is one hit of 150 explosion damage in a 4-tile
+  radius. A rocket that lands in water sets its payload off in the same
+  way. Vanilla resistances still apply.
+- Deaths run through a queue of at most 5 per tick, so a chain of
+  deaths never stalls the game.
+- If a force has friendly fire off, the natives deal the hits on its
+  own buildings and units. Those kills count for them.
 
 ### Fixed
 

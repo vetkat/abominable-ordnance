@@ -41,21 +41,15 @@ function Forces.can_create(count)
   return count < FORCE_LIMIT
 end
 
--- True if the landing blast hurts an entity of the target force.
--- attacker is the launcher's force name, or nil when the launcher no
--- longer exists. Then only the natives count. is_enemy is true when the
--- attacker's force is at war with the target. The blast never hits the
--- tamed force, so it can't hurt the loaded monsters near the spot. It
--- never hits neutral things such as trees and rocks, and no force hits
--- itself.
-function Forces.blast_hits(target, attacker, is_enemy)
-  if target == Names.TAMED or target == "neutral" then
-    return false
+-- The force that deals a hit. A force whose friendly fire is off cannot
+-- damage its own entities: the game swallows the hit. Then the natives
+-- deal it, and the kill counts for them. Any other pair keeps the
+-- attacker.
+function Forces.attacker(attacker, target, friendly_fire)
+  if attacker == target and not friendly_fire then
+    return "enemy"
   end
-  if attacker == nil then
-    return target == "enemy"
-  end
-  return target ~= attacker and is_enemy
+  return attacker
 end
 
 return Forces

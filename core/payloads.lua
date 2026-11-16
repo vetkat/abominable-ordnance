@@ -5,27 +5,37 @@ local Species = require("core.species")
 
 local Payloads = {}
 
+-- The target classes of a payload. shell/damage.lua reads the class of
+-- an entity from its prototype.
+Payloads.CLASSES = { "organic", "rock", "building" }
+
 Payloads.ALL = {
   {
     name = "explosive",
     item = "explosive-rocket",
     icon = "__base__/graphics/icons/explosive-rocket.png",
-    -- A rocket made at its own target explodes at once.
-    death = { name = "explosive-rocket", aimed = true },
+    targets = { organic = true, rock = true, building = true },
+    damage_type = "explosion",
+    -- The explosion shows a picture. The script deals one hit.
+    death = { entity = "big-explosion", hit = true },
   },
   {
     name = "acid",
     item = "sulfuric-acid-barrel",
     icon = "__base__/graphics/icons/fluid/sulfuric-acid.png",
+    targets = { organic = true, building = true },
+    damage_type = "acid",
     -- One puddle hurts only what stands in it, so the death spreads five.
-    death = { name = "acid-splash-fire-spitter-big", spread = true },
+    death = { entity = "acid-splash-fire-spitter-big", spread = true },
     trail = "acid-splash-fire-spitter-small",
   },
   {
     name = "poison",
     item = "poison-capsule",
     icon = "__base__/graphics/icons/poison-capsule.png",
-    death = { name = "poison-cloud" },
+    targets = { organic = true },
+    damage_type = "poison",
+    death = { entity = "poison-cloud" },
   },
 }
 
@@ -92,35 +102,60 @@ for _, payload in ipairs(Payloads.ALL) do
   BY_NAME[payload.name] = payload
 end
 
+-- True when the payload hurts a target of this class. An unknown
+-- payload or class hurts nothing.
+function Payloads.hits(name, class)
+  local payload = BY_NAME[name]
+  return payload ~= nil and payload.targets[class] == true
+end
+
+-- The damage type of a payload, or nil for an unknown one.
+function Payloads.damage_type(name)
+  local payload = BY_NAME[name]
+  return payload and payload.damage_type or nil
+end
+
+-- The numbers of a payload in Balance.payload_damage, or nil for an
+-- unknown one.
+function Payloads.numbers(name)
+  return BY_NAME[name] and Balance.payload_damage[name] or nil
+end
+
 -- The death spot and, for a spread effect, four spots around it.
 local SPREAD = { { 0, 0 }, { 1, 0 }, { -1, 0 }, { 0, 1 }, { 0, -1 } }
 
--- The create_entity tables for one death effect at a position.
-local function effects(death, position)
+-- The create_entity tables of one death effect, without force or cause.
+-- An entity whose prototype fails exists(name) stays out.
+local function entities(death, position, exists)
   local out = {}
+  if not exists(death.entity) then
+    return out
+  end
   for _, o in ipairs(death.spread and SPREAD or { { 0, 0 } }) do
     local d = Balance.acid_spread
-    local spot = { x = position.x + o[1] * d, y = position.y + o[2] * d }
-    out[#out + 1] = { name = death.name, position = spot, target = death.aimed and spot or nil }
-    if death.aimed then
-      out[#out].speed = 1
-    end
+    out[#out + 1] = {
+      name = death.entity,
+      position = { x = position.x + o[1] * d, y = position.y + o[2] * d },
+    }
   end
   return out
 end
 
--- The entities to create where a monster with these payloads dies, as
--- create_entity tables without force or cause. It leaves out every
--- entity whose name fails exists(name), for example one another mod
--- removed, and every unknown payload.
+-- One plan per payload of a monster that dies at a position. A plan
+-- names the payload, lists the entities to create, and carries the
+-- script hit (hit) when the payload has one. A missing prototype takes
+-- the entities out, never the damage. An unknown payload gives no plan.
 function Payloads.on_death(names, position, exists)
   local out = {}
   for _, name in ipairs(names) do
     local payload = BY_NAME[name]
-    if payload and exists(payload.death.name) then
-      for _, effect in ipairs(effects(payload.death, position)) do
-        out[#out + 1] = effect
+    if payload then
+      local plan = { payload = name, entities = entities(payload.death, position, exists) }
+      if payload.death.hit then
+        local n = Balance.payload_damage[name]
+        plan.hit = { damage = n.damage, radius = n.radius }
       end
+      out[#out + 1] = plan
     end
   end
   return out

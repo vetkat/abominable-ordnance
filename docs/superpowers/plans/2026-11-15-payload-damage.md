@@ -295,15 +295,15 @@ evidence. Then delete `$PROBE`. The table stays in this plan.
 
 | # | Fact | Outcome | Evidence |
 | --- | --- | --- | --- |
-| 1 | `damage` with the tamed force hurts tamed monsters, and with the feral force feral monsters | pending | the probe fills this in |
-| 2 | `damage` with the tamed force hurts the player force (cease-fire) | pending | the probe fills this in |
-| 3 | `damage` with a player force hurts a tamed monster (cease-fire) | pending | the probe fills this in |
-| 4 | `damage` with the `neutral` force hurts players and tamed monsters | pending | the probe fills this in |
-| 5 | `damage` still hurts when the attacker's force has `friendly_fire = false` | pending | the probe fills this in |
-| 6 | A cloud look-alike with no action shows the cloud and deals no damage | pending | the probe fills this in |
-| 7 | A puddle look-alike with no `on_damage_tick_effect`, no spreading and a short lifetime shows and deals no damage | pending | the probe fills this in |
-| 8 | Trees take `poison` and `acid` damage, and rocks take `explosion` damage | pending | the probe fills this in |
-| 9 | `create_entity` with the sticker name, the target and its position puts `acid-sticker-big` on a unit | pending | the probe fills this in |
+| 1 | `damage` with the tamed force hurts tamed monsters, and with the feral force feral monsters | PASS | `1a tamed on tamed: PASS (75 -> 65)`, `1b feral on feral: PASS (75 -> 65)`; Factorio 2.1.24, same in both modes |
+| 2 | `damage` with the tamed force hurts the player force (cease-fire) | PASS | `tamed on player chest: PASS (100 -> 90)`; Factorio 2.1.24, same in both modes |
+| 3 | `damage` with a player force hurts a tamed monster (cease-fire) | PASS | `player on tamed: PASS (75 -> 65)`; Factorio 2.1.24, same in both modes |
+| 4 | `damage` with the `neutral` force hurts players and tamed monsters | PASS | `neutral on player chest: PASS (100 -> 90)`, `neutral on tamed: PASS (75 -> 65)`; Factorio 2.1.24, same in both modes |
+| 5 | `damage` still hurts when the attacker's force has `friendly_fire = false` | FAIL | `player on player chest: FAIL (100 -> 100)`, `player on player character: FAIL (250 -> 250)`; Factorio 2.1.24, same in both modes |
+| 6 | A cloud look-alike with no action shows the cloud and deals no damage | PASS | `cloud: PASS shown=true whole=true`; Factorio 2.1.24, same in both modes |
+| 7 | A puddle look-alike with no `on_damage_tick_effect`, no spreading and a short lifetime shows and deals no damage | PASS | `pool: PASS shown=true whole=true`; Factorio 2.1.24, same in both modes |
+| 8 | Trees take `poison` and `acid` damage, and rocks take `explosion` damage | PASS | `poison on tree: PASS (50 -> 40)`, `acid on tree: PASS (50 -> 40)`, `explosion on rock: PASS (500 -> 490)`; Factorio 2.1.24, same in both modes |
+| 9 | `create_entity` with the sticker name, the target and its position puts `acid-sticker-big` on a unit | PASS | `sticker: PASS stickers=1`; Factorio 2.1.24, same in both modes |
 
 - [ ] **Step 6: Apply the fallback of each failed row**
 
@@ -436,7 +436,13 @@ one is a ruling for the ledger.
 Add one line per ruling, with its cost if wrong. The failure log of the
 functional-core work loop goes here too.
 
-- (none yet)
+- Row 5 failed: `damage` from a force on its own entities does nothing
+  when that force has friendly_fire off. No force of the mod turns it
+  off, so this only happens when a scenario or another mod does. Then
+  the enemy force deals that hit, as the spec's accepted probe fallback
+  says, and the kill counts for the natives. The rule is
+  `Forces.attacker(attacker, target, friendly_fire)`. Cost if wrong:
+  another force pair also fails in some setup, and its hits do nothing.
 
 ## Interface sheet
 
