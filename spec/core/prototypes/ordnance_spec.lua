@@ -234,6 +234,57 @@ describe("the look-alikes", function()
     assert.are.equal("cloud.png", c.animation.filename)
   end)
 
+  it("keep only the smoke and sound effects of the cloud's created_effect", function()
+    local opts = Stubs.lookalike_opts()
+    local effects = opts.cloud.created_effect[1].action_delivery.target_effects
+    effects[#effects + 1] = { type = "play-sound", sound = { filename = "puff.ogg" } }
+    effects[#effects + 1] = { type = "damage", damage = { amount = 5, type = "poison" } }
+    effects[#effects + 1] = { type = "create-entity", entity_name = "gone" }
+    opts.cloud.created_effect[2] = {
+      type = "direct",
+      action_delivery = { type = "projectile", projectile = "gone" },
+    }
+    opts.entity_exists = function(name)
+      return name ~= "gone"
+    end
+    local c = build_with(opts)["smoke-with-trigger/ao-poison-cloud"]
+    assert.are.same({
+      {
+        type = "cluster",
+        action_delivery = {
+          {
+            type = "instant",
+            target_effects = {
+              { type = "create-smoke", entity_name = "poison-cloud-visual-dummy" },
+              { type = "play-sound", sound = { filename = "puff.ogg" } },
+            },
+          },
+        },
+      },
+    }, c.created_effect)
+  end)
+
+  it("keep a created_effect written as single tables", function()
+    local opts = Stubs.lookalike_opts()
+    local smoke = { type = "create-smoke", entity_name = "poison-cloud-visual-dummy" }
+    opts.cloud.created_effect = {
+      type = "direct",
+      action_delivery = { type = "instant", source_effects = smoke },
+    }
+    local c = build_with(opts)["smoke-with-trigger/ao-poison-cloud"]
+    assert.are.same({
+      { type = "direct", action_delivery = { { type = "instant", source_effects = { smoke } } } },
+    }, c.created_effect)
+  end)
+
+  it("drop a created_effect with nothing left to show", function()
+    local opts = Stubs.lookalike_opts()
+    opts.cloud.created_effect[1].action_delivery.target_effects =
+      { { type = "damage", damage = { amount = 5, type = "poison" } } }
+    local c = build_with(opts)["smoke-with-trigger/ao-poison-cloud"]
+    assert.is_nil(c.created_effect)
+  end)
+
   it("skip the pool when its damage type was removed", function()
     local opts = Stubs.lookalike_opts()
     opts.damage_exists = function(name)

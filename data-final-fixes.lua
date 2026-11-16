@@ -12,14 +12,14 @@ local function raw(kind, name)
   return (data.raw[kind] or {})[name]
 end
 
--- A trigger's entity_name can name any entity or a trivial smoke.
+-- A create-smoke effect names an entity of any entity type.
 local function entity_exists(name)
   for kind in pairs(defines.prototypes.entity) do
     if raw(kind, name) then
       return true
     end
   end
-  return raw("trivial-smoke", name) ~= nil
+  return false
 end
 
 local lookalikes = Ordnance.lookalikes({

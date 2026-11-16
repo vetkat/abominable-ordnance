@@ -69,7 +69,8 @@ returns the incubator.
 
 `data-final-fixes.lua` is a second shell. It builds the look-alikes with
 `Ordnance.lookalikes` from the vanilla effects as they stand after every
-mod's data and data-updates stages.
+mod's data and data-updates stages. A mod that loads after this one sees
+`ao-poison-cloud` and `ao-acid-pool` in its own data-final-fixes stage.
 
 The builders then need no game, so busted tests them like any core module.
 

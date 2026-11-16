@@ -219,24 +219,80 @@ end
 -- deals no damage of its own: shell/damage.lua deals the damage. Each
 -- returns nil when another mod removed the vanilla prototype.
 
--- True when every entity_name in a trigger names an entity that exists.
-local function names_exist(trigger, entity_exists)
-  if type(trigger) ~= "table" then
-    return true
+-- A trigger field holds one table or a list of them. Returns a list.
+local function as_list(x)
+  if x == nil then
+    return {}
   end
-  for key, value in pairs(trigger) do
-    if key == "entity_name" and not entity_exists(value) then
-      return false
-    end
-    if not names_exist(value, entity_exists) then
-      return false
-    end
+  if x.type then
+    return { x }
   end
-  return true
+  return x
 end
 
--- The poison cloud, for as long as its hazard lasts. It drops its
--- created_effect when another mod removed an entity that it names.
+-- The effects of the cloud's created_effect that only show something.
+local LOOKS = { ["create-smoke"] = true, ["play-sound"] = true }
+
+-- The effects of a list that only show something, or nil when a smoke
+-- names a missing entity.
+local function looks(effects, entity_exists)
+  local out = {}
+  for _, e in ipairs(as_list(effects)) do
+    if LOOKS[e.type] then
+      if e.type == "create-smoke" and not entity_exists(e.entity_name) then
+        return nil
+      end
+      out[#out + 1] = e
+    end
+  end
+  return out
+end
+
+-- The instant deliveries of a trigger, with only the effects that show
+-- something. Returns nil when a smoke names a missing entity.
+local function deliveries(trigger, entity_exists)
+  local out = {}
+  for _, d in ipairs(as_list(trigger.action_delivery)) do
+    if d.type == "instant" then
+      local target = looks(d.target_effects, entity_exists)
+      local source = looks(d.source_effects, entity_exists)
+      if not (target and source) then
+        return nil
+      end
+      if #target + #source > 0 then
+        out[#out + 1] = {
+          type = "instant",
+          target_effects = target[1] and target or nil,
+          source_effects = source[1] and source or nil,
+        }
+      end
+    end
+  end
+  return out
+end
+
+-- The cloud's created_effect with only its smoke and sound, or nil when
+-- nothing is left or a smoke names a missing entity. Another mod can
+-- add a damage effect to the vanilla cloud, and the look-alike deals no
+-- damage of its own.
+local function cloud_looks(created_effect, entity_exists)
+  local out = {}
+  for _, trigger in ipairs(as_list(created_effect)) do
+    local kept = deliveries(trigger, entity_exists)
+    if not kept then
+      return nil
+    end
+    if #kept > 0 then
+      local t = Common.copy(trigger)
+      t.action_delivery = kept
+      out[#out + 1] = t
+    end
+  end
+  return out[1] and out or nil
+end
+
+-- The poison cloud, for as long as its hazard lasts. Its created_effect
+-- keeps only its smoke and sound.
 local function cloud(vanilla, entity_exists)
   if not vanilla then
     return nil
@@ -247,9 +303,7 @@ local function cloud(vanilla, entity_exists)
   p.action = nil
   p.action_cooldown = 0
   p.duration = Balance.payload_damage.poison.ticks
-  if not names_exist(p.created_effect, entity_exists) then
-    p.created_effect = nil
-  end
+  p.created_effect = cloud_looks(vanilla.created_effect, entity_exists)
   return p
 end
 

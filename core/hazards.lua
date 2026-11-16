@@ -54,7 +54,7 @@ function Hazards.plan(hazards, cursor, tick, numbers)
   return out
 end
 
--- The rest of a plan when only its first ran hits ran, because the
+-- The rest of a plan when only the first `ran` hits ran, because the
 -- shell's target budget ran out. A hazard whose hit did not run stays,
 -- and keeps its last hit. The cursor is the first of them, so the
 -- hazards take turns. Returns the hazards that end and the cursor.

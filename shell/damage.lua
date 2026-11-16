@@ -284,10 +284,11 @@ end
 -- One tick of the hazard pass. core/hazards.lua picks the visits and
 -- the hits within the budget. This function deals the hits until the
 -- targets it damaged reach hazard_targets, then removes the hazards that
--- end. A hit that does not run keeps its last hit, so the hazard catches
--- up later. A drained table starts again as a fresh table, like the
--- queue. A hit only adds to the queue, so the table gains no key while
--- the pass walks it.
+-- end. It checks the target budget before each hit, so one tick can go
+-- over it by the targets of one hit. A hit that does not run keeps its
+-- last hit, so the hazard catches up later. A drained table starts
+-- again as a fresh table, like the queue. A hit only adds to the queue,
+-- so the table gains no key while the pass walks it.
 function Damage.run_hazards(tick)
   Damage.ensure_storage()
   if next(storage.hazards) == nil then

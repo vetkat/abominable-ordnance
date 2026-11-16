@@ -484,10 +484,11 @@ functional-core work loop goes here too.
   mod whose own `data-final-fixes.lua` loads after this one and removes
   a source can still break the load. Cost if wrong: that load fails with
   a missing prototype error.
-- PR 2, review fix: the cloud drops its whole `created_effect` when any
-  `entity_name` in it names a missing entity. The check reads only
-  `entity_name` keys. Cost if wrong: a removed entity under another key
-  still breaks the load, and a cloud without its dummy shows a thinner
+- PR 2, review fix: the cloud's `created_effect` keeps only the
+  `create-smoke` and `play-sound` effects of its instant deliveries. It
+  drops the whole `created_effect` when a kept smoke names a missing
+  entity. Cost if wrong: a cloud loses a visual effect of another kind
+  that another mod added, and a cloud without its dummy shows a thinner
   cloud.
 - PR 2, review fix: the pool keeps the vanilla pool's damage type, and
   there is no pool when that type is missing. A missing acid type also
