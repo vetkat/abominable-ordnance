@@ -215,15 +215,76 @@ local function loading(graphics, projectile_looks)
   return out, recipes
 end
 
+-- A look-alike copies a vanilla effect. It shows the same picture and
+-- deals no damage of its own: shell/damage.lua deals the damage. Each
+-- returns nil when another mod removed the vanilla prototype.
+
+-- The poison cloud, for as long as its hazard lasts.
+local function cloud(vanilla)
+  if not vanilla then
+    return nil
+  end
+  local p = Common.copy(vanilla)
+  p.name = Names.CLOUD
+  p.hidden = true
+  p.action = nil
+  p.action_cooldown = 0
+  p.duration = Balance.payload_damage.poison.ticks
+  return p
+end
+
+-- An acid puddle that never spreads. With a lifetime, it lasts exactly
+-- that long. Without one, it keeps the vanilla lifetime.
+local function puddle(vanilla, name, lifetime)
+  if not vanilla then
+    return nil
+  end
+  local p = Common.copy(vanilla)
+  p.name = name
+  p.hidden = true
+  p.damage_per_tick = { amount = 0, type = "acid" }
+  p.on_damage_tick_effect = nil
+  p.maximum_spread_count = 0
+  if lifetime then
+    p.initial_lifetime = lifetime
+    p.maximum_lifetime = lifetime
+    p.lifetime_increase_by = 0
+  end
+  return p
+end
+
+-- The look-alikes whose vanilla prototype exists.
+local function lookalikes(opts)
+  local out = {}
+  for _, p in pairs({
+    cloud(opts.cloud),
+    puddle(opts.pool, Names.POOL, Balance.payload_damage.acid.ticks),
+  }) do
+    out[#out + 1] = p
+  end
+  table.sort(out, function(a, b)
+    return a.name < b.name
+  end)
+  return out
+end
+
 -- Returns the prototypes, and the names of the recipes that Monster
 -- husbandry unlocks. The opts hold the graphics_set and working_sound
 -- to copy for the incubator and the chamber. They also hold the vanilla
--- artillery projectile, whose looks the larva rockets copy.
+-- artillery projectile, whose looks the larva rockets copy, and the
+-- vanilla poison cloud and big acid puddle, which the look-alikes copy.
+-- The cloud and the puddle can be nil.
 function Ordnance.prototypes(opts)
   local out = {}
   local incubation_protos, husbandry = incubation(opts.incubator)
   local loading_protos, loading_recipes = loading(opts.chamber, opts.projectile)
-  for _, list in ipairs({ incubation_protos, husbandry, loading_protos, loading_recipes }) do
+  for _, list in ipairs({
+    incubation_protos,
+    husbandry,
+    loading_protos,
+    loading_recipes,
+    lookalikes(opts),
+  }) do
     Common.append(out, list)
   end
   return out, Common.names(husbandry)

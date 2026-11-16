@@ -157,3 +157,43 @@ describe("the ordnance prototypes", function()
     end
   end)
 end)
+
+describe("the look-alikes", function()
+  local function build_with(opts)
+    return Stubs.by_name((Ordnance.prototypes(opts)))
+  end
+
+  it("copy the vanilla cloud's looks, with no action, for the cloud's time", function()
+    local c = build()["smoke-with-trigger/ao-poison-cloud"]
+    assert.are.equal("cloud.png", c.animation.filename)
+    assert.is_nil(c.action)
+    assert.are.equal(0, c.action_cooldown)
+    assert.are.equal(1200, c.duration)
+  end)
+
+  it("copy the vanilla pool's looks, with no damage, no spread and the pool's time", function()
+    local p = build()["fire/ao-acid-pool"]
+    assert.are.equal("pool.png", p.pictures[1].filename)
+    assert.is_nil(p.on_damage_tick_effect)
+    assert.are.equal(0, p.damage_per_tick.amount)
+    assert.are.equal(0, p.maximum_spread_count)
+    assert.are.equal(900, p.initial_lifetime)
+    assert.are.equal(900, p.maximum_lifetime)
+    assert.are.equal(0, p.lifetime_increase_by)
+  end)
+
+  it("leave the vanilla prototypes unchanged", function()
+    local opts = Stubs.ordnance_opts()
+    build_with(opts)
+    assert.are.same({ type = "direct" }, opts.cloud.action)
+    assert.are.same({ type = "direct" }, opts.pool.on_damage_tick_effect)
+  end)
+
+  it("skip a look-alike whose vanilla prototype is missing", function()
+    local opts = Stubs.ordnance_opts()
+    opts.cloud = nil
+    local all = build_with(opts)
+    assert.is_nil(all["smoke-with-trigger/ao-poison-cloud"])
+    assert.truthy(all["fire/ao-acid-pool"])
+  end)
+end)

@@ -269,7 +269,7 @@ test("a larva rocket that lands in water sets off its payload through the queue"
     local clouds = surface().find_entities_filtered({
       position = to,
       radius = 6,
-      name = "poison-cloud",
+      name = Names.CLOUD,
     })
     local force = clouds[1] and clouds[1].force.name
     for _, cloud in pairs(clouds) do

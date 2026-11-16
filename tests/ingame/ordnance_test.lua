@@ -135,7 +135,7 @@ test("a native biter that dies sets off nothing", function()
   local effects = surface().count_entities_filtered({
     position = position,
     radius = 6,
-    name = { "explosive-rocket", "poison-cloud", "acid-splash-fire-spitter-big" },
+    name = { "big-explosion", Names.CLOUD, Names.POOL },
   })
   assert(effects == 0, effects .. " effects")
 end)

@@ -30,6 +30,25 @@ function Stubs.ordnance_opts()
       height_from_ground = 1,
       action = { type = "direct", action_delivery = { type = "instant" } },
     },
+    cloud = {
+      type = "smoke-with-trigger",
+      name = "poison-cloud",
+      animation = { filename = "cloud.png" },
+      duration = 1200,
+      action = { type = "direct" },
+      action_cooldown = 30,
+    },
+    pool = {
+      type = "fire",
+      name = "acid-splash-fire-spitter-big",
+      pictures = { { filename = "pool.png" } },
+      damage_per_tick = { amount = 0, type = "acid" },
+      on_damage_tick_effect = { type = "direct" },
+      maximum_spread_count = 100,
+      initial_lifetime = 1920,
+      maximum_lifetime = 1920,
+      lifetime_increase_by = 20,
+    },
   }
 end
 

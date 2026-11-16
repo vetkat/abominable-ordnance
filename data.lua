@@ -28,10 +28,18 @@ local function vanilla(kind, name)
   )
 end
 
+-- The look-alikes copy these vanilla effects. Another mod can remove
+-- them. Then the effect shows nothing, and the damage still applies.
+local function optional(kind, name)
+  return (data.raw[kind] or {})[name]
+end
+
 local ordnance, husbandry = Ordnance.prototypes({
   incubator = looks("centrifuge"),
   chamber = looks("assembling-machine-3"),
   projectile = vanilla("artillery-projectile", "artillery-projectile"),
+  cloud = optional("smoke-with-trigger", "poison-cloud"),
+  pool = optional("fire", "acid-splash-fire-spitter-big"),
 })
 
 -- Every item that spoils gets an explicit weight, so that a warded item

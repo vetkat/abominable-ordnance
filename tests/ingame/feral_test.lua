@@ -151,7 +151,7 @@ test("a feral monster's payload belongs to the feral force", function()
     entry.unit.die()
     after_ticks(2, function()
       local clouds = surface().find_entities_filtered({
-        name = "poison-cloud",
+        name = Names.CLOUD,
         position = p,
         radius = 4,
       })

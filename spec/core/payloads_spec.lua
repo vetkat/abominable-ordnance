@@ -115,25 +115,38 @@ describe("the death plans", function()
     }, Payloads.on_death({ "explosive" }, p, all))
   end)
 
-  it("leave a vanilla poison cloud for a poison payload", function()
-    assert.are.same(
-      { { payload = "poison", entities = { { name = "poison-cloud", position = p } } } },
-      Payloads.on_death({ "poison" }, p, all)
-    )
+  it("leave a cloud look-alike and a hazard for a poison payload", function()
+    assert.are.same({
+      {
+        payload = "poison",
+        entities = { { name = "ao-poison-cloud", position = p } },
+        hazard = { ticks = 1200 },
+      },
+    }, Payloads.on_death({ "poison" }, p, all))
   end)
 
-  it("spread five vanilla acid puddles for an acid payload", function()
+  it("spread five pool look-alikes with one hazard for an acid payload", function()
     local d = Balance.acid_spread
     local plan = Payloads.on_death({ "acid" }, p, all)[1]
     assert.are.equal("acid", plan.payload)
     assert.is_nil(plan.hit)
+    assert.are.same({ ticks = 900 }, plan.hazard)
     local spots = {}
     for _, e in ipairs(plan.entities) do
-      assert.are.equal("acid-splash-fire-spitter-big", e.name)
+      assert.are.equal("ao-acid-pool", e.name)
       spots[#spots + 1] = (e.position.x - 10) / d .. "," .. (e.position.y - 20) / d
     end
     table.sort(spots)
     assert.are.same({ "-1,0", "0,-1", "0,0", "0,1", "1,0" }, spots)
+  end)
+
+  it("keep the hazard when the look-alike's prototype is missing", function()
+    local function none()
+      return false
+    end
+    local plan = Payloads.on_death({ "poison" }, p, none)[1]
+    assert.are.same({}, plan.entities)
+    assert.are.same({ ticks = 1200 }, plan.hazard)
   end)
 
   it("give each entity its own position table", function()
