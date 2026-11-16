@@ -512,6 +512,8 @@ test("a drained queue starts again as a fresh table", function()
   end)
 end)
 
+local HAZARD_FIELDS = { "hazards", "hazard_counter", "hazard_cursor" }
+
 -- The ids of the stored hazards of a payload within 1 tile of a spot.
 local function hazards_at(p, payload)
   local ids = {}
@@ -613,6 +615,10 @@ test("with more hazards than hazard_hits, each hazard still deals its full damag
     chests[i] = Helpers.chest(surface(), spot)
     ids[i] = add_hazard(spot, "acid", ticks)
   end
+  after_ticks(1, function()
+    -- More hazards than hazard_hits are due, so the pass stops part way.
+    assert(storage.hazard_cursor ~= nil, "the hit budget did not stop the pass")
+  end)
   after_ticks(ticks + 30, function()
     local losses, left = {}, 0
     for i, chest in ipairs(chests) do
@@ -622,9 +628,59 @@ test("with more hazards than hazard_hits, each hazard still deals its full damag
     destroy_all(chests)
     assert(left == 0, left .. " hazards outlived their end")
     for i, loss in ipairs(losses) do
-      assert(loss >= full - 0.01, "chest " .. i .. " lost " .. loss .. ", expected " .. full)
+      local exact = math.abs(loss - full) < 0.01
+      assert(exact, "chest " .. i .. " lost " .. loss .. ", expected " .. full)
     end
   end)
+end)
+
+test("the hazard pass stops at hazard_targets, and the hazard it skips hits next", function()
+  local position = { 4900, 4000 }
+  Helpers.arena(surface(), position)
+  for _, tree in
+    pairs(surface().find_entities_filtered({ position = position, radius = 24, type = "tree" }))
+  do
+    tree.destroy()
+  end
+  local d = Balance.payload_damage
+  local budget = d.hazard_targets
+  d.hazard_targets = 2
+  local ok, r = pcall(without, HAZARD_FIELDS, function()
+    storage.hazards, storage.hazard_counter = {}, 0
+    local chests, ids, before = {}, {}, {}
+    for i = 1, 3 do
+      local spot = { x = position[1] - 16 + 8 * i, y = position[2] }
+      chests[i] = {
+        Helpers.chest(surface(), { spot.x, spot.y }),
+        Helpers.chest(surface(), { spot.x + 1, spot.y }),
+      }
+      ids[i] = add_hazard(spot, "acid", 600)
+      before[i] = storage.hazards[ids[i]].last_hit
+    end
+    -- Two chests per hazard, so the first hazard's hit spends the budget.
+    Damage.run_hazards(game.tick)
+    local out = {
+      first = { hurt(chests[1][1]), hurt(chests[2][1]), hurt(chests[3][1]) },
+      cursor = storage.hazard_cursor,
+      kept = storage.hazards[ids[2]] and storage.hazards[ids[2]].last_hit == before[2],
+    }
+    Damage.run_hazards(game.tick)
+    out.second = { hurt(chests[2][1]), hurt(chests[3][1]) }
+    out.next_cursor = storage.hazard_cursor
+    out.ids = ids
+    for _, pair in ipairs(chests) do
+      destroy_all(pair)
+    end
+    return out
+  end)
+  d.hazard_targets = budget
+  assert(ok, r)
+  assert(r.first[1], "the first hazard did not hit")
+  assert(not r.first[2] and not r.first[3], "the pass hit past the target budget")
+  assert(r.cursor == r.ids[2], "the cursor is " .. tostring(r.cursor) .. ", not the skipped hazard")
+  assert(r.kept, "the skipped hazard lost its due hit")
+  assert(r.second[1] and not r.second[2], "the next pass did not start at the skipped hazard")
+  assert(r.next_cursor == r.ids[3], "the cursor did not move on to the third hazard")
 end)
 
 test("a hazard whose payload the mod no longer knows leaves without damage", function()
@@ -640,8 +696,6 @@ test("a hazard whose payload the mod no longer knows leaves without damage", fun
     assert(gone, "the unknown hazard is still stored")
   end)
 end)
-
-local HAZARD_FIELDS = { "hazards", "hazard_counter", "hazard_cursor" }
 
 -- Other tests leave hazards behind, so this test runs the pass by hand
 -- on a table of its own.

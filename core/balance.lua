@@ -75,6 +75,7 @@ return {
     trail = { damage = 5, radius = 1 },
     hazard_interval = 30,
     hazard_hits = 10,
+    hazard_targets = 200,
     hazard_visits = 50,
     detonation_batch = 5,
   },

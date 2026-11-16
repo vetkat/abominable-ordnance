@@ -120,8 +120,8 @@ end
 -- before the acid trail of PR 3. The hit checks each target first,
 -- because an earlier target's death can take a later one with it, and
 -- another mod's death handler can destroy the cause. It returns the
--- targets that still exist. When another mod removed the damage type,
--- the hit deals no damage.
+-- targets that still exist, and the number of targets it damaged. When
+-- another mod removed the damage type, the hit deals no damage.
 --
 -- The natives may deal the hit for a force with friendly fire off. Then
 -- the hit has no cause, because a cause from another force would
@@ -129,9 +129,9 @@ end
 function Damage.hit(hit)
   local kind = Damage.damage_type(hit.payload, prototypes.damage)
   if not kind then
-    return {}
+    return {}, 0
   end
-  local survivors = {}
+  local survivors, dealt = {}, 0
   -- The attacker for each target force, read once per hit.
   local attackers = {}
   for _, target in ipairs(Damage.targets(hit.surface, hit.position, hit.radius, hit.payload)) do
@@ -144,12 +144,13 @@ function Damage.hit(hit)
       end
       local cause = hit.cause and hit.cause.valid and attacker == hit.force and hit.cause or nil
       target.damage(hit.damage, attacker, kind, nil, cause)
+      dealt = dealt + 1
       if target.valid then
         survivors[#survivors + 1] = target
       end
     end
   end
-  return survivors
+  return survivors, dealt
 end
 
 -- A save from before the queue has neither field, and a mod update
@@ -251,14 +252,14 @@ end
 
 -- Deals the summed hits of one hazard visit. Returns false when the
 -- hazard's surface, force or payload no longer exists. Then the hazard
--- must leave.
+-- must leave. Also returns the number of targets it damaged.
 local function hazard_hit(hazard, count)
   local surface = game.get_surface(hazard.surface)
   local n = Payloads.numbers(hazard.payload)
   if not (surface and game.forces[hazard.force] and n) then
-    return false
+    return false, 0
   end
-  Damage.hit({
+  local _, dealt = Damage.hit({
     surface = surface,
     position = hazard.position,
     radius = n.radius,
@@ -266,7 +267,7 @@ local function hazard_hit(hazard, count)
     damage = n.damage * count,
     force = hazard.force,
   })
-  return true
+  return true, dealt
 end
 
 local function remove_hazard(id)
@@ -277,26 +278,38 @@ local function remove_hazard(id)
 end
 
 -- One tick of the hazard pass. core/hazards.lua picks the visits and
--- the hits within the budget. This function deals the hits and removes
--- the hazards that end. A drained table starts again as a fresh table,
--- like the queue. A hit only adds to the queue, so the table gains no
--- key while the pass walks it.
+-- the hits within the budget. This function deals the hits until the
+-- targets it damaged reach hazard_targets, then removes the hazards that
+-- end. A hit that does not run keeps its last hit, so the hazard catches
+-- up later. A drained table starts again as a fresh table, like the
+-- queue. A hit only adds to the queue, so the table gains no key while
+-- the pass walks it.
 function Damage.run_hazards(tick)
   ensure_hazards()
   if next(storage.hazards) == nil then
     return
   end
-  local plan = Hazards.plan(storage.hazards, storage.hazard_cursor, tick, Balance.payload_damage)
-  storage.hazard_cursor = plan.cursor
+  local numbers = Balance.payload_damage
+  local plan = Hazards.plan(storage.hazards, storage.hazard_cursor, tick, numbers)
+  local ran, dealt, gone = 0, 0, {}
   for _, h in ipairs(plan.hits) do
+    if dealt >= numbers.hazard_targets then
+      break
+    end
     local hazard = storage.hazards[h.id]
     hazard.last_hit = h.last_hit
-    if not hazard_hit(hazard, h.count) then
-      remove_hazard(h.id)
+    local ok, targets = hazard_hit(hazard, h.count)
+    if not ok then
+      gone[#gone + 1] = h.id
     end
+    ran, dealt = ran + 1, dealt + targets
   end
-  for _, id in ipairs(plan.done) do
-    remove_hazard(id)
+  local rest = Hazards.cut(plan, ran)
+  storage.hazard_cursor = rest.cursor
+  for _, list in ipairs({ gone, rest.done }) do
+    for _, id in ipairs(list) do
+      remove_hazard(id)
+    end
   end
   if next(storage.hazards) == nil then
     storage.hazards = {}

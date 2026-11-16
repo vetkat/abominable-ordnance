@@ -472,6 +472,13 @@ functional-core work loop goes here too.
 - PR 2, review fix: `Damage.damage_type(payload, damage_prototypes)` is
   public, so an in-game test can pass a table without the damage type.
   Cost if wrong: one more public name in `shell/damage.lua`.
+- PR 2, review fix: the hazard pass also stops when the targets that its
+  hits damaged reach `hazard_targets` (200). The shell checks the budget
+  before each hit, so the hit that crosses it runs in full.
+  `Hazards.cut(plan, ran)` keeps each hazard whose hit did not run and
+  puts the cursor on the first of them. The spec's numbers table gains
+  the row. Cost if wrong: one tick can damage 200 targets plus one hit's
+  targets, about 350 on a dense nest.
 - PR 2, review fix: `wrap_deaths` in `tests/ingame/damage_test.lua`
   wraps the death event for `kill_by_hit` and for the test of a cause
   that a death handler destroys. Cost if wrong: none.

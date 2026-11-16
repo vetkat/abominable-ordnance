@@ -65,6 +65,7 @@ describe("the hazard pass", function()
     local first = Hazards.plan(t, nil, 100, N)
     assert.are.equal(2, #first.hits)
     assert.are.equal(3, first.cursor)
+    assert.are.same({}, first.done)
     for _, h in ipairs(first.hits) do
       t[h.id].last_hit = h.last_hit
     end
@@ -93,6 +94,22 @@ describe("the hazard pass", function()
     assert.are.same({ 1 }, plan.done)
   end)
 
+  it("deals the final hit of a hazard at its end tick, then lets it go", function()
+    local t = { { last_hit = 970, end_tick = 1000 } }
+    local plan = Hazards.plan(t, nil, 1000, N)
+    assert.are.same({ { id = 1, count = 1, last_hit = 1000 } }, plan.hits)
+    assert.are.same({ 1 }, plan.done)
+  end)
+
+  it("keeps a hazard past its end whose hit the budget leaves out", function()
+    local t = hazards(2)
+    t[3] = { last_hit = 30, end_tick = 90 }
+    local plan = Hazards.plan(t, nil, 100, N)
+    assert.are.equal(2, #plan.hits)
+    assert.are.equal(3, plan.cursor)
+    assert.are.same({}, plan.done)
+  end)
+
   it("lets a finished hazard go without a hit", function()
     local t = { { last_hit = 1000, end_tick = 1000 } }
     local plan = Hazards.plan(t, nil, 1005, N)
@@ -102,5 +119,39 @@ describe("the hazard pass", function()
 
   it("does nothing for no hazards", function()
     assert.are.same({ hits = {}, done = {} }, Hazards.plan({}, nil, 100, N))
+  end)
+end)
+
+describe("the cut of a pass", function()
+  -- Three due hazards, of which the third ends this tick.
+  local function plan()
+    local t = hazards(3)
+    t[3].end_tick = 100
+    return Hazards.plan(t, nil, 100, { hazard_interval = 30, hazard_hits = 3, hazard_visits = 3 })
+  end
+
+  it("keeps the plan when every hit ran", function()
+    local p = plan()
+    assert.are.same({ done = { 3 }, cursor = nil }, Hazards.cut(p, 3))
+  end)
+
+  it("moves the cursor to the first hit that did not run", function()
+    assert.are.equal(2, Hazards.cut(plan(), 1).cursor)
+  end)
+
+  it("keeps a hazard whose last hit did not run", function()
+    assert.are.same({}, Hazards.cut(plan(), 2).done)
+  end)
+
+  it("lets a hazard with no due hit go when a hit before it did not run", function()
+    local t = hazards(2)
+    t[3] = { last_hit = 90, end_tick = 90 }
+    local p =
+      Hazards.plan(t, nil, 100, { hazard_interval = 30, hazard_hits = 3, hazard_visits = 3 })
+    assert.are.same({ done = { 3 }, cursor = 2 }, Hazards.cut(p, 1))
+  end)
+
+  it("runs no hit when the budget is spent at once", function()
+    assert.are.same({ done = {}, cursor = 1 }, Hazards.cut(plan(), 0))
   end)
 end)

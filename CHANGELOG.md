@@ -81,6 +81,16 @@ mod uses [semantic versioning](https://semver.org/spec/v2.0.0.html).
   deaths never stalls the game.
 - If a force has friendly fire off, the natives deal the hits on its
   own buildings and units. Those kills count for them.
+- A poison death leaves a cloud for 20 s that hurts living things
+  within 11 tiles: natives, your character, tamed monsters and trees.
+  An acid death leaves pools for 15 s that hurt everything except
+  rocks within 3 tiles, your buildings included. Each hits every
+  0.5 s.
+- At most 10 cloud and pool hits run per tick, and they damage at most
+  200 targets. Above that, a cloud hits less often but catches up, so
+  its total damage stays the same.
+- If another mod removes the explosion, poison or acid damage type,
+  that payload deals no damage and the game goes on.
 
 ### Fixed
 

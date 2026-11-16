@@ -54,4 +54,26 @@ function Hazards.plan(hazards, cursor, tick, numbers)
   return out
 end
 
+-- The rest of a plan when only its first ran hits ran, because the
+-- shell's target budget ran out. A hazard whose hit did not run stays,
+-- and keeps its last hit. The cursor is the first of them, so the
+-- hazards take turns. Returns the hazards that end and the cursor.
+function Hazards.cut(plan, ran)
+  local skipped = plan.hits[ran + 1]
+  if not skipped then
+    return { done = plan.done, cursor = plan.cursor }
+  end
+  local kept = {}
+  for i = ran + 1, #plan.hits do
+    kept[plan.hits[i].id] = true
+  end
+  local done = {}
+  for _, id in ipairs(plan.done) do
+    if not kept[id] then
+      done[#done + 1] = id
+    end
+  end
+  return { done = done, cursor = skipped.id }
+end
+
 return Hazards
