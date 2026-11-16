@@ -92,8 +92,12 @@ ingame:
 	tools/ingame.sh $(MODE)
 
 ## one API entry, for example: make api NAME=LuaSurface.create_entity
+## The recipe reads the name from the environment, so the shell never parses
+## it. Only a NAME on the command line counts: an ambient one (WSL sets
+## NAME) is ignored. Make expands NAME, so write $$ for a $.
+api: export API_NAME := $(if $(filter command line,$(origin NAME)),$(NAME))
 api: $(API)/stamp
-	@python3 -m tools.api "$(NAME)"
+	@python3 -m tools.api "$$API_NAME"
 
 ## after /ste80-humanizer and /simplify: lets the Claude Code hook pass
 stamp:
