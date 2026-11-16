@@ -35,6 +35,8 @@ Slices 1 (lifecycle) and 2 (ordnance) ship in this release.
   ([design][lifecycle])
 - [x] Stasis ward that slows the spoil timer 20 times
   ([design][logistics-and-delivery])
+- [x] Cryo ward (Space Age): made on Aquilo, slows the spoil timer 100
+  times ([design][logistics-and-delivery])
 - [x] The first four research techs ([design][research-tree])
 - [ ] Runs on vanilla Factorio 2.1 and with Space Age
   ([design][version-1-feature-list])
