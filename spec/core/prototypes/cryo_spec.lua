@@ -1,0 +1,21 @@
+local Balance = require("core.balance")
+local Names = require("core.names")
+
+describe("the cryo names and numbers", function()
+  it("name the cryo ward, its research and the recipe prefixes", function()
+    assert.are.equal("ao-cryo-ward", Names.CRYO_WARD)
+    assert.are.equal("ao-cryo-ward", Names.CRYO_TECH)
+    assert.are.equal("ao-cryo-warded-", Names.CRYO_WARDED)
+    assert.are.equal("ao-cryo-ward-", Names.CRYO_PACK)
+    assert.are.equal("ao-cryo-unward-", Names.CRYO_UNPACK)
+  end)
+
+  it("slow the spoil timer 100 times and price the ward", function()
+    local c = Balance.cryo
+    assert.are.equal(100, c.factor)
+    assert.are.equal(1, c.pack_time)
+    assert.are.same({ stack = 50, time = 4, lithium = 2, cold = 10, hot = 5 }, c.ward)
+    assert.are.same({ { property = "pressure", min = 300, max = 300 } }, c.surface_conditions)
+    assert.are.same({ count = 500, time = 60 }, c.research)
+  end)
+end)
