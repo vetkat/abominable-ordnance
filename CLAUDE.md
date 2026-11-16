@@ -54,7 +54,7 @@ or Important finding. Review in rounds:
 2. Fix every Critical and Important finding, and each minor one that is
    cheap to fix. A code fix gets a test that fails first.
 3. The same reviewers check the changed text or diff again.
-4. Stop when a round finds no new Critical or Important finding. After 3
+4. Stop when a round finds no new Critical or Important finding. After 5
    rounds, stop and give the open findings to the maintainer.
 
 The PR description gives one verdict for each angle: `pass`, `n/a`,
