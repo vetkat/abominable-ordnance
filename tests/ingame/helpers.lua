@@ -148,4 +148,21 @@ function Helpers.ammo(turret)
   return turret.get_inventory(defines.inventory.artillery_turret_ammo).get_item_count()
 end
 
+-- Hatches one small loaded biter at a position and passes its entry
+-- to after(entry) a tick later. Evolution 0 makes it a small biter.
+-- The unit stands still, so a test controls what happens to it.
+function Helpers.loaded_entry(surface, position, item, after)
+  Helpers.arena(surface, position, 40)
+  game.forces["enemy"].set_evolution_factor(0, surface)
+  Helpers.spoil(Helpers.spill(surface, position, item, 1))
+  after_ticks(1, function()
+    local units = Helpers.find_units(surface, position, { force = Names.TAMED })
+    assert(#units == 1, #units .. " tamed units")
+    local entry = storage.loaded[units[1].unit_number]
+    assert(entry, "no loaded entry")
+    entry.unit.disabled_by_script = true
+    after(entry)
+  end)
+end
+
 return Helpers

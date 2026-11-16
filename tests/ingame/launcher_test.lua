@@ -1,3 +1,4 @@
+local Damage = require("shell.damage")
 local Helpers = require("__abominable-ordnance__/tests/ingame/helpers")
 local Names = require("core.names")
 
@@ -49,98 +50,183 @@ test("a larva rocket lands as its loaded monster at full health", function()
   end)
 end)
 
+-- Polls each tick, up to limit ticks, until at least count tamed
+-- units stand near a spot. Then it calls finish(hatched). The monster
+-- hatches in the tick of the landing. Its own bites and its payload
+-- come later, so at that tick only the blast hurt the targets.
+local function once_landed(to, count, limit, finish)
+  if #tamed_units(to) >= count or limit <= 0 then
+    finish(#tamed_units(to) >= count)
+    return
+  end
+  after_ticks(1, function()
+    once_landed(to, count, limit - 1, finish)
+  end)
+end
+
+-- The targets of a landing blast around a spot, by name. Each one is
+-- within 3.5 tiles of the spot.
+local function blast_targets(to)
+  local t = {
+    native = surface().create_entity({
+      name = "medium-biter",
+      position = { to[1] + 1, to[2] },
+      force = "enemy",
+    }),
+    tamed = surface().create_entity({
+      name = "medium-biter",
+      position = { to[1] - 1, to[2] },
+      force = Names.TAMED,
+    }),
+    chest = surface().create_entity({
+      name = "wooden-chest",
+      position = { to[1], to[2] + 1.5 },
+      force = "player",
+    }),
+    character = Helpers.character(surface(), { to[1] + 1.5, to[2] + 1.5 }),
+    tree = surface().create_entity({ name = "tree-01", position = { to[1] - 1.5, to[2] + 1.5 } }),
+    rock = surface().create_entity({ name = "big-rock", position = { to[1], to[2] - 2 } }),
+  }
+  t.native.disabled_by_script = true
+  t.tamed.disabled_by_script = true
+  return t
+end
+
+-- Reads which targets lost health, then removes the targets, the
+-- hatched monsters and the launcher, so a failed assert leaves nothing.
+local function settle_blast(to, targets, launcher)
+  local hurt = {}
+  for name, entity in pairs(targets) do
+    hurt[name] = not entity.valid or entity.health < entity.max_health
+    if entity.valid then
+      entity.destroy()
+    end
+  end
+  for _, unit in ipairs(tamed_units(to)) do
+    unit.destroy()
+  end
+  if launcher and launcher.valid then
+    launcher.destroy()
+  end
+  return hurt
+end
+
+-- Fires a rocket from a launcher at a row and checks which of the
+-- blast targets took damage against rule, a table of name = boolean.
+local function landing(y, projectile, rule)
+  local from, to = { 1100, y }, { 1120, y }
+  Helpers.arena(surface(), to)
+  local launcher = surface().create_entity({
+    name = Names.LAUNCHER,
+    position = from,
+    force = "player",
+  })
+  local targets = blast_targets(to)
+  fire(from, to, projectile, launcher)
+  -- The pre-placed tamed monster plus the hatched one.
+  once_landed(to, 2, 300, function(hatched)
+    local hurt = settle_blast(to, targets, launcher)
+    assert(hatched, "the monster did not hatch within 300 ticks")
+    for name, hit in pairs(rule) do
+      assert(hurt[name] == hit, name .. (hit and " is untouched" or " is hurt"))
+    end
+  end)
+end
+
 test(
-  "the blast hurts a native and a rival force, and not a tamed monster, a player chest or a rock",
+  "an explosive landing hurts a native, a chest, a character, a tamed monster, a tree and a rock",
   function()
-    local from, to = { 1100, 760 }, { 1120, 760 }
+    landing(760, "ao-larva-projectile-biter-explosive", {
+      native = true,
+      tamed = true,
+      chest = true,
+      character = true,
+      tree = true,
+      rock = true,
+    })
+  end
+)
+
+test(
+  "a poison landing hurts a native, a character, a tamed monster and a tree, not a chest or a rock",
+  function()
+    landing(1220, "ao-larva-projectile-biter-poison", {
+      native = true,
+      tamed = true,
+      character = true,
+      tree = true,
+      chest = false,
+      rock = false,
+    })
+  end
+)
+
+test(
+  "an acid landing hurts a native, a chest, a character, a tamed monster and a tree, not a rock",
+  function()
+    landing(1260, "ao-larva-projectile-spitter-acid", {
+      native = true,
+      tamed = true,
+      chest = true,
+      character = true,
+      tree = true,
+      rock = false,
+    })
+  end
+)
+
+test("the blast of a rocket without a launcher still follows the payload", function()
+  local from, to = { 1100, 780 }, { 1120, 780 }
+  Helpers.arena(surface(), to)
+  local targets = {
+    native = surface().create_entity({
+      name = "medium-biter",
+      position = { to[1] + 1, to[2] },
+      force = "enemy",
+    }),
+    chest = surface().create_entity({
+      name = "wooden-chest",
+      position = { to[1], to[2] + 1.5 },
+      force = "player",
+    }),
+    rival = rival_chest({ to[1] - 1.5, to[2] + 1.5 }),
+  }
+  targets.native.disabled_by_script = true
+  fire(from, to, "ao-larva-projectile-spitter-acid")
+  once_landed(to, 1, 300, function(hatched)
+    local hurt = settle_blast(to, targets, nil)
+    assert(hatched, "the monster did not hatch within 300 ticks")
+    assert(hurt.native, "the native is untouched")
+    assert(hurt.chest, "the player chest is untouched")
+    assert(hurt.rival, "the rival chest is untouched")
+  end)
+end)
+
+test(
+  "an explosive landing still hurts the launcher's own chest when its force has friendly fire off",
+  function()
+    local player = game.forces["player"]
+    local old = player.friendly_fire
+    local from, to = { 1100, 1300 }, { 1120, 1300 }
     Helpers.arena(surface(), to)
     local launcher = surface().create_entity({
       name = Names.LAUNCHER,
       position = from,
       force = "player",
     })
-    local native = surface().create_entity({
-      name = "medium-biter",
-      position = { to[1] + 1, to[2] },
-      force = "enemy",
-    })
-    native.disabled_by_script = true
-    local tamed = surface().create_entity({
-      name = "medium-biter",
-      position = { to[1] - 1, to[2] },
-      force = Names.TAMED,
-    })
-    tamed.disabled_by_script = true
-    local chest = surface().create_entity({
-      name = "wooden-chest",
-      position = { to[1], to[2] + 1.5 },
-      force = "player",
-    })
-    local rock = surface().create_entity({ name = "big-rock", position = { to[1], to[2] - 2 } })
-    local rival = rival_chest({ to[1] - 1.5, to[2] + 1.5 })
-    -- A control: this kind of rock does take explosion damage.
-    local control = surface().create_entity({ name = "big-rock", position = { to[1] + 10, to[2] } })
-    control.damage(35, "player", "explosion")
-    fire(from, to, "ao-larva-projectile-spitter-acid", launcher)
-    -- The monster hatches in the tick of the landing. Its own bites and
-    -- its payload come later, so at that tick only the blast hurt the native.
-    local waited = 0
-    local function check()
-      if #tamed_units(to) < 2 and waited < 300 then
-        waited = waited + 1
-        after_ticks(1, check)
-        return
-      end
-      local hatched = #tamed_units(to) >= 2
-      -- Read everything and clean up first, so a failure leaves nothing.
-      local hurt = function(entity)
-        return not entity.valid or entity.health < entity.max_health
-      end
-      local result = {
-        native = hurt(native),
-        control = hurt(control),
-        tamed = hurt(tamed),
-        chest = hurt(chest),
-        rock = hurt(rock),
-        rival = hurt(rival),
-      }
-      launcher.destroy()
+    local chest = Helpers.chest(surface(), { to[1] + 1, to[2] })
+    player.friendly_fire = false
+    fire(from, to, "ao-larva-projectile-biter-explosive", launcher)
+    once_landed(to, 1, 300, function(hatched)
+      player.friendly_fire = old
+      local hurt = settle_blast(to, { chest = chest }, launcher)
       assert(hatched, "the monster did not hatch within 300 ticks")
-      assert(result.native, "the blast missed the native")
-      assert(result.control, "the rock shrugs off explosions")
-      assert(result.rival, "the blast missed a force at war with the launcher")
-      assert(not result.tamed, "the tamed monster is hurt")
-      assert(not result.chest, "the player chest is hurt")
-      assert(not result.rock, "the neutral rock is hurt")
-    end
-    after_ticks(1, check)
+      assert(hurt.chest, "the chest is untouched")
+    end)
   end
 )
 
-test("the blast of a rocket without a launcher hurts only the natives", function()
-  local from, to = { 1100, 780 }, { 1120, 780 }
-  Helpers.arena(surface(), to)
-  local native = surface().create_entity({
-    name = "medium-biter",
-    position = { to[1] + 1, to[2] },
-    force = "enemy",
-  })
-  native.disabled_by_script = true
-  local chest = surface().create_entity({
-    name = "wooden-chest",
-    position = { to[1], to[2] + 1.5 },
-    force = "player",
-  })
-  local rival = rival_chest({ to[1] - 1.5, to[2] + 1.5 })
-  fire(from, to, "ao-larva-projectile-spitter-acid")
-  after_ticks(120, function()
-    assert(not native.valid or native.health < native.max_health, "the native is untouched")
-    assert(chest.valid and chest.health == chest.max_health, "the player chest is hurt")
-    assert(rival.valid and rival.health == rival.max_health, "a rival force's chest is hurt")
-  end)
-end)
-
-test("a larva rocket that lands in water sets off its payload there", function()
+test("a larva rocket that lands in water sets off its payload through the queue", function()
   local from, to = { 1100, 820 }, { 1130, 820 }
   Helpers.arena(surface(), to)
   local tiles = {}
@@ -150,15 +236,31 @@ test("a larva rocket that lands in water sets off its payload there", function()
     end
   end
   surface().set_tiles(tiles)
+  -- A death of an earlier test can reach the queue in the same ticks,
+  -- so the test counts only the detonations at the landing spot.
+  local queue, queued = Damage.queue, 0
+  ---@diagnostic disable-next-line: duplicate-set-field
+  Damage.queue = function(on, position, payloads, force)
+    if position.x == to[1] and position.y == to[2] then
+      queued = queued + #payloads
+    end
+    return queue(on, position, payloads, force)
+  end
   fire(from, to, "ao-larva-projectile-biter-poison")
   after_ticks(120, function()
-    assert(#tamed_units(to) == 0, "a monster hatched in the water")
-    local clouds = surface().count_entities_filtered({
+    Damage.queue = queue
+    local clouds = surface().find_entities_filtered({
       position = to,
       radius = 6,
       name = "poison-cloud",
     })
-    assert(clouds >= 1, "no poison cloud")
+    local force = clouds[1] and clouds[1].force.name
+    for _, cloud in pairs(clouds) do
+      cloud.destroy()
+    end
+    assert(#tamed_units(to) == 0, "a monster hatched in the water")
+    assert(queued == 1, queued .. " detonations queued")
+    assert(force == Names.TAMED, "the cloud belongs to " .. tostring(force))
   end)
 end)
 

@@ -8,6 +8,7 @@ local Loot = require("core.loot")
 local Names = require("core.names")
 local Payloads = require("core.payloads")
 local Species = require("core.species")
+local Damage = require("shell.damage")
 local FeralShell = require("shell.feral")
 local LauncherShell = require("shell.launcher")
 local Setup = require("shell.setup")
@@ -119,28 +120,21 @@ local function load_monster(monster, payload)
   script.register_on_object_destroyed(monster)
 end
 
--- The landing blast. The launcher's force deals the damage, so kills
--- count for it.
-local function blast(surface, position, launcher)
-  local attacker = launcher and launcher.valid and launcher.force or nil
-  local targets = surface.find_entities_filtered({
+-- The landing blast. It follows the rocket's payload: the payload's
+-- targets and damage type, with the slice 3 amount and radius. The
+-- launcher's force deals it and the launcher is the cause, so kills
+-- count for it. With no launcher, the neutral force deals it.
+local function blast(surface, position, launcher, payload)
+  local live = launcher and launcher.valid and launcher or nil
+  Damage.hit({
+    surface = surface,
     position = position,
     radius = Balance.blast.radius,
+    payload = payload.name,
+    damage = Balance.blast.damage,
+    force = live and live.force.name or "neutral",
+    cause = live,
   })
-  for _, target in pairs(targets) do
-    if
-      target.valid
-      and target.is_entity_with_health
-      and Forces.blast_hits(
-        target.force.name,
-        attacker and attacker.name,
-        attacker ~= nil and attacker.is_enemy(target.force)
-      )
-    then
-      local cause = attacker and launcher
-      target.damage(Balance.blast.damage, attacker or "neutral", "explosion", nil, cause)
-    end
-  end
 end
 
 -- A larva rocket lands. The blast goes first, then the loaded monster
@@ -154,16 +148,15 @@ local function land(event, species, payload)
   if not surface or not position or surface.platform then
     return
   end
-  blast(surface, position, event.source_entity)
+  blast(surface, position, event.source_entity, payload)
   local monster = spawn(surface, position, species.units, Names.TAMED)
   if monster then
     load_monster(monster, payload)
     return
   end
-  for _, effect in ipairs(Payloads.on_death({ payload.name }, position, entity_exists)) do
-    effect.force = Names.TAMED
-    surface.create_entity(effect)
-  end
+  -- No free spot, for example water: the payload goes off through the
+  -- queue, as the death effect of the monster that could not appear.
+  Damage.queue(surface, position, { payload.name }, Names.TAMED)
 end
 
 script.on_event(defines.events.on_script_trigger_effect, function(event)
@@ -219,17 +212,15 @@ local function nest_loot(event)
   })
 end
 
--- A loaded monster sets off its payload where it dies.
+-- A loaded monster sets off its payloads where it dies. Each one goes
+-- into the detonation queue, so a death that kills more loaded monsters
+-- never recurses.
 local function set_off(entity)
   local entry = storage.loaded[entity.unit_number]
   if not entry then
     return
   end
-  for _, effect in ipairs(Payloads.on_death(entry.payloads, entity.position, entity_exists)) do
-    effect.force = FeralShell.force_of(entry)
-    effect.cause = entity
-    entity.surface.create_entity(effect)
-  end
+  Damage.queue(entity.surface, entity.position, entry.payloads, FeralShell.force_of(entry))
 end
 
 script.on_event(defines.events.on_entity_died, function(event)
@@ -304,6 +295,7 @@ local function feral_tick(tick)
 end
 
 script.on_event(defines.events.on_tick, function(event)
+  Damage.run_detonations()
   trail_tick(event.tick)
   feral_tick(event.tick)
 end)
@@ -334,5 +326,6 @@ if script.active_mods["factorio-test"] then
     "tests/ingame/launcher_range_test",
     "tests/ingame/stasis_test",
     "tests/ingame/feral_test",
+    "tests/ingame/damage_test",
   })
 end

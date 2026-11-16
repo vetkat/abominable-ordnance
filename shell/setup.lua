@@ -9,6 +9,8 @@ local Setup = {}
 function Setup.on_init()
   storage.loaded = storage.loaded or {}
   storage.trails = storage.trails or {}
+  storage.detonations = storage.detonations or {}
+  storage.detonation_counter = storage.detonation_counter or 0
   Tamed.ensure()
 end
 

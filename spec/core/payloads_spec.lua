@@ -44,30 +44,91 @@ describe("the payload table", function()
     assert.is_nil(Payloads.decode("ao-land-biter-poison"))
   end)
 end)
-describe("the payload effects", function()
+
+describe("the target rules", function()
+  it("let explosive hurt every class", function()
+    for _, class in ipairs(Payloads.CLASSES) do
+      assert.is_true(Payloads.hits("explosive", class), class)
+    end
+  end)
+
+  it("let poison hurt organics only", function()
+    assert.is_true(Payloads.hits("poison", "organic"))
+    assert.is_false(Payloads.hits("poison", "rock"))
+    assert.is_false(Payloads.hits("poison", "building"))
+  end)
+
+  it("let acid hurt everything except rocks", function()
+    assert.is_true(Payloads.hits("acid", "organic"))
+    assert.is_true(Payloads.hits("acid", "building"))
+    assert.is_false(Payloads.hits("acid", "rock"))
+  end)
+
+  it("hurt nothing for an unknown payload or class", function()
+    assert.is_false(Payloads.hits("glitter", "organic"))
+    assert.is_false(Payloads.hits("explosive", "cloud"))
+  end)
+
+  it("give each payload its own damage type", function()
+    assert.are.equal("explosion", Payloads.damage_type("explosive"))
+    assert.are.equal("acid", Payloads.damage_type("acid"))
+    assert.are.equal("poison", Payloads.damage_type("poison"))
+    assert.is_nil(Payloads.damage_type("glitter"))
+  end)
+end)
+
+describe("the payload numbers", function()
+  it("all live in Balance.payload_damage", function()
+    local d = Balance.payload_damage
+    for _, name in ipairs({ "explosive", "poison", "acid", "trail" }) do
+      assert.is_number(d[name].damage, name)
+      assert.is_number(d[name].radius, name)
+    end
+    assert.is_number(d.poison.ticks)
+    assert.is_number(d.acid.ticks)
+    local keys = { "hazard_interval", "hazard_hits", "hazard_visits", "detonation_batch" }
+    for _, key in ipairs(keys) do
+      assert.is_number(d[key], key)
+    end
+  end)
+
+  it("come from Payloads.numbers by payload name", function()
+    assert.are.equal(Balance.payload_damage.acid, Payloads.numbers("acid"))
+    assert.is_nil(Payloads.numbers("glitter"))
+    assert.is_nil(Payloads.numbers("hazard_hits"))
+  end)
+end)
+
+describe("the death plans", function()
   local p = { x = 10, y = 20 }
   local function all()
     return true
   end
 
-  it("fire a rocket at the death spot for an explosive payload", function()
-    assert.are.same(
-      { { name = "explosive-rocket", position = p, target = p, speed = 1 } },
-      Payloads.on_death({ "explosive" }, p, all)
-    )
+  it("show an explosion and deal one hit for an explosive payload", function()
+    assert.are.same({
+      {
+        payload = "explosive",
+        entities = { { name = "big-explosion", position = p } },
+        hit = { damage = 150, radius = 4 },
+      },
+    }, Payloads.on_death({ "explosive" }, p, all))
   end)
 
-  it("leave a poison cloud for a poison payload", function()
+  it("leave a vanilla poison cloud for a poison payload", function()
     assert.are.same(
-      { { name = "poison-cloud", position = p } },
+      { { payload = "poison", entities = { { name = "poison-cloud", position = p } } } },
       Payloads.on_death({ "poison" }, p, all)
     )
   end)
 
-  it("spread five acid puddles for an acid payload", function()
+  it("spread five vanilla acid puddles for an acid payload", function()
     local d = Balance.acid_spread
+    local plan = Payloads.on_death({ "acid" }, p, all)[1]
+    assert.are.equal("acid", plan.payload)
+    assert.is_nil(plan.hit)
     local spots = {}
-    for _, e in ipairs(Payloads.on_death({ "acid" }, p, all)) do
+    for _, e in ipairs(plan.entities) do
       assert.are.equal("acid-splash-fire-spitter-big", e.name)
       spots[#spots + 1] = (e.position.x - 10) / d .. "," .. (e.position.y - 20) / d
     end
@@ -75,20 +136,27 @@ describe("the payload effects", function()
     assert.are.same({ "-1,0", "0,-1", "0,0", "0,1", "1,0" }, spots)
   end)
 
-  it("give each effect its own position table", function()
-    local rocket = Payloads.on_death({ "explosive" }, p, all)[1]
-    assert.are_not.equal(p, rocket.position)
+  it("give each entity its own position table", function()
+    local entity = Payloads.on_death({ "explosive" }, p, all)[1].entities[1]
+    assert.are_not.equal(p, entity.position)
   end)
 
   it("skip an unknown payload", function()
     assert.are.same({}, Payloads.on_death({ "glitter" }, p, all))
   end)
 
-  it("leave out an effect whose prototype is missing", function()
-    local function no_rocket(name)
-      return name ~= "explosive-rocket"
+  it("keep the hit when the explosion's prototype is missing", function()
+    local function no_explosion(name)
+      return name ~= "big-explosion"
     end
-    assert.are.same({}, Payloads.on_death({ "explosive" }, p, no_rocket))
+    local plan = Payloads.on_death({ "explosive" }, p, no_explosion)[1]
+    assert.are.same({}, plan.entities)
+    assert.are.same({ damage = 150, radius = 4 }, plan.hit)
+  end)
+
+  it("give one plan per payload, in order", function()
+    local plans = Payloads.on_death({ "poison", "explosive" }, p, all)
+    assert.are.same({ "poison", "explosive" }, { plans[1].payload, plans[2].payload })
   end)
 
   it("give acid a trail and no other payload one", function()

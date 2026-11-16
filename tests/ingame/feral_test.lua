@@ -10,20 +10,9 @@ local surface = function()
   return game.surfaces[1]
 end
 
--- Hatches one small loaded biter at a position and passes its entry to
--- after(entry) a tick later. Evolution 0 makes it a small biter.
+-- Hatches one small loaded biter and passes its entry to after(entry).
 local function with_entry(position, item, after)
-  Helpers.arena(surface(), position, 40)
-  game.forces["enemy"].set_evolution_factor(0, surface())
-  Helpers.spoil(Helpers.spill(surface(), position, item, 1))
-  after_ticks(1, function()
-    local units = Helpers.find_units(surface(), position, { force = Names.TAMED })
-    assert(#units == 1, #units .. " tamed units")
-    local entry = storage.loaded[units[1].unit_number]
-    assert(entry, "no loaded entry")
-    entry.unit.disabled_by_script = true
-    after(entry)
-  end)
+  Helpers.loaded_entry(surface(), position, item, after)
 end
 
 -- Stops the background batch check for the length of a test, so that
