@@ -32,4 +32,6 @@ return {
   CRYO_PACK = "ao-cryo-ward-",
   CRYO_UNPACK = "ao-cryo-unward-",
   FERAL = "ao-feral",
+  CLOUD = "ao-poison-cloud",
+  POOL = "ao-acid-pool",
 }

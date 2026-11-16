@@ -443,6 +443,64 @@ functional-core work loop goes here too.
   says, and the kill counts for the natives. The rule is
   `Forces.attacker(attacker, target, friendly_fire)`. Cost if wrong:
   another force pair also fails in some setup, and its hits do nothing.
+- PR 2, Task 7: the in-game test "a poison monster that dies poisons a
+  native biter" checks poison damage, so it fails from the Task 7
+  commit until Task 8. Cost if wrong: one commit inside the branch fails
+  in the game. The squash merge keeps `main` green.
+- PR 2, Task 7: `cspell.json` gets the word "alikes", because the spell
+  check splits "look-alikes" at the hyphen. Cost if wrong: a stray
+  "alikes" passes the spell check.
+- PR 2, Task 8: the new in-game tests use `x = 4380` to `x = 4800`. The
+  plan's spots 4220, 4260 and 4340 belong to tests of PR 1. Cost if
+  wrong: none.
+- PR 2, Task 8: the cloud test asserts that the native's health does not
+  fall after the end, not that it stays the same. A big biter heals
+  0.02 per tick. Cost if wrong: a hit smaller than the healing after the
+  end passes. One poison hit is 8, so none does.
+- PR 2, Task 8: the hazard pass works like the queue. It creates its
+  fields when they are missing. It returns at once for an empty table.
+  It replaces a drained table with a fresh one and a nil cursor. Cost
+  if wrong: none, because a drained table has no key for the cursor to
+  keep.
+- PR 2, Task 8: the test of the drained table runs `Damage.run_hazards`
+  by hand on a table of its own. The clouds of earlier tests still live
+  for 20 s. Cost if wrong: the test does not cover the `on_tick` call,
+  which the other hazard tests cover.
+- PR 2, Task 8, decision 17: `create_entity` makes the small demolisher
+  on Nauvis, and it takes poison damage. The test needs no Vulcanus
+  surface.
+- PR 2, review fix: `Damage.damage_type(payload, damage_prototypes)` is
+  public, so an in-game test can pass a table without the damage type.
+  Cost if wrong: one more public name in `shell/damage.lua`.
+- PR 2, review fix: the hazard pass also stops when the targets that its
+  hits damaged reach `hazard_targets` (200). The shell checks the budget
+  before each hit, so the hit that crosses it runs in full.
+  `Hazards.cut(plan, ran)` keeps each hazard whose hit did not run and
+  puts the cursor on the first of them. The spec's numbers table gains
+  the row. Cost if wrong: one tick can damage 200 targets plus one hit's
+  targets, about 350 on a dense nest.
+- PR 2, review fix: `data-final-fixes.lua` builds the look-alikes with
+  `Ordnance.lookalikes`, from the vanilla effects as they stand then. A
+  mod whose own `data-final-fixes.lua` loads after this one and removes
+  a source can still break the load. Cost if wrong: that load fails with
+  a missing prototype error.
+- PR 2, review fix: the cloud's `created_effect` keeps only the
+  `create-smoke` and `play-sound` effects of its instant deliveries. It
+  drops the whole `created_effect` when a kept smoke names a missing
+  entity. Cost if wrong: a cloud loses a visual effect of another kind
+  that another mod added, and a cloud without its dummy shows a thinner
+  cloud.
+- PR 2, review fix: the pool keeps the vanilla pool's damage type, and
+  there is no pool when that type is missing. A missing acid type also
+  stops the acid damage, so the pool would only mislead. Cost if wrong:
+  an acid death shows no pools while another mod removes the type.
+- PR 2, review fix: the acid test ends its hazard by setting its end
+  tick and last hit to the current tick. Then the pass removes it and
+  keeps the cursor valid. Cost if wrong: the hazard lives one more tick,
+  after the test destroyed its pools and chest.
+- PR 2, review fix: `wrap_deaths` in `tests/ingame/damage_test.lua`
+  wraps the death event for `kill_by_hit` and for the test of a cause
+  that a death handler destroys. Cost if wrong: none.
 
 ## Interface sheet
 

@@ -1,9 +1,11 @@
 -- Deals the payload damage in the game: the class of a target, the
--- targets of a payload in an area, one hit, and the detonation queue.
+-- targets of a payload in an area, one hit, the detonation queue and
+-- the hazards.
 -- This module is shell: it reads and writes the game. control.lua calls
 -- it, and so do the in-game tests. The rules live in core/payloads.lua.
 local Balance = require("core.balance")
 local Forces = require("core.forces")
+local Hazards = require("core.hazards")
 local Payloads = require("core.payloads")
 local Trail = require("core.trail")
 
@@ -16,8 +18,9 @@ function Damage.entity_exists(name)
 end
 
 -- The class sets, built once per load from the prototypes. Every client
--- builds the same sets from the same prototypes, and nothing changes
--- them after the build, so this cache never differs between clients.
+-- builds the same sets from the same prototypes. The only later change
+-- adds a payload's search types, which come from the same sets. So this
+-- cache never differs between clients.
 local classes
 
 -- The organic names, the rock names and the sorted types of the
@@ -37,7 +40,7 @@ local function build_classes()
     end
   end
   table.sort(types)
-  return { organic = organic, rock = rock, organic_types = types }
+  return { organic = organic, rock = rock, organic_types = types, search = {} }
 end
 
 local function class_sets()
@@ -58,16 +61,16 @@ function Damage.class_of(entity)
   return "building"
 end
 
--- The type filter of a payload's search, or nil to search everything.
+-- The type filter of a payload's search, or false to search everything.
 -- A payload that hurts buildings searches everything, because a
 -- building is any other entity. The others search their classes' types.
-local function search_types(payload)
+local function build_search(payload, c)
   if Payloads.hits(payload, "building") then
-    return nil
+    return false
   end
   local types = {}
   if Payloads.hits(payload, "organic") then
-    for _, t in ipairs(class_sets().organic_types) do
+    for _, t in ipairs(c.organic_types) do
       types[#types + 1] = t
     end
   end
@@ -75,6 +78,16 @@ local function search_types(payload)
     types[#types + 1] = "simple-entity"
   end
   return types
+end
+
+-- The type filter of a payload's search, or nil to search everything.
+-- Each payload's filter is built once. The search only reads it.
+local function search_types(payload)
+  local c = class_sets()
+  if c.search[payload] == nil then
+    c.search[payload] = build_search(payload, c)
+  end
+  return c.search[payload] or nil
 end
 
 -- The entities with health within radius of a position that the
@@ -91,30 +104,41 @@ function Damage.targets(surface, position, radius, payload)
     type = types,
   })
   for _, entity in pairs(found) do
-    if
-      entity.valid
-      and entity.is_entity_with_health
-      and Payloads.hits(payload, Damage.class_of(entity))
-    then
+    if entity.is_entity_with_health and Payloads.hits(payload, Damage.class_of(entity)) then
       out[#out + 1] = entity
     end
   end
   return out
 end
 
+-- The damage type of a payload, or nil when the payload is unknown or
+-- another mod removed its damage type from damage_prototypes.
+function Damage.damage_type(payload, damage_prototypes)
+  local kind = Payloads.damage_type(payload)
+  if kind and damage_prototypes[kind] then
+    return kind
+  end
+  return nil
+end
+
 -- One hit of a payload. hit has surface, position, radius, payload,
 -- damage and force (a force name). It may have cause (the entity that
 -- set it off) and skip (an entity the hit spares). No caller uses skip
 -- before the acid trail of PR 3. The hit checks each target first,
--- because an earlier target's death can take a later one with it. It
--- returns the targets that still exist.
+-- because an earlier target's death can take a later one with it, and
+-- another mod's death handler can destroy the cause. It returns the
+-- targets that still exist, and the number of targets it damaged. When
+-- another mod removed the damage type, the hit deals no damage.
 --
 -- The natives may deal the hit for a force with friendly fire off. Then
 -- the hit has no cause, because a cause from another force would
 -- mislead.
 function Damage.hit(hit)
-  local kind = Payloads.damage_type(hit.payload)
-  local survivors = {}
+  local kind = Damage.damage_type(hit.payload, prototypes.damage)
+  if not kind then
+    return {}, 0
+  end
+  local survivors, dealt = {}, 0
   -- The attacker for each target force, read once per hit.
   local attackers = {}
   for _, target in ipairs(Damage.targets(hit.surface, hit.position, hit.radius, hit.payload)) do
@@ -125,26 +149,32 @@ function Damage.hit(hit)
         attacker = Forces.attacker(hit.force, force.name, force.friendly_fire)
         attackers[force.name] = attacker
       end
-      target.damage(hit.damage, attacker, kind, nil, attacker == hit.force and hit.cause or nil)
+      local cause = hit.cause and hit.cause.valid and attacker == hit.force and hit.cause or nil
+      target.damage(hit.damage, attacker, kind, nil, cause)
+      dealt = dealt + 1
       if target.valid then
         survivors[#survivors + 1] = target
       end
     end
   end
-  return survivors
+  return survivors, dealt
 end
 
--- A save from before the queue has neither field, and a mod update
--- with the same version never runs on_configuration_changed. So the
--- queue creates its fields when it finds them missing.
-local function ensure_queue()
+-- Creates the fields of the queue and the hazards that are missing.
+-- Setup.on_init calls it. A save from before the queue or the hazards
+-- lacks them, and a mod update with the same version never runs
+-- on_configuration_changed. So the queue and the hazard pass call it
+-- too.
+function Damage.ensure_storage()
   storage.detonations = storage.detonations or {}
   storage.detonation_counter = storage.detonation_counter or 0
+  storage.hazards = storage.hazards or {}
+  storage.hazard_counter = storage.hazard_counter or 0
 end
 
 -- Adds one detonation per payload to the queue. force is a force name.
 function Damage.queue(surface, position, payloads, force)
-  ensure_queue()
+  Damage.ensure_storage()
   for _, payload in ipairs(payloads) do
     storage.detonation_counter = storage.detonation_counter + 1
     storage.detonations[storage.detonation_counter] = {
@@ -156,11 +186,28 @@ function Damage.queue(surface, position, payloads, force)
   end
 end
 
+-- Stores the hazard of a plan. Its first hit is due at once, so the
+-- hazard pass deals it within its budget.
+local function start_hazard(d, plan)
+  Damage.ensure_storage()
+  storage.hazard_counter = storage.hazard_counter + 1
+  storage.hazards[storage.hazard_counter] = Hazards.new(
+    d.surface,
+    d.position,
+    plan.payload,
+    d.force,
+    game.tick,
+    plan.hazard.ticks,
+    Balance.payload_damage.hazard_interval
+  )
+end
+
 -- Runs one detonation: the death effect of one payload. A detonation
 -- does nothing when its surface or force no longer exists. A hit has no
 -- cause, because the monster no longer exists.
 function Damage.detonate(d)
   local surface = game.get_surface(d.surface)
+  -- When its force no longer exists, the queue drops the detonation.
   if not (surface and game.forces[d.force]) then
     return
   end
@@ -179,15 +226,20 @@ function Damage.detonate(d)
         force = d.force,
       })
     end
+    if plan.hazard then
+      start_hazard(d, plan)
+    end
   end
 end
 
 -- Runs up to detonation_batch detonations. Each one leaves the queue
 -- before it runs, so a detonation that kills more loaded monsters only
 -- adds to the queue and never recurses. The order within a tick follows
--- next(), not the counter. An empty queue costs one lookup.
+-- next(), not the counter. An empty queue costs one lookup. A drained
+-- queue starts again as a fresh table. Then the next() of an idle tick
+-- does not scan the empty slots of a large backlog.
 function Damage.run_detonations()
-  ensure_queue()
+  Damage.ensure_storage()
   if next(storage.detonations) == nil then
     return
   end
@@ -196,6 +248,77 @@ function Damage.run_detonations()
     local d = storage.detonations[id]
     storage.detonations[id] = nil
     Damage.detonate(d)
+  end
+  if next(storage.detonations) == nil then
+    storage.detonations = {}
+  end
+end
+
+-- Deals the summed hits of one hazard visit. Returns false when the
+-- hazard's surface, force or payload no longer exists. Then the hazard
+-- must leave. Also returns the number of targets it damaged.
+local function hazard_hit(hazard, count)
+  local surface = game.get_surface(hazard.surface)
+  local n = Payloads.numbers(hazard.payload)
+  if not (surface and game.forces[hazard.force] and n) then
+    return false, 0
+  end
+  local _, dealt = Damage.hit({
+    surface = surface,
+    position = hazard.position,
+    radius = n.radius,
+    payload = hazard.payload,
+    damage = n.damage * count,
+    force = hazard.force,
+  })
+  return true, dealt
+end
+
+local function remove_hazard(id)
+  if storage.hazards[id] then
+    storage.hazard_cursor = Trail.forget(storage.hazards, storage.hazard_cursor, id)
+    storage.hazards[id] = nil
+  end
+end
+
+-- One tick of the hazard pass. core/hazards.lua picks the visits and
+-- the hits within the budget. This function deals the hits until the
+-- targets it damaged reach hazard_targets, then removes the hazards that
+-- end. It checks the target budget before each hit, so one tick can go
+-- over it by the targets of one hit. A hit that does not run keeps its
+-- last hit, so the hazard catches up later. A drained table starts
+-- again as a fresh table, like the queue. A hit only adds to the queue,
+-- so the table gains no key while the pass walks it.
+function Damage.run_hazards(tick)
+  Damage.ensure_storage()
+  if next(storage.hazards) == nil then
+    return
+  end
+  local numbers = Balance.payload_damage
+  local plan = Hazards.plan(storage.hazards, storage.hazard_cursor, tick, numbers)
+  local ran, dealt, gone = 0, 0, {}
+  for _, h in ipairs(plan.hits) do
+    if dealt >= numbers.hazard_targets then
+      break
+    end
+    local hazard = storage.hazards[h.id]
+    hazard.last_hit = h.last_hit
+    local ok, targets = hazard_hit(hazard, h.count)
+    if not ok then
+      gone[#gone + 1] = h.id
+    end
+    ran, dealt = ran + 1, dealt + targets
+  end
+  local rest = Hazards.cut(plan, ran)
+  storage.hazard_cursor = rest.cursor
+  for _, list in ipairs({ gone, rest.done }) do
+    for _, id in ipairs(list) do
+      remove_hazard(id)
+    end
+  end
+  if next(storage.hazards) == nil then
+    storage.hazards = {}
+    storage.hazard_cursor = nil
   end
 end
 

@@ -1,6 +1,7 @@
 -- The payloads a larva can carry, and the names of the loaded larvae.
 -- Pure data and lookups.
 local Balance = require("core.balance")
+local Names = require("core.names")
 local Species = require("core.species")
 
 local Payloads = {}
@@ -25,8 +26,9 @@ Payloads.ALL = {
     icon = "__base__/graphics/icons/fluid/sulfuric-acid.png",
     targets = { organic = true, building = true },
     damage_type = "acid",
-    -- One puddle hurts only what stands in it, so the death spreads five.
-    death = { entity = "acid-splash-fire-spitter-big", spread = true },
+    -- One pool hurts only what stands in it, so the death spreads five
+    -- look-alikes. One hazard covers them.
+    death = { entity = Names.POOL, spread = true, hazard = true },
     trail = "acid-splash-fire-spitter-small",
   },
   {
@@ -35,7 +37,7 @@ Payloads.ALL = {
     icon = "__base__/graphics/icons/poison-capsule.png",
     targets = { organic = true },
     damage_type = "poison",
-    death = { entity = "poison-cloud" },
+    death = { entity = Names.CLOUD, hazard = true },
   },
 }
 
@@ -143,8 +145,9 @@ end
 
 -- One plan per payload of a monster that dies at a position. A plan
 -- names the payload, lists the entities to create, and carries the
--- script hit (hit) when the payload has one. A missing prototype takes
--- the entities out, never the damage. An unknown payload gives no plan.
+-- script hit (hit) or the hazard (hazard) when the payload has one. A
+-- missing prototype takes the entities out, never the damage. An
+-- unknown payload gives no plan.
 function Payloads.on_death(names, position, exists)
   local out = {}
   for _, name in ipairs(names) do
@@ -154,6 +157,9 @@ function Payloads.on_death(names, position, exists)
       if payload.death.hit then
         local n = Balance.payload_damage[name]
         plan.hit = { damage = n.damage, radius = n.radius }
+      end
+      if payload.death.hazard then
+        plan.hazard = { ticks = Balance.payload_damage[name].ticks }
       end
       out[#out + 1] = plan
     end

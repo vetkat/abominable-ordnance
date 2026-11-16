@@ -216,7 +216,7 @@ The build uses the default in each row:
 | Friendly fire on your base | On. Your turrets do not fire back at tamed monsters, and alerts can repeat. A mod setting that switches it off can come later |
 | Feral kills | Natives that a feral monster's death effect kills drop no nest loot, because `Forces.earns_loot` is false for the feral force |
 | Probe fallback | If a probe row fails, the `enemy` force deals those hits, and those kills count for the natives |
-| Busy ticks | At most `hazard_hits` hazard hits and `hazard_visits` visits per tick. Above that, a hazard ticks less often, but each visit catches up, so the total damage before resistances stays the same. A flat resistance subtracts once per summed hit, so a late hazard deals a little more to such a target |
+| Busy ticks | At most `hazard_hits` hazard hits and `hazard_visits` visits per tick. The hits stop when the targets they damaged reach `hazard_targets`. Above that, a hazard ticks less often, but each visit catches up, so the total damage before resistances stays the same. A flat resistance subtracts once per summed hit, so a late hazard deals a little more to such a target |
 
 ## Game content
 
@@ -237,6 +237,7 @@ All numbers go in `core/balance.lua`, under `Balance.payload_damage`:
 | `hazard_interval` | 30 | Ticks between two hits of one hazard |
 | `hazard_hits` | 10 | Hazard hits (searches) per tick |
 | `hazard_visits` | 50 | Hazards visited per tick, with or without a hit |
+| `hazard_targets` | 200 | Targets that hazard hits damage per tick, before the pass stops |
 | `detonation_batch` | 5 | Detonations run per tick |
 
 `Balance.blast` keeps its 35 damage and 3.5-tile radius.
@@ -287,6 +288,11 @@ tick. With no whole interval, the visit does no search and costs no hit.
 Otherwise it deals the damage once for each interval, as one hit of the
 summed amount, and moves the last-hit tick. Each such hit counts against
 `hazard_hits`.
+
+Each target that a hit damages counts against
+`hazard_targets`. When the targets reach it, no further hit runs that
+tick. A hit that does not run keeps its last-hit tick, and the cursor
+stays at its hazard.
 
 When the tick has no hits or visits left, the cursor
 stays at the next hazard. The next tick carries on from there. So a

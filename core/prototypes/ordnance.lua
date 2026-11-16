@@ -215,6 +215,136 @@ local function loading(graphics, projectile_looks)
   return out, recipes
 end
 
+-- A look-alike copies a vanilla effect. It shows the same picture and
+-- deals no damage of its own: shell/damage.lua deals the damage. Each
+-- returns nil when another mod removed the vanilla prototype.
+
+-- A trigger field holds one table or a list of them. Returns a list.
+local function as_list(x)
+  if x == nil then
+    return {}
+  end
+  if x.type then
+    return { x }
+  end
+  return x
+end
+
+-- The effects of the cloud's created_effect that only show something.
+local LOOKS = { ["create-smoke"] = true, ["play-sound"] = true }
+
+-- The effects of a list that only show something, or nil when a smoke
+-- names a missing entity.
+local function looks(effects, entity_exists)
+  local out = {}
+  for _, e in ipairs(as_list(effects)) do
+    if LOOKS[e.type] then
+      if e.type == "create-smoke" and not entity_exists(e.entity_name) then
+        return nil
+      end
+      out[#out + 1] = e
+    end
+  end
+  return out
+end
+
+-- The instant deliveries of a trigger, with only the effects that show
+-- something. Returns nil when a smoke names a missing entity.
+local function deliveries(trigger, entity_exists)
+  local out = {}
+  for _, d in ipairs(as_list(trigger.action_delivery)) do
+    if d.type == "instant" then
+      local target = looks(d.target_effects, entity_exists)
+      local source = looks(d.source_effects, entity_exists)
+      if not (target and source) then
+        return nil
+      end
+      if #target + #source > 0 then
+        out[#out + 1] = {
+          type = "instant",
+          target_effects = target[1] and target or nil,
+          source_effects = source[1] and source or nil,
+        }
+      end
+    end
+  end
+  return out
+end
+
+-- The cloud's created_effect with only its smoke and sound, or nil when
+-- nothing is left or a smoke names a missing entity. Another mod can
+-- add a damage effect to the vanilla cloud, and the look-alike deals no
+-- damage of its own.
+local function cloud_looks(created_effect, entity_exists)
+  local out = {}
+  for _, trigger in ipairs(as_list(created_effect)) do
+    local kept = deliveries(trigger, entity_exists)
+    if not kept then
+      return nil
+    end
+    if #kept > 0 then
+      local t = Common.copy(trigger)
+      t.action_delivery = kept
+      out[#out + 1] = t
+    end
+  end
+  return out[1] and out or nil
+end
+
+-- The poison cloud, for as long as its hazard lasts. Its created_effect
+-- keeps only its smoke and sound.
+local function cloud(vanilla, entity_exists)
+  if not vanilla then
+    return nil
+  end
+  local p = Common.copy(vanilla)
+  p.name = Names.CLOUD
+  p.hidden = true
+  p.action = nil
+  p.action_cooldown = 0
+  p.duration = Balance.payload_damage.poison.ticks
+  p.created_effect = cloud_looks(vanilla.created_effect, entity_exists)
+  return p
+end
+
+-- An acid puddle that never spreads and never acts. It keeps the
+-- vanilla damage type, and it is nil when another mod removed that
+-- type. With a lifetime, it lasts exactly that long. Without one, it
+-- keeps the vanilla lifetime.
+local function puddle(vanilla, name, lifetime, damage_exists)
+  local kind = vanilla and vanilla.damage_per_tick and vanilla.damage_per_tick.type
+  if not (kind and damage_exists(kind)) then
+    return nil
+  end
+  local p = Common.copy(vanilla)
+  p.name = name
+  p.hidden = true
+  p.damage_per_tick = { amount = 0, type = kind }
+  p.on_damage_tick_effect = nil
+  p.created_effect = nil
+  p.on_fuel_added_action = nil
+  p.spawn_entity = nil
+  p.maximum_spread_count = 0
+  if lifetime then
+    p.initial_lifetime = lifetime
+    p.maximum_lifetime = lifetime
+    p.lifetime_increase_by = 0
+  end
+  return p
+end
+
+-- The look-alikes, in name order, for data-final-fixes.lua. The opts
+-- hold the vanilla poison cloud and big acid puddle as they stand then,
+-- either of which can be nil. They also hold entity_exists(name) and
+-- damage_exists(name), which read the data stage.
+function Ordnance.lookalikes(opts)
+  local out = {}
+  out[#out + 1] =
+    puddle(opts.pool, Names.POOL, Balance.payload_damage.acid.ticks, opts.damage_exists)
+  out[#out + 1] = cloud(opts.cloud, opts.entity_exists)
+  return out
+end
+
 -- Returns the prototypes, and the names of the recipes that Monster
 -- husbandry unlocks. The opts hold the graphics_set and working_sound
 -- to copy for the incubator and the chamber. They also hold the vanilla
@@ -223,7 +353,12 @@ function Ordnance.prototypes(opts)
   local out = {}
   local incubation_protos, husbandry = incubation(opts.incubator)
   local loading_protos, loading_recipes = loading(opts.chamber, opts.projectile)
-  for _, list in ipairs({ incubation_protos, husbandry, loading_protos, loading_recipes }) do
+  for _, list in ipairs({
+    incubation_protos,
+    husbandry,
+    loading_protos,
+    loading_recipes,
+  }) do
     Common.append(out, list)
   end
   return out, Common.names(husbandry)

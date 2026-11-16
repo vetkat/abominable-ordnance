@@ -1,6 +1,7 @@
 local Balance = require("core.balance")
 local Damage = require("shell.damage")
 local FeralShell = require("shell.feral")
+local Hazards = require("core.hazards")
 local Names = require("core.names")
 local Setup = require("shell.setup")
 local Helpers = require("__abominable-ordnance__/tests/ingame/helpers")
@@ -26,7 +27,7 @@ test("the class of a biter, a tree, a rock and a chest", function()
     })
     local class = Damage.class_of(entity)
     entity.destroy()
-    assert(class == thing[2], thing[1] .. " is " .. class)
+    assert(class == thing[2], thing[1] .. " is " .. tostring(class))
   end
 end)
 
@@ -224,10 +225,11 @@ test("the first of two explosive monsters kills the second through the queue", f
       assert(in_reach, "precondition: the second is beyond reach of the first")
     end
     local ids = { first.unit_number, second.unit_number }
+    local counter = storage.detonation_counter
     first.die()
     -- The death only queued its detonation, and no tick passed.
     local second_alive = second.valid
-    local queued = next(storage.detonations) ~= nil
+    local queued = storage.detonation_counter > counter
     after_ticks(3, function()
       local second_gone = not second.valid
       local chest_hurt = hurt(chest)
@@ -251,13 +253,14 @@ test(
     Helpers.arena(surface(), position)
     local gone = game.forces["ao-damage-gone"] or game.create_force("ao-damage-gone")
     local chest = Helpers.chest(surface(), { position[1] + 1, position[2] })
+    local counter = storage.detonation_counter
     Damage.queue(surface(), { x = position[1], y = position[2] }, { "explosive" }, gone.name)
-    local queued = next(storage.detonations) ~= nil
+    local queued = storage.detonation_counter > counter
     game.merge_forces(gone, "player")
     after_ticks(3, function()
       local whole = chest.valid and chest.health == chest.max_health
       local empty = next(storage.detonations) == nil
-      chest.destroy()
+      destroy_all({ chest })
       assert(queued, "precondition: the detonation did not reach the queue")
       assert(whole, "the chest took damage from a gone force")
       assert(empty, "the detonation is still in the queue")
@@ -306,13 +309,29 @@ test("a tamed monster's explosive death kills a nest and drops eggs", function()
   end)
 end)
 
+-- Runs body with these storage fields taken out, and puts them back
+-- before it re-raises an error of body.
+local function without(fields, body)
+  local saved = {}
+  for _, field in ipairs(fields) do
+    saved[field] = storage[field]
+    storage[field] = nil
+  end
+  local ok, result = pcall(body)
+  for _, field in ipairs(fields) do
+    storage[field] = saved[field]
+  end
+  if not ok then
+    error(result)
+  end
+  return result
+end
+
 test("a configuration change creates the queue", function()
-  local detonations, counter = storage.detonations, storage.detonation_counter
-  storage.detonations = nil
-  storage.detonation_counter = nil
-  Setup.on_configuration_changed()
-  local created = storage.detonations ~= nil and storage.detonation_counter == 0
-  storage.detonations, storage.detonation_counter = detonations, counter
+  local created = without({ "detonations", "detonation_counter" }, function()
+    Setup.on_configuration_changed()
+    return storage.detonations ~= nil and storage.detonation_counter == 0
+  end)
   assert(created, "the queue is missing after a configuration change")
 end)
 
@@ -326,47 +345,65 @@ test(
       local after_tick = storage.detonations ~= nil and storage.detonation_counter ~= nil
       storage.detonations = nil
       storage.detonation_counter = nil
-      local position = { x = 4260, y = 4000 }
-      Damage.queue(surface(), position, { "explosive" }, Names.TAMED)
-      local after_queue = storage.detonations ~= nil and storage.detonation_counter == 1
-      local queued = next(storage.detonations) ~= nil
+      local ok, result = pcall(function()
+        local position = { x = 4260, y = 4000 }
+        Damage.queue(surface(), position, { "explosive" }, Names.TAMED)
+        return {
+          after_queue = storage.detonations ~= nil and storage.detonation_counter == 1,
+          queued = next(storage.detonations) ~= nil,
+        }
+      end)
       storage.detonations, storage.detonation_counter = detonations or {}, counter or 0
+      if not ok then
+        error(result)
+      end
       assert(after_tick, "a tick did not create the queue")
-      assert(after_queue, "a death did not create the queue")
-      assert(queued, "the death is not in the queue")
+      assert(result.after_queue, "a death did not create the queue")
+      assert(result.queued, "the death is not in the queue")
     end)
   end
 )
 
--- Kills a chest with 1 health by a hit of a player force. A player
--- entity is the cause. Then finish(force, cause) gets the names that the
--- death event reports. The test wraps the death event. The wrapper calls
--- the mod's own handler for the types that control.lua filters. The
--- original goes back before the asserts, even when the hit fails.
-local function kill_by_hit(position, friendly_fire, finish)
-  Helpers.arena(surface(), position)
-  local player = game.forces["player"]
-  local old = player.friendly_fire
+-- Wraps the death event: handler(event) runs first, then the mod's own
+-- handler for the types that control.lua filters. Returns a function
+-- that puts the original handler back. Its filters must match the
+-- on_entity_died filters in control.lua.
+local function wrap_deaths(handler)
   local event_id = defines.events.on_entity_died
   local original = script.get_event_handler(event_id)
-  local chest, cause, seen
-  -- Puts back the flag and the original handler. These filters must
-  -- match the on_entity_died filters in control.lua.
-  local function restore()
-    player.friendly_fire = old
+  script.on_event(event_id, function(event)
+    handler(event)
+    if original and (event.entity.type == "unit-spawner" or event.entity.type == "unit") then
+      original(event)
+    end
+  end)
+  return function()
     script.on_event(event_id, original, {
       { filter = "type", type = "unit-spawner" },
       { filter = "type", type = "unit" },
     })
   end
-  script.on_event(event_id, function(event)
+end
+
+-- Kills a chest with 1 health by a hit of a player force. A player
+-- entity is the cause. Then finish(force, cause) gets the names that the
+-- death event reports. The test wraps the death event. The original
+-- handler goes back before the asserts, even when the hit fails.
+local function kill_by_hit(position, friendly_fire, finish)
+  Helpers.arena(surface(), position)
+  local player = game.forces["player"]
+  local old = player.friendly_fire
+  local chest, cause, seen
+  local unwrap = wrap_deaths(function(event)
     if chest and event.entity == chest then
       seen = { force = event.force, cause = event.cause }
     end
-    if original and (event.entity.type == "unit-spawner" or event.entity.type == "unit") then
-      original(event)
-    end
   end)
+  -- Puts back the flag and the original handler.
+  local function restore()
+    player.friendly_fire = old
+    unwrap()
+  end
   after_ticks(1, function()
     local ok, err = pcall(function()
       chest = Helpers.chest(surface(), { position[1] + 1, position[2] })
@@ -414,4 +451,325 @@ test("a hit of a force with friendly fire on keeps its force and its cause", fun
     assert(force_name == "player", "the kill counts for " .. tostring(force_name))
     assert(cause_name == "character", "the kill names the cause " .. tostring(cause_name))
   end)
+end)
+
+test("a payload whose damage type another mod removed has no damage type", function()
+  local known = Damage.damage_type("poison", prototypes.damage)
+  local removed = Damage.damage_type("poison", {})
+  local unknown = Damage.damage_type("glitter", prototypes.damage)
+  assert(known == "poison", "poison has the damage type " .. tostring(known))
+  assert(removed == nil, "a removed damage type gives " .. tostring(removed))
+  assert(unknown == nil, "an unknown payload gives " .. tostring(unknown))
+end)
+
+test("a hit goes on without its cause when a death handler destroys the cause", function()
+  local position = { 4380, 4000 }
+  Helpers.arena(surface(), position)
+  local cause = Helpers.character(surface(), { position[1] - 8, position[2] })
+  local chests = {
+    Helpers.chest(surface(), { position[1] + 1, position[2] }),
+    Helpers.chest(surface(), { position[1] - 1, position[2] }),
+  }
+  for _, chest in ipairs(chests) do
+    chest.health = 1
+  end
+  -- Another mod's handler: the first death destroys the cause.
+  local unwrap = wrap_deaths(function()
+    if cause.valid then
+      cause.destroy()
+    end
+  end)
+  local ok, err = pcall(Damage.hit, {
+    surface = surface(),
+    position = { x = position[1], y = position[2] },
+    radius = 3,
+    payload = "explosive",
+    damage = 10,
+    force = "player",
+    cause = cause,
+  })
+  unwrap()
+  local left = 0
+  for _, chest in ipairs(chests) do
+    left = left + (chest.valid and 1 or 0)
+  end
+  destroy_all(chests)
+  destroy_all({ cause })
+  assert(ok, err)
+  assert(left == 0, left .. " chests survived")
+end)
+
+test("a drained queue starts again as a fresh table", function()
+  local position = { x = 4420, y = 4000 }
+  Helpers.arena(surface(), { position.x, position.y })
+  Damage.queue(surface(), position, { "explosive" }, Names.TAMED)
+  local queue = storage.detonations
+  after_ticks(2, function()
+    local empty = next(storage.detonations) == nil
+    local fresh = storage.detonations ~= queue
+    assert(empty, "the queue still holds a detonation")
+    assert(fresh, "the drained queue is the old table")
+  end)
+end)
+
+local HAZARD_FIELDS = { "hazards", "hazard_counter", "hazard_cursor" }
+
+-- The ids of the stored hazards of a payload within 1 tile of a spot.
+local function hazards_at(p, payload)
+  local ids = {}
+  for id, h in pairs(storage.hazards) do
+    if h.payload == payload and distance(h.position, p) <= 1 then
+      ids[#ids + 1] = id
+    end
+  end
+  return ids
+end
+
+-- Adds a hazard to storage as a detonation would, and returns its id.
+local function add_hazard(spot, payload, ticks)
+  local d = Balance.payload_damage
+  storage.hazard_counter = storage.hazard_counter + 1
+  local id = storage.hazard_counter
+  storage.hazards[id] =
+    Hazards.new(surface().index, spot, payload, Names.TAMED, game.tick, ticks, d.hazard_interval)
+  return id
+end
+
+test("a poison death leaves a cloud that hurts a native for its time, then stops", function()
+  with_entry({ 4460, 4000 }, "ao-biter-larva-poison", function(entry)
+    local p = entry.unit.position
+    local native = surface().create_entity({
+      name = "big-biter",
+      position = { p.x + 3, p.y },
+      force = "enemy",
+    })
+    native.disabled_by_script = true
+    local max = native.max_health
+    entry.unit.die()
+    after_ticks(2, function()
+      local ids = hazards_at(p, "poison")
+      local clouds =
+        surface().find_entities_filtered({ name = Names.CLOUD, position = p, radius = 2 })
+      local first = native.health
+      -- Shorten the cloud: its last hit falls within 60 ticks.
+      if ids[1] then
+        storage.hazards[ids[1]].end_tick = game.tick + 60
+      end
+      after_ticks(90, function()
+        local second = native.health
+        local gone = ids[1] ~= nil and storage.hazards[ids[1]] == nil
+        after_ticks(60, function()
+          local third = native.health
+          destroy_all(clouds)
+          native.destroy()
+          assert(#ids == 1, #ids .. " poison hazards")
+          assert(#clouds >= 1, "no cloud look-alike")
+          assert(first < max, "the first hit did not land")
+          assert(second < first, "the cloud stopped too early")
+          assert(gone, "the hazard outlived its end tick")
+          -- A biter heals, so its health can only rise without a hit.
+          assert(third >= second, "the cloud hurt after its end")
+        end)
+      end)
+    end)
+  end)
+end)
+
+test("an acid death leaves five pool look-alikes and one hazard that hurts a chest", function()
+  with_entry({ 4500, 4000 }, "ao-biter-larva-acid", function(entry)
+    local p = entry.unit.position
+    local chest = Helpers.chest(surface(), { p.x + 2, p.y + 1 })
+    entry.unit.die()
+    after_ticks(2, function()
+      local pools =
+        surface().find_entities_filtered({ name = Names.POOL, position = p, radius = 3 })
+      local ids = hazards_at(p, "acid")
+      local chest_hurt = hurt(chest)
+      destroy_all(pools)
+      destroy_all({ chest })
+      -- End the hazards now. The pass removes them and keeps its cursor
+      -- valid.
+      for _, id in ipairs(ids) do
+        storage.hazards[id].end_tick = game.tick
+        storage.hazards[id].last_hit = game.tick
+      end
+      assert(#pools == 5, #pools .. " pool look-alikes")
+      assert(#ids == 1, #ids .. " acid hazards")
+      assert(chest_hurt, "the pool did not hurt the chest")
+    end)
+  end)
+end)
+
+test("with more hazards than hazard_hits, each hazard still deals its full damage", function()
+  local position = { 4600, 4000 }
+  Helpers.arena(surface(), position, 64)
+  local d = Balance.payload_damage
+  -- Three hits each: the first at once, then one per interval.
+  local ticks = 2 * d.hazard_interval
+  local reference = Helpers.chest(surface(), { position[1], position[2] + 12 })
+  for _ = 1, 3 do
+    reference.damage(d.acid.damage, Names.TAMED, "acid")
+  end
+  local full = reference.max_health - reference.health
+  reference.destroy()
+  local chests, ids = {}, {}
+  for i = 1, d.hazard_hits + 2 do
+    local spot = { x = position[1] - 56 + 8 * i, y = position[2] }
+    chests[i] = Helpers.chest(surface(), spot)
+    ids[i] = add_hazard(spot, "acid", ticks)
+  end
+  after_ticks(ticks + 30, function()
+    local losses, left = {}, 0
+    for i, chest in ipairs(chests) do
+      losses[i] = chest.max_health - chest.health
+      left = left + (storage.hazards[ids[i]] and 1 or 0)
+    end
+    destroy_all(chests)
+    assert(left == 0, left .. " hazards outlived their end")
+    for i, loss in ipairs(losses) do
+      local exact = math.abs(loss - full) < 0.01
+      assert(exact, "chest " .. i .. " lost " .. loss .. ", expected " .. full)
+    end
+  end)
+end)
+
+test("the hazard pass stops at hazard_targets, and the hazard it skips hits next", function()
+  local position = { 4900, 4000 }
+  Helpers.arena(surface(), position)
+  for _, tree in
+    pairs(surface().find_entities_filtered({ position = position, radius = 24, type = "tree" }))
+  do
+    tree.destroy()
+  end
+  local d = Balance.payload_damage
+  local budget = d.hazard_targets
+  d.hazard_targets = 2
+  -- Outside the protected call, so an error still destroys the chests.
+  local chests = {}
+  local ok, r = pcall(without, HAZARD_FIELDS, function()
+    storage.hazards, storage.hazard_counter = {}, 0
+    local ids, before = {}, {}
+    for i = 1, 3 do
+      local spot = { x = position[1] - 16 + 8 * i, y = position[2] }
+      chests[i] = {
+        Helpers.chest(surface(), { spot.x, spot.y }),
+        Helpers.chest(surface(), { spot.x + 1, spot.y }),
+      }
+      ids[i] = add_hazard(spot, "acid", 600)
+      before[i] = storage.hazards[ids[i]].last_hit
+    end
+    -- Two chests per hazard, so the first hazard's hit spends the budget.
+    Damage.run_hazards(game.tick)
+    local out = {
+      first = { hurt(chests[1][1]), hurt(chests[2][1]), hurt(chests[3][1]) },
+      cursor = storage.hazard_cursor,
+      kept = storage.hazards[ids[2]] and storage.hazards[ids[2]].last_hit == before[2],
+    }
+    Damage.run_hazards(game.tick)
+    out.second = { hurt(chests[2][1]), hurt(chests[3][1]) }
+    out.next_cursor = storage.hazard_cursor
+    out.ids = ids
+    return out
+  end)
+  d.hazard_targets = budget
+  for _, pair in ipairs(chests) do
+    destroy_all(pair)
+  end
+  assert(ok, r)
+  assert(r.first[1], "the first hazard did not hit")
+  assert(not r.first[2] and not r.first[3], "the pass hit past the target budget")
+  assert(r.cursor == r.ids[2], "the cursor is " .. tostring(r.cursor) .. ", not the skipped hazard")
+  assert(r.kept, "the skipped hazard lost its due hit")
+  assert(r.second[1] and not r.second[2], "the next pass did not start at the skipped hazard")
+  assert(r.next_cursor == r.ids[3], "the cursor did not move on to the third hazard")
+end)
+
+test("a hazard whose payload the mod no longer knows leaves without damage", function()
+  local position = { 4700, 4000 }
+  Helpers.arena(surface(), position)
+  local chest = Helpers.chest(surface(), { position[1] + 1, position[2] })
+  local id = add_hazard({ x = position[1], y = position[2] }, "glitter", 600)
+  -- The pass visits hazard_visits (50) hazards per tick. The hazards of
+  -- earlier tests stay below 150, so 3 ticks reach this one.
+  after_ticks(3, function()
+    local whole = chest.health == chest.max_health
+    local gone = storage.hazards[id] == nil
+    chest.destroy()
+    assert(whole, "the unknown hazard hurt the chest")
+    assert(gone, "the unknown hazard is still stored")
+  end)
+end)
+
+-- Other tests leave hazards behind, so this test runs the pass by hand
+-- on a table of its own.
+test("a drained hazard table starts again as a fresh table", function()
+  local position = { 4740, 4000 }
+  Helpers.arena(surface(), position)
+  local interval = Balance.payload_damage.hazard_interval
+  local result = without(HAZARD_FIELDS, function()
+    storage.hazards, storage.hazard_counter = {}, 0
+    add_hazard({ x = position[1], y = position[2] }, "acid", interval)
+    local before = storage.hazards
+    Damage.run_hazards(game.tick + interval)
+    return {
+      empty = next(storage.hazards) == nil,
+      fresh = storage.hazards ~= before,
+      cursor = storage.hazard_cursor,
+    }
+  end)
+  assert(result.empty, "the hazard table still holds a hazard")
+  assert(result.fresh, "the drained hazard table is the old table")
+  assert(result.cursor == nil, "the cursor points at " .. tostring(result.cursor))
+end)
+
+test("a configuration change creates the hazard table", function()
+  local created = without(HAZARD_FIELDS, function()
+    Setup.on_configuration_changed()
+    return storage.hazards ~= nil and storage.hazard_counter == 0
+  end)
+  assert(created, "the hazard table is missing after a configuration change")
+end)
+
+test("a save without the hazard table gets it from the hazard pass", function()
+  local created = without(HAZARD_FIELDS, function()
+    Damage.run_hazards(game.tick)
+    return storage.hazards ~= nil and storage.hazard_counter == 0
+  end)
+  assert(created, "the hazard pass did not create the hazard table")
+end)
+
+tags("space-age")
+test("poison hurts a Gleba plant and a demolisher", function()
+  local position = { 4800, 4000 }
+  Helpers.arena(surface(), position, 48)
+  local plant = surface().create_entity({
+    name = "yumako-tree",
+    position = { position[1], position[2] },
+  })
+  local worm = surface().create_entity({
+    name = "small-demolisher",
+    position = { position[1] + 24, position[2] },
+    force = "enemy",
+  })
+  local function poison(entity)
+    Damage.hit({
+      surface = surface(),
+      position = entity.position,
+      radius = 3,
+      payload = "poison",
+      damage = 100,
+      force = Names.TAMED,
+    })
+  end
+  poison(plant)
+  local plant_hurt = hurt(plant)
+  local worm_hurt = false
+  if worm then
+    poison(worm)
+    worm_hurt = hurt(worm)
+  end
+  destroy_all({ plant, worm })
+  assert(worm, "no demolisher on Nauvis: see decision 17")
+  assert(plant_hurt, "poison spared the Gleba plant")
+  assert(worm_hurt, "poison spared the demolisher")
 end)

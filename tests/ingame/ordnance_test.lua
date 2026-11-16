@@ -131,13 +131,23 @@ test("a native biter that dies sets off nothing", function()
   Helpers.arena(surface(), position)
   local biter =
     surface().create_entity({ name = "small-biter", position = position, force = "enemy" })
+  -- A death only queues its detonations, and the queue runs on a later
+  -- tick. So the test checks the queue at once, and the hazards and the
+  -- entities after the queue runs.
+  local detonations, hazards = storage.detonation_counter, storage.hazard_counter
   biter.die()
-  local effects = surface().count_entities_filtered({
-    position = position,
-    radius = 6,
-    name = { "explosive-rocket", "poison-cloud", "acid-splash-fire-spitter-big" },
-  })
-  assert(effects == 0, effects .. " effects")
+  local queued = storage.detonation_counter ~= detonations
+  after_ticks(2, function()
+    local hazard = storage.hazard_counter ~= hazards
+    local effects = surface().count_entities_filtered({
+      position = position,
+      radius = 6,
+      name = { "big-explosion", Names.CLOUD, Names.POOL },
+    })
+    assert(not queued, "the death queued a detonation")
+    assert(not hazard, "the death started a hazard")
+    assert(effects == 0, effects .. " effects")
+  end)
 end)
 
 -- The acid trail puddles near a position.
