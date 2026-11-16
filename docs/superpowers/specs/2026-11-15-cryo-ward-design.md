@@ -196,7 +196,7 @@ All numbers go in `core/balance.lua`, under `Balance.cryo`:
 | --- | --- |
 | `cryo.factor` | 100 |
 | `cryo.ward` | stack 50, time 4 s, 2 lithium plates, 10 cold fluoroketone, 5 hot fluoroketone back |
-| `cryo.surface_conditions` | `{ { property = "pressure", min = 300, max = 300 } }` |
+| `cryo.pressure` | 300, the fallback when Aquilo gives no pressure. The recipe condition is `{ { property = "pressure", min = p, max = p } }` with Aquilo's pressure `p` |
 | `cryo.pack_time` | 1 s |
 | `cryo.research` | count 500, time 60 |
 
