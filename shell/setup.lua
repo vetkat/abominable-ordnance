@@ -11,6 +11,8 @@ function Setup.on_init()
   storage.trails = storage.trails or {}
   storage.detonations = storage.detonations or {}
   storage.detonation_counter = storage.detonation_counter or 0
+  storage.hazards = storage.hazards or {}
+  storage.hazard_counter = storage.hazard_counter or 0
   Tamed.ensure()
 end
 

@@ -294,6 +294,7 @@ end
 
 script.on_event(defines.events.on_tick, function(event)
   Damage.run_detonations()
+  Damage.run_hazards(event.tick)
   trail_tick(event.tick)
   feral_tick(event.tick)
 end)

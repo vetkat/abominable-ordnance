@@ -443,6 +443,38 @@ functional-core work loop goes here too.
   says, and the kill counts for the natives. The rule is
   `Forces.attacker(attacker, target, friendly_fire)`. Cost if wrong:
   another force pair also fails in some setup, and its hits do nothing.
+- PR 2, Task 7: the in-game test "a poison monster that dies poisons a
+  native biter" checks poison damage, so it fails from the Task 7
+  commit until Task 8. Cost if wrong: one commit inside the branch fails
+  in the game. The squash merge keeps `main` green.
+- PR 2, Task 7: `cspell.json` gets the word "alikes", because the spell
+  check splits "look-alikes" at the hyphen. Cost if wrong: a stray
+  "alikes" passes the spell check.
+- PR 2, Task 8: the new in-game tests use `x = 4380` to `x = 4800`. The
+  plan's spots 4220, 4260 and 4340 belong to tests of PR 1. Cost if
+  wrong: none.
+- PR 2, Task 8: the cloud test asserts that the native's health does not
+  fall after the end, not that it stays the same. A big biter heals
+  0.02 per tick. Cost if wrong: a hit smaller than the healing after the
+  end passes. One poison hit is 8, so none does.
+- PR 2, Task 8: the hazard pass works like the queue. It creates its
+  fields when they are missing. It returns at once for an empty table.
+  It replaces a drained table with a fresh one and a nil cursor. Cost
+  if wrong: none, because a drained table has no key for the cursor to
+  keep.
+- PR 2, Task 8: the test of the drained table runs `Damage.run_hazards`
+  by hand on a table of its own. The clouds of earlier tests still live
+  for 20 s. Cost if wrong: the test does not cover the `on_tick` call,
+  which the other hazard tests cover.
+- PR 2, Task 8, decision 17: `create_entity` makes the small demolisher
+  on Nauvis, and it takes poison damage. The test needs no Vulcanus
+  surface.
+- PR 2, review fix: `Damage.damage_type(payload, damage_prototypes)` is
+  public, so an in-game test can pass a table without the damage type.
+  Cost if wrong: one more public name in `shell/damage.lua`.
+- PR 2, review fix: `wrap_deaths` in `tests/ingame/damage_test.lua`
+  wraps the death event for `kill_by_hit` and for the test of a cause
+  that a death handler destroys. Cost if wrong: none.
 
 ## Interface sheet
 

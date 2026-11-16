@@ -1,9 +1,11 @@
 -- Deals the payload damage in the game: the class of a target, the
--- targets of a payload in an area, one hit, and the detonation queue.
+-- targets of a payload in an area, one hit, the detonation queue and
+-- the hazards.
 -- This module is shell: it reads and writes the game. control.lua calls
 -- it, and so do the in-game tests. The rules live in core/payloads.lua.
 local Balance = require("core.balance")
 local Forces = require("core.forces")
+local Hazards = require("core.hazards")
 local Payloads = require("core.payloads")
 local Trail = require("core.trail")
 
@@ -172,6 +174,29 @@ function Damage.queue(surface, position, payloads, force)
   end
 end
 
+-- A save from before the hazards has neither field. Like the queue, the
+-- hazard pass creates them when it finds them missing.
+local function ensure_hazards()
+  storage.hazards = storage.hazards or {}
+  storage.hazard_counter = storage.hazard_counter or 0
+end
+
+-- Stores the hazard of a plan. Its first hit is due at once, so the
+-- hazard pass deals it within its budget.
+local function start_hazard(d, plan)
+  ensure_hazards()
+  storage.hazard_counter = storage.hazard_counter + 1
+  storage.hazards[storage.hazard_counter] = Hazards.new(
+    d.surface,
+    d.position,
+    plan.payload,
+    d.force,
+    game.tick,
+    plan.hazard.ticks,
+    Balance.payload_damage.hazard_interval
+  )
+end
+
 -- Runs one detonation: the death effect of one payload. A detonation
 -- does nothing when its surface or force no longer exists. A hit has no
 -- cause, because the monster no longer exists.
@@ -196,6 +221,9 @@ function Damage.detonate(d)
         force = d.force,
       })
     end
+    if plan.hazard then
+      start_hazard(d, plan)
+    end
   end
 end
 
@@ -218,6 +246,61 @@ function Damage.run_detonations()
   end
   if next(storage.detonations) == nil then
     storage.detonations = {}
+  end
+end
+
+-- Deals the summed hits of one hazard visit. Returns false when the
+-- hazard's surface, force or payload no longer exists. Then the hazard
+-- must leave.
+local function hazard_hit(hazard, count)
+  local surface = game.get_surface(hazard.surface)
+  local n = Payloads.numbers(hazard.payload)
+  if not (surface and game.forces[hazard.force] and n) then
+    return false
+  end
+  Damage.hit({
+    surface = surface,
+    position = hazard.position,
+    radius = n.radius,
+    payload = hazard.payload,
+    damage = n.damage * count,
+    force = hazard.force,
+  })
+  return true
+end
+
+local function remove_hazard(id)
+  if storage.hazards[id] then
+    storage.hazard_cursor = Trail.forget(storage.hazards, storage.hazard_cursor, id)
+    storage.hazards[id] = nil
+  end
+end
+
+-- One tick of the hazard pass. core/hazards.lua picks the visits and
+-- the hits within the budget. This function deals the hits and removes
+-- the hazards that end. A drained table starts again as a fresh table,
+-- like the queue. A hit only adds to the queue, so the table gains no
+-- key while the pass walks it.
+function Damage.run_hazards(tick)
+  ensure_hazards()
+  if next(storage.hazards) == nil then
+    return
+  end
+  local plan = Hazards.plan(storage.hazards, storage.hazard_cursor, tick, Balance.payload_damage)
+  storage.hazard_cursor = plan.cursor
+  for _, h in ipairs(plan.hits) do
+    local hazard = storage.hazards[h.id]
+    hazard.last_hit = h.last_hit
+    if not hazard_hit(hazard, h.count) then
+      remove_hazard(h.id)
+    end
+  end
+  for _, id in ipairs(plan.done) do
+    remove_hazard(id)
+  end
+  if next(storage.hazards) == nil then
+    storage.hazards = {}
+    storage.hazard_cursor = nil
   end
 end
 

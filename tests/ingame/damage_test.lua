@@ -1,6 +1,7 @@
 local Balance = require("core.balance")
 local Damage = require("shell.damage")
 local FeralShell = require("shell.feral")
+local Hazards = require("core.hazards")
 local Names = require("core.names")
 local Setup = require("shell.setup")
 local Helpers = require("__abominable-ordnance__/tests/ingame/helpers")
@@ -308,14 +309,18 @@ test("a tamed monster's explosive death kills a nest and drops eggs", function()
   end)
 end)
 
--- Runs body with the queue taken out of storage, and puts the queue
--- back before it re-raises an error of body.
-local function without_queue(body)
-  local detonations, counter = storage.detonations, storage.detonation_counter
-  storage.detonations = nil
-  storage.detonation_counter = nil
+-- Runs body with these storage fields taken out, and puts them back
+-- before it re-raises an error of body.
+local function without(fields, body)
+  local saved = {}
+  for _, field in ipairs(fields) do
+    saved[field] = storage[field]
+    storage[field] = nil
+  end
   local ok, result = pcall(body)
-  storage.detonations, storage.detonation_counter = detonations, counter
+  for _, field in ipairs(fields) do
+    storage[field] = saved[field]
+  end
   if not ok then
     error(result)
   end
@@ -323,7 +328,7 @@ local function without_queue(body)
 end
 
 test("a configuration change creates the queue", function()
-  local created = without_queue(function()
+  local created = without({ "detonations", "detonation_counter" }, function()
     Setup.on_configuration_changed()
     return storage.detonations ~= nil and storage.detonation_counter == 0
   end)
@@ -505,4 +510,209 @@ test("a drained queue starts again as a fresh table", function()
     assert(empty, "the queue still holds a detonation")
     assert(fresh, "the drained queue is the old table")
   end)
+end)
+
+-- The ids of the stored hazards of a payload within 1 tile of a spot.
+local function hazards_at(p, payload)
+  local ids = {}
+  for id, h in pairs(storage.hazards) do
+    if h.payload == payload and distance(h.position, p) <= 1 then
+      ids[#ids + 1] = id
+    end
+  end
+  return ids
+end
+
+-- Adds a hazard to storage as a detonation would, and returns its id.
+local function add_hazard(spot, payload, ticks)
+  local d = Balance.payload_damage
+  storage.hazard_counter = storage.hazard_counter + 1
+  local id = storage.hazard_counter
+  storage.hazards[id] =
+    Hazards.new(surface().index, spot, payload, Names.TAMED, game.tick, ticks, d.hazard_interval)
+  return id
+end
+
+test("a poison death leaves a cloud that hurts a native for its time, then stops", function()
+  with_entry({ 4460, 4000 }, "ao-biter-larva-poison", function(entry)
+    local p = entry.unit.position
+    local native = surface().create_entity({
+      name = "big-biter",
+      position = { p.x + 3, p.y },
+      force = "enemy",
+    })
+    native.disabled_by_script = true
+    local max = native.max_health
+    entry.unit.die()
+    after_ticks(2, function()
+      local ids = hazards_at(p, "poison")
+      local clouds =
+        surface().find_entities_filtered({ name = Names.CLOUD, position = p, radius = 2 })
+      local first = native.health
+      -- Shorten the cloud: its last hit falls within 60 ticks.
+      if ids[1] then
+        storage.hazards[ids[1]].end_tick = game.tick + 60
+      end
+      after_ticks(90, function()
+        local second = native.health
+        local gone = ids[1] ~= nil and storage.hazards[ids[1]] == nil
+        after_ticks(60, function()
+          local third = native.health
+          destroy_all(clouds)
+          native.destroy()
+          assert(#ids == 1, #ids .. " poison hazards")
+          assert(#clouds >= 1, "no cloud look-alike")
+          assert(first < max, "the first hit did not land")
+          assert(second < first, "the cloud stopped too early")
+          assert(gone, "the hazard outlived its end tick")
+          -- A biter heals, so its health can only rise without a hit.
+          assert(third >= second, "the cloud hurt after its end")
+        end)
+      end)
+    end)
+  end)
+end)
+
+test("an acid death leaves five pool look-alikes and one hazard that hurts a chest", function()
+  with_entry({ 4500, 4000 }, "ao-biter-larva-acid", function(entry)
+    local p = entry.unit.position
+    local chest = Helpers.chest(surface(), { p.x + 2, p.y + 1 })
+    entry.unit.die()
+    after_ticks(2, function()
+      local pools =
+        surface().find_entities_filtered({ name = Names.POOL, position = p, radius = 3 })
+      local ids = hazards_at(p, "acid")
+      local chest_hurt = hurt(chest)
+      destroy_all(pools)
+      destroy_all({ chest })
+      for _, id in ipairs(ids) do
+        storage.hazards[id] = nil
+      end
+      assert(#pools == 5, #pools .. " pool look-alikes")
+      assert(#ids == 1, #ids .. " acid hazards")
+      assert(chest_hurt, "the pool did not hurt the chest")
+    end)
+  end)
+end)
+
+test("with more hazards than hazard_hits, each hazard still deals its full damage", function()
+  local position = { 4600, 4000 }
+  Helpers.arena(surface(), position, 64)
+  local d = Balance.payload_damage
+  -- Three hits each: the first at once, then one per interval.
+  local ticks = 2 * d.hazard_interval
+  local reference = Helpers.chest(surface(), { position[1], position[2] + 12 })
+  for _ = 1, 3 do
+    reference.damage(d.acid.damage, Names.TAMED, "acid")
+  end
+  local full = reference.max_health - reference.health
+  reference.destroy()
+  local chests, ids = {}, {}
+  for i = 1, d.hazard_hits + 2 do
+    local spot = { x = position[1] - 56 + 8 * i, y = position[2] }
+    chests[i] = Helpers.chest(surface(), spot)
+    ids[i] = add_hazard(spot, "acid", ticks)
+  end
+  after_ticks(ticks + 30, function()
+    local losses, left = {}, 0
+    for i, chest in ipairs(chests) do
+      losses[i] = chest.max_health - chest.health
+      left = left + (storage.hazards[ids[i]] and 1 or 0)
+    end
+    destroy_all(chests)
+    assert(left == 0, left .. " hazards outlived their end")
+    for i, loss in ipairs(losses) do
+      assert(loss >= full - 0.01, "chest " .. i .. " lost " .. loss .. ", expected " .. full)
+    end
+  end)
+end)
+
+test("a hazard whose payload the mod no longer knows leaves without damage", function()
+  local position = { 4700, 4000 }
+  Helpers.arena(surface(), position)
+  local chest = Helpers.chest(surface(), { position[1] + 1, position[2] })
+  local id = add_hazard({ x = position[1], y = position[2] }, "glitter", 600)
+  after_ticks(3, function()
+    local whole = chest.health == chest.max_health
+    local gone = storage.hazards[id] == nil
+    chest.destroy()
+    assert(whole, "the unknown hazard hurt the chest")
+    assert(gone, "the unknown hazard is still stored")
+  end)
+end)
+
+local HAZARD_FIELDS = { "hazards", "hazard_counter", "hazard_cursor" }
+
+-- Other tests leave hazards behind, so this test runs the pass by hand
+-- on a table of its own.
+test("a drained hazard table starts again as a fresh table", function()
+  local position = { 4740, 4000 }
+  Helpers.arena(surface(), position)
+  local interval = Balance.payload_damage.hazard_interval
+  local result = without(HAZARD_FIELDS, function()
+    storage.hazards, storage.hazard_counter = {}, 0
+    add_hazard({ x = position[1], y = position[2] }, "acid", interval)
+    local before = storage.hazards
+    Damage.run_hazards(game.tick + interval)
+    return {
+      empty = next(storage.hazards) == nil,
+      fresh = storage.hazards ~= before,
+      cursor = storage.hazard_cursor,
+    }
+  end)
+  assert(result.empty, "the hazard table still holds a hazard")
+  assert(result.fresh, "the drained hazard table is the old table")
+  assert(result.cursor == nil, "the cursor points at " .. tostring(result.cursor))
+end)
+
+test("a configuration change creates the hazard table", function()
+  local created = without(HAZARD_FIELDS, function()
+    Setup.on_configuration_changed()
+    return storage.hazards ~= nil and storage.hazard_counter == 0
+  end)
+  assert(created, "the hazard table is missing after a configuration change")
+end)
+
+test("a save without the hazard table gets it from the hazard pass", function()
+  local created = without(HAZARD_FIELDS, function()
+    Damage.run_hazards(game.tick)
+    return storage.hazards ~= nil and storage.hazard_counter == 0
+  end)
+  assert(created, "the hazard pass did not create the hazard table")
+end)
+
+tags("space-age")
+test("poison hurts a Gleba plant and a demolisher", function()
+  local position = { 4800, 4000 }
+  Helpers.arena(surface(), position, 48)
+  local plant = surface().create_entity({
+    name = "yumako-tree",
+    position = { position[1], position[2] },
+  })
+  local worm = surface().create_entity({
+    name = "small-demolisher",
+    position = { position[1] + 24, position[2] },
+    force = "enemy",
+  })
+  local function poison(entity)
+    Damage.hit({
+      surface = surface(),
+      position = entity.position,
+      radius = 3,
+      payload = "poison",
+      damage = 100,
+      force = Names.TAMED,
+    })
+  end
+  poison(plant)
+  local plant_hurt = hurt(plant)
+  local worm_hurt = false
+  if worm then
+    poison(worm)
+    worm_hurt = hurt(worm)
+  end
+  destroy_all({ plant, worm })
+  assert(worm, "no demolisher on Nauvis: see decision 17")
+  assert(plant_hurt, "poison spared the Gleba plant")
+  assert(worm_hurt, "poison spared the demolisher")
 end)
