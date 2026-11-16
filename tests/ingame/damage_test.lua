@@ -349,9 +349,18 @@ local function kill_by_hit(position, friendly_fire, finish)
   local old = player.friendly_fire
   local event_id = defines.events.on_entity_died
   local original = script.get_event_handler(event_id)
-  local seen
+  local chest, cause, seen
+  -- Puts back the flag and the original handler. These filters must
+  -- match the on_entity_died filters in control.lua.
+  local function restore()
+    player.friendly_fire = old
+    script.on_event(event_id, original, {
+      { filter = "type", type = "unit-spawner" },
+      { filter = "type", type = "unit" },
+    })
+  end
   script.on_event(event_id, function(event)
-    if event.entity.name == "steel-chest" then
+    if chest and event.entity == chest then
       seen = { force = event.force, cause = event.cause }
     end
     if original and (event.entity.type == "unit-spawner" or event.entity.type == "unit") then
@@ -359,30 +368,33 @@ local function kill_by_hit(position, friendly_fire, finish)
     end
   end)
   after_ticks(1, function()
-    local chest = Helpers.chest(surface(), { position[1] + 1, position[2] })
-    local cause = Helpers.character(surface(), { position[1] - 3, position[2] })
-    chest.health = 1
-    player.friendly_fire = friendly_fire
-    local ok, err = pcall(Damage.hit, {
-      surface = surface(),
-      position = { x = position[1], y = position[2] },
-      radius = 3,
-      payload = "explosive",
-      damage = 10,
-      force = "player",
-      cause = cause,
-    })
-    player.friendly_fire = old
-    after_ticks(2, function()
-      script.on_event(event_id, original, {
-        { filter = "type", type = "unit-spawner" },
-        { filter = "type", type = "unit" },
+    local ok, err = pcall(function()
+      chest = Helpers.chest(surface(), { position[1] + 1, position[2] })
+      cause = Helpers.character(surface(), { position[1] - 3, position[2] })
+      chest.health = 1
+      player.friendly_fire = friendly_fire
+      Damage.hit({
+        surface = surface(),
+        position = { x = position[1], y = position[2] },
+        radius = 3,
+        payload = "explosive",
+        damage = 10,
+        force = "player",
+        cause = cause,
       })
+    end)
+    player.friendly_fire = old
+    if not ok then
+      restore()
+      destroy_all({ chest, cause })
+      error(err)
+    end
+    after_ticks(2, function()
+      restore()
       local dead = not chest.valid
       local force_name = seen and seen.force and seen.force.name
       local cause_name = seen and seen.cause and seen.cause.name
       destroy_all({ chest, cause })
-      assert(ok, err)
       assert(dead, "the chest survived")
       assert(seen, "the death event did not arrive")
       finish(force_name, cause_name)
