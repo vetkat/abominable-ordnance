@@ -150,12 +150,12 @@ test("a native biter that dies sets off nothing", function()
   end)
 end)
 
--- The acid trail puddles near a position.
+-- The acid trail look-alikes near a position.
 local function puddles_near(position, radius)
   return surface().count_entities_filtered({
     position = position,
     radius = radius,
-    name = "acid-splash-fire-spitter-small",
+    name = Names.PUDDLE,
   })
 end
 

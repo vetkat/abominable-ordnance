@@ -25,6 +25,7 @@ end
 local lookalikes = Ordnance.lookalikes({
   cloud = raw("smoke-with-trigger", "poison-cloud"),
   pool = raw("fire", "acid-splash-fire-spitter-big"),
+  puddle = raw("fire", "acid-splash-fire-spitter-small"),
   entity_exists = entity_exists,
   damage_exists = function(name)
     return raw("damage-type", name) ~= nil

@@ -172,10 +172,11 @@ describe("the look-alikes", function()
     -- by mistake must not make one.
     local opts = Stubs.ordnance_opts()
     local vanilla = Stubs.lookalike_opts()
-    opts.cloud, opts.pool = vanilla.cloud, vanilla.pool
+    opts.cloud, opts.pool, opts.puddle = vanilla.cloud, vanilla.pool, vanilla.puddle
     local all = Stubs.by_name((Ordnance.prototypes(opts)))
     assert.is_nil(all["smoke-with-trigger/ao-poison-cloud"])
     assert.is_nil(all["fire/ao-acid-pool"])
+    assert.is_nil(all["fire/ao-acid-puddle"])
   end)
 
   it("copy the vanilla cloud's looks, with no action, for the cloud's time", function()
@@ -201,6 +202,27 @@ describe("the look-alikes", function()
     assert.are.equal(0, p.lifetime_increase_by)
   end)
 
+  it("copy the vanilla trail puddle's looks, with no damage, no spread and its own time", function()
+    local p = lookalikes()["fire/ao-acid-puddle"]
+    assert.are.equal("puddle.png", p.pictures[1].filename)
+    assert.is_nil(p.on_damage_tick_effect)
+    assert.is_nil(p.created_effect)
+    assert.is_nil(p.on_fuel_added_action)
+    assert.is_nil(p.spawn_entity)
+    assert.are.same({ amount = 0, type = "acid" }, p.damage_per_tick)
+    assert.are.equal(0, p.maximum_spread_count)
+    assert.are.equal(600, p.initial_lifetime)
+    assert.are.equal(1800, p.maximum_lifetime)
+    assert.are.equal(20, p.lifetime_increase_by)
+  end)
+
+  it("give the trail puddle the vanilla puddle's damage type as it stands", function()
+    local opts = Stubs.lookalike_opts()
+    opts.puddle.damage_per_tick.type = "corrosion"
+    local p = build_with(opts)["fire/ao-acid-puddle"]
+    assert.are.same({ amount = 0, type = "corrosion" }, p.damage_per_tick)
+  end)
+
   it("give the pool the vanilla pool's damage type as it stands", function()
     local opts = Stubs.lookalike_opts()
     opts.pool.damage_per_tick.type = "corrosion"
@@ -214,6 +236,8 @@ describe("the look-alikes", function()
     assert.are.same({ type = "direct" }, opts.cloud.action)
     assert.are.same({ type = "direct" }, opts.pool.on_damage_tick_effect)
     assert.are.equal(5, opts.pool.damage_per_tick.amount)
+    assert.are.same({ type = "direct" }, opts.puddle.on_damage_tick_effect)
+    assert.are.equal(1, opts.puddle.damage_per_tick.amount)
   end)
 
   it("skip a look-alike whose vanilla prototype is missing", function()
@@ -221,6 +245,15 @@ describe("the look-alikes", function()
     opts.cloud = nil
     local all = build_with(opts)
     assert.is_nil(all["smoke-with-trigger/ao-poison-cloud"])
+    assert.truthy(all["fire/ao-acid-pool"])
+    assert.truthy(all["fire/ao-acid-puddle"])
+  end)
+
+  it("skip the trail puddle when the vanilla puddle is missing", function()
+    local opts = Stubs.lookalike_opts()
+    opts.puddle = nil
+    local all = build_with(opts)
+    assert.is_nil(all["fire/ao-acid-puddle"])
     assert.truthy(all["fire/ao-acid-pool"])
   end)
 
@@ -285,13 +318,14 @@ describe("the look-alikes", function()
     assert.is_nil(c.created_effect)
   end)
 
-  it("skip the pool when its damage type was removed", function()
+  it("skip the pool and the trail puddle when their damage type was removed", function()
     local opts = Stubs.lookalike_opts()
     opts.damage_exists = function(name)
       return name ~= "acid"
     end
     local all = build_with(opts)
     assert.is_nil(all["fire/ao-acid-pool"])
+    assert.is_nil(all["fire/ao-acid-puddle"])
     assert.truthy(all["smoke-with-trigger/ao-poison-cloud"])
   end)
 
@@ -306,6 +340,6 @@ describe("the look-alikes", function()
     for _, p in ipairs(Ordnance.lookalikes(Stubs.lookalike_opts())) do
       names[#names + 1] = p.name
     end
-    assert.are.same({ "ao-acid-pool", "ao-poison-cloud" }, names)
+    assert.are.same({ "ao-acid-pool", "ao-acid-puddle", "ao-poison-cloud" }, names)
   end)
 end)

@@ -501,6 +501,16 @@ functional-core work loop goes here too.
 - PR 2, review fix: `wrap_deaths` in `tests/ingame/damage_test.lua`
   wraps the death event for `kill_by_hit` and for the test of a cause
   that a death handler destroys. Cost if wrong: none.
+- PR 3, Task 10: `Ordnance.lookalikes` in `data-final-fixes.lua`
+  builds the trail puddle, with the guards of the pool. There is no
+  puddle when the vanilla small puddle or its damage type is missing.
+  It keeps the vanilla damage type as it stands, and it loses its
+  trigger fields. The plan put it in `data.lua`. Cost if wrong: none,
+  because the trail hit does not need the puddle.
+- PR 3, Task 10: `puddles_near` in `tests/ingame/ordnance_test.lua`
+  counts the look-alike from Task 10 on, not from Task 11. New acid
+  monsters drop the look-alike from Task 10 on, so the commit stays
+  green. Cost if wrong: none.
 
 ## Interface sheet
 
