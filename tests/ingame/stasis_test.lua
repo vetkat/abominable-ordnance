@@ -245,7 +245,7 @@ test("every warded item weighs the same as its source item", function()
   local differ = {}
   for _, name in ipairs(Stasis.lifecycle_names()) do
     local plain = prototypes.item[name].weight
-    local warded = prototypes.item[Stasis.warded_name(name)].weight
+    local warded = prototypes.item[Stasis.warded_name(Stasis.BASE, name)].weight
     if plain ~= warded then
       differ[#differ + 1] = name .. " " .. plain .. " vs " .. warded
     end
