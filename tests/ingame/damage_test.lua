@@ -937,6 +937,7 @@ test("an acid trail still hits when another mod removed its puddle", function()
 end)
 
 test("an acid monster's trail hurts a chest and another monster, never itself", function()
+  few_trails()
   with_entry({ 5000, 4000 }, "ao-biter-larva-acid", function(entry)
     local p = entry.unit.position
     local chest = Helpers.chest(surface(), { p.x + 0.8, p.y })
@@ -946,7 +947,6 @@ test("an acid monster's trail hurts a chest and another monster, never itself", 
       force = Names.TAMED,
     })
     other.disabled_by_script = true
-    few_trails()
     after_ticks(2 * Balance.acid_trail_ticks, function()
       local chest_hurt = hurt(chest)
       local other_hurt = hurt(other)
@@ -966,10 +966,10 @@ test("an acid monster's trail hurts a chest and another monster, never itself", 
 end)
 
 test("an old-save entry with the vanilla trail name drops the look-alike", function()
+  few_trails()
   with_entry({ 5040, 4000 }, "ao-biter-larva-acid", function(entry)
     entry.trail = "acid-splash-fire-spitter-small"
     local p = entry.unit.position
-    few_trails()
     after_ticks(2 * Balance.acid_trail_ticks, function()
       local function count(name)
         return surface().count_entities_filtered({ name = name, position = p, radius = 2 })
