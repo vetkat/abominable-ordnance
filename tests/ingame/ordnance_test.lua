@@ -235,10 +235,14 @@ end)
 test("a configuration change adds old acid monsters to the trail list", function()
   with_loaded_monster({ 1140, 700 }, "ao-biter-larva-acid", function(unit)
     local number = unit.unit_number
+    local entry = storage.loaded[number]
+    entry.trail = "acid-splash-fire-spitter-small"
     storage.trails = nil
     Setup.on_configuration_changed()
-    assert(storage.trails[number], "the old acid monster has no trail entry")
+    local trail = entry.trail
     unit.destroy()
+    assert(storage.trails[number], "the old acid monster has no trail entry")
+    assert(trail == nil, "the old entry keeps its trail name " .. tostring(trail))
   end)
 end)
 

@@ -17,10 +17,11 @@ end
 
 -- A save from slice 2 has acid monsters in storage.loaded but no trail
 -- list. The rebuild adds every monster whose payloads leave a trail, and
--- a second run changes nothing. A stored entry.trail from an old save no
--- longer matters.
+-- a second run changes nothing. It also clears entry.trail, a field
+-- that only old saves have and nothing reads.
 local function rebuild_trails()
   for id, entry in pairs(storage.loaded) do
+    entry.trail = nil
     if Payloads.trail(entry.payloads) then
       storage.trails[id] = true
     end

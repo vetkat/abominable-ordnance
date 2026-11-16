@@ -121,17 +121,28 @@ function Damage.damage_type(payload, damage_prototypes)
   return nil
 end
 
--- Only units and characters can carry a sticker.
+-- The spec gives the slowdown to units and characters only. Vehicles
+-- and the spider-units of Space Age get no slowdown.
 local MOBILE = { unit = true, character = true }
+
+-- The sticker of a payload, or nil when it has none or entity_prototypes
+-- lacks it as a sticker. Another mod can remove it or reuse its name.
+function Damage.sticker(payload, entity_prototypes)
+  local name = Payloads.sticker(payload)
+  local proto = name and entity_prototypes[name]
+  return proto and proto.type == "sticker" and name or nil
+end
 
 -- One hit of a payload. hit has surface, position, radius, payload,
 -- damage and force (a force name). It may have cause (the entity that
 -- set it off), skip (an entity the hit spares) and sticker (a sticker
--- name for each mobile survivor). The hit checks each target first,
--- because an earlier target's death can take a later one with it, and
--- another mod's death handler can destroy the cause. It returns the
--- targets that still exist, and the number of targets it damaged. When
--- another mod removed the damage type, the hit deals no damage.
+-- name for each mobile survivor). A sticker takes the force that dealt
+-- the hit. The hit checks each target first, because an earlier
+-- target's death can take a later one with it, and another mod's death
+-- handler can destroy the cause. It returns the targets that still
+-- exist, and the number of targets it damaged plus the stickers it
+-- created, for the target budget. When another mod removed the damage
+-- type, the hit deals no damage.
 --
 -- The natives may deal the hit for a force with friendly fire off. Then
 -- the hit has no cause, because a cause from another force would
@@ -158,12 +169,13 @@ function Damage.hit(hit)
       if target.valid then
         survivors[#survivors + 1] = target
         if hit.sticker and MOBILE[target.type] then
-          hit.surface.create_entity({
+          local sticker = hit.surface.create_entity({
             name = hit.sticker,
             position = target.position,
             target = target,
-            force = hit.force,
+            force = attacker,
           })
+          dealt = dealt + (sticker and 1 or 0)
         end
       end
     end
@@ -265,16 +277,10 @@ function Damage.run_detonations()
   end
 end
 
--- The payload's sticker, or nil when it has none or another mod removed
--- its prototype.
-local function sticker_of(payload)
-  local name = Payloads.sticker(payload)
-  return name and Damage.entity_exists(name) and name or nil
-end
-
 -- Deals the summed hits of one hazard visit. Returns false when the
 -- hazard's surface, force or payload no longer exists. Then the hazard
--- must leave. Also returns the number of targets it damaged.
+-- must leave. Also returns the number of targets it damaged plus the
+-- stickers it created.
 local function hazard_hit(hazard, count)
   local surface = game.get_surface(hazard.surface)
   local n = Payloads.numbers(hazard.payload)
@@ -288,7 +294,7 @@ local function hazard_hit(hazard, count)
     payload = hazard.payload,
     damage = n.damage * count,
     force = hazard.force,
-    sticker = sticker_of(hazard.payload),
+    sticker = Damage.sticker(hazard.payload, prototypes.entity),
   })
   return true, dealt
 end
@@ -350,13 +356,14 @@ function Damage.trail(entry, force)
     return
   end
   local unit = entry.unit
+  local surface, position = unit.surface, unit.position
   if Damage.entity_exists(puddle) then
-    unit.surface.create_entity({ name = puddle, position = unit.position, force = force })
+    surface.create_entity({ name = puddle, position = position, force = force })
   end
   local n = Balance.payload_damage.trail
   Damage.hit({
-    surface = unit.surface,
-    position = unit.position,
+    surface = surface,
+    position = position,
     radius = n.radius,
     payload = payload,
     damage = n.damage,

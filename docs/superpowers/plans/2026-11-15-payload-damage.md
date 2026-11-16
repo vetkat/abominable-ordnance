@@ -527,6 +527,24 @@ functional-core work loop goes here too.
 - PR 3, Task 11: only units and characters get the sticker, as the spec
   says. The vanilla sticker also slows cars and spider vehicles. Cost
   if wrong: a car in an acid pool takes damage but does not slow.
+- PR 3, review fix: `sticker_of` is now the public
+  `Damage.sticker(payload, entity_prototypes)`, like
+  `Damage.damage_type`. It also checks that the prototype is a sticker.
+  An in-game test passes it an empty table to stand for a removed
+  sticker. Cost if wrong: one more public name in `shell/damage.lua`.
+- PR 3, review fix: each sticker counts as one more target in the
+  second return value of `Damage.hit`, so stickers use the
+  `hazard_targets` budget too. Cost if wrong: on a dense nest, the
+  hazard pass stops a little earlier and catches up later.
+- PR 3, review fix: a sticker takes the force that `Forces.attacker`
+  chose for the hit, not `hit.force`. Cost if wrong: none.
+- PR 3, review fix: `rebuild_trails` clears `entry.trail` on old saves.
+  Cost if wrong: none, because nothing reads the field.
+- PR 3, review fix: the sticker test has a car where it had a chest. A
+  car can carry a sticker, so it tests the unit and character filter.
+  The test of the missing puddle wraps `Damage.entity_exists` and
+  restores it on every path. It fails when the guard in
+  `Damage.trail` goes. Cost if wrong: none.
 
 ## Interface sheet
 
