@@ -4,6 +4,8 @@ import pathlib
 import subprocess
 import threading
 
+import pytest
+
 from tools import api
 
 RUNTIME = {
@@ -406,7 +408,9 @@ def test_make_api_does_not_run_shell_code_in_the_name():
     done = make_api({}, f"NAME={payload}")
     assert done.returncode in (0, 1, 2)
     assert "PWNED" not in done.stdout.splitlines()
-    assert f"no match for {payload}" in done.stdout
+    # The script ran: it looked the name up, or, without the downloaded
+    # API (as in CI), it asked for `make lua`.
+    assert f"no match for {payload}" in done.stdout or "make lua" in done.stderr
 
 
 def test_make_api_ignores_a_name_from_the_environment():
@@ -414,6 +418,8 @@ def test_make_api_ignores_a_name_from_the_environment():
     assert "usage" in done.stderr and "myhost" not in done.stdout + done.stderr
 
 
+@pytest.mark.skipif(not (ROOT / ".factorio-api" / "runtime-api.json").exists(),
+                    reason="needs the downloaded API: run `make lua`")
 def test_make_api_takes_a_name_from_the_command_line():
     done = make_api({"NAME": "myhost"}, "NAME=defines.direction.north")
     assert "defines.direction.north" in done.stdout
