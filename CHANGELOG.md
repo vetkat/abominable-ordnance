@@ -58,6 +58,17 @@ mod uses [semantic versioning](https://semver.org/spec/v2.0.0.html).
   32 tiles, or by a small unstable chance: 0.2% per minute per payload.
   A feral monster whose attack fails wanders for about 50 s before it
   hunts again. A feral monster whose wander ends hunts again at once.
+- The cryo ward and the Cryo ward research, with Space Age only. A
+  cryogenic plant on Aquilo makes a cryo ward from 2 lithium plates and
+  10 cold fluoroketone, and gives 5 hot fluoroketone back. A cryo ward
+  packs an egg, a larva or a larva rocket into an item that spoils 100
+  times more slowly. Pack and unpack work anywhere. The research needs
+  Stasis ward and the cryogenic science pack.
+
+### Changed
+
+- The stasis ward builder takes a list of ward kinds, so a second ward
+  can share it. Nothing changes in the game.
 
 ### Changed
 

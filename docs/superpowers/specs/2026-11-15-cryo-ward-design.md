@@ -196,7 +196,7 @@ All numbers go in `core/balance.lua`, under `Balance.cryo`:
 | --- | --- |
 | `cryo.factor` | 100 |
 | `cryo.ward` | stack 50, time 4 s, 2 lithium plates, 10 cold fluoroketone, 5 hot fluoroketone back |
-| `cryo.surface_conditions` | `{ { property = "pressure", min = 300, max = 300 } }` |
+| `cryo.pressure` | 300, the fallback when Aquilo gives no pressure. The recipe condition is `{ { property = "pressure", min = p, max = p } }` with Aquilo's pressure `p` |
 | `cryo.pack_time` | 1 s |
 | `cryo.research` | count 500, time 60 |
 
@@ -268,10 +268,15 @@ The rules in `docs/architecture.md` apply. Changed modules:
 | Module | Layer | Job |
 | --- | --- | --- |
 | `core/prototypes/stasis.lua` | core | `Stasis.prototypes(sources, kinds)` builds every kind's items, recipes and research, and the `ao-stasis` subgroup once. `Stasis.kinds(facts)` picks the kinds |
-| `core/balance.lua` | core | `Balance.cryo` |
+| `core/balance.lua` | core | `Balance.cryo`. `Balance.cryo.pressure` (300) is only the fallback: the build reads Aquilo's pressure from the planet |
 | `core/names.lua` | core | `CRYO_TECH`, `CRYO_WARD` and the prefixes `ao-cryo-warded-`, `ao-cryo-ward-` and `ao-cryo-unward-` |
 | `data.lua` | shell | With Space Age, looks up `data.raw.item["lithium-plate"]`, `data.raw.fluid["fluoroketone-cold"]`, `data.raw.fluid["fluoroketone-hot"]`, `data.raw["recipe-category"]["cryogenics"]` and `data.raw.technology["cryogenic-science-pack"]`. It passes these facts to `Stasis.kinds`, logs the missing names, and calls `Stasis.prototypes` once |
 | `locale/en/locale.cfg` | data | Names for every new item, recipe and the research |
+
+The lookups also cover the science packs the research uses, the
+cryogenic plant and the planet `aquilo`. `data.lua` reads Aquilo's
+pressure from the planet and passes it to `Stasis.kinds`, with 300 as
+the fallback (see the ledger rulings in the plan).
 
 These lookups run in `data.lua`. A mod that removes one of these
 prototypes later, in `data-updates.lua` or `data-final-fixes.lua`,

@@ -323,6 +323,7 @@ if script.active_mods["factorio-test"] then
     "tests/ingame/launcher_test",
     "tests/ingame/launcher_range_test",
     "tests/ingame/stasis_test",
+    "tests/ingame/cryo_test",
     "tests/ingame/feral_test",
     "tests/ingame/damage_test",
   })
