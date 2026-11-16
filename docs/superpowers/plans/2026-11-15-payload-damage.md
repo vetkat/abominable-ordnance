@@ -1804,7 +1804,7 @@ review angles from `CLAUDE.md`: multiplayer safety (`control.lua`,
 mod compatibility (a modded creature without `breaths-air`, a removed
 `big-explosion`), performance (the `on_tick` queue), test quality
 (`spec/`, `tests/`). Fix every Critical and Important finding with a
-test that fails first. Review again, for at most 3 rounds.
+test that fails first. Review again, for at most 5 rounds.
 
 ```bash
 git push -u origin feat/payload-targets
@@ -2746,7 +2746,7 @@ compatibility (a removed vanilla cloud or puddle, Space Age plants and
 demolishers), performance (the hazard pass in `on_tick`, a cloud over
 a dense nest) and test quality (`spec/`, `tests/`). Fix every Critical
 and Important finding with a test that fails first. Then review
-again, for at most 3 rounds.
+again, for at most 5 rounds.
 
 ```bash
 git push -u origin feat/payload-hazards
@@ -3216,7 +3216,7 @@ compatibility (old entries with `entry.trail`), mod compatibility (a
 removed vanilla puddle or sticker), performance (one search per trail
 puddle, at most `trail_batch` per tick) and test quality. Fix every
 Critical and Important finding with a test that fails first. Then
-review again, for at most 3 rounds.
+review again, for at most 5 rounds.
 
 ```bash
 git push -u origin feat/acid-extras
