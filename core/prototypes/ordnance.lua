@@ -334,13 +334,15 @@ local function puddle(vanilla, name, lifetime, damage_exists)
 end
 
 -- The look-alikes, in name order, for data-final-fixes.lua. The opts
--- hold the vanilla poison cloud and big acid puddle as they stand then,
--- either of which can be nil. They also hold entity_exists(name) and
--- damage_exists(name), which read the data stage.
+-- hold the vanilla poison cloud and the big and small acid puddles as
+-- they stand then. Any of them can be nil. The opts also hold
+-- entity_exists(name) and damage_exists(name), which read the data
+-- stage. The trail puddle keeps the vanilla lifetime.
 function Ordnance.lookalikes(opts)
   local out = {}
   out[#out + 1] =
     puddle(opts.pool, Names.POOL, Balance.payload_damage.acid.ticks, opts.damage_exists)
+  out[#out + 1] = puddle(opts.puddle, Names.PUDDLE, nil, opts.damage_exists)
   out[#out + 1] = cloud(opts.cloud, opts.entity_exists)
   return out
 end

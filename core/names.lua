@@ -34,4 +34,5 @@ return {
   FERAL = "ao-feral",
   CLOUD = "ao-poison-cloud",
   POOL = "ao-acid-pool",
+  PUDDLE = "ao-acid-puddle",
 }

@@ -773,3 +773,211 @@ test("poison hurts a Gleba plant and a demolisher", function()
   assert(plant_hurt, "poison spared the Gleba plant")
   assert(worm_hurt, "poison spared the demolisher")
 end)
+
+-- Runs body with module[key] replaced, and puts the original back
+-- before it re-raises an error of body. replace gets the original.
+local function wrapped(module, key, replace, body)
+  local original = module[key]
+  module[key] = replace(original)
+  local ok, result = pcall(body)
+  module[key] = original
+  if not ok then
+    error(result)
+  end
+  return result
+end
+
+-- A big biter of the natives that stands still.
+local function still_native(position)
+  local native =
+    surface().create_entity({ name = "big-biter", position = position, force = "enemy" })
+  native.disabled_by_script = true
+  return native
+end
+
+-- Runs a fresh acid hazard at a position by hand, on a table of its
+-- own, for the given number of hits. Other tests leave hazards behind.
+local function run_acid_hazard(position, hits)
+  local interval = Balance.payload_damage.hazard_interval
+  without(HAZARD_FIELDS, function()
+    storage.hazards, storage.hazard_counter = {}, 0
+    add_hazard({ x = position[1], y = position[2] }, "acid", 4 * interval)
+    for i = 1, hits do
+      Damage.run_hazards(game.tick + (i - 1) * interval)
+    end
+  end)
+end
+
+test("an acid pool slows a native unit once per sticker and does not slow a car", function()
+  local position = { 4960, 4000 }
+  Helpers.arena(surface(), position)
+  local native = still_native({ position[1] + 1.5, position[2] })
+  local car = surface().create_entity({
+    name = "car",
+    position = { position[1] - 1.5, position[2] },
+    force = "player",
+  })
+  local ok, err = pcall(run_acid_hazard, position, 2)
+  local native_stickers = native.valid and #(native.stickers or {}) or -1
+  local car_hurt = hurt(car)
+  local car_stickers = car.valid and #(car.stickers or {}) or -1
+  destroy_all({ native, car })
+  assert(ok, err)
+  assert(native_stickers == 1, native_stickers .. " stickers on the native")
+  assert(car_hurt, "the pool spared the car")
+  assert(car_stickers == 0, car_stickers .. " stickers on the car")
+end)
+
+test("an acid pool still hurts when another mod removed its sticker", function()
+  local position = { 5120, 4000 }
+  Helpers.arena(surface(), position)
+  local native = still_native({ position[1] + 1.5, position[2] })
+  local ok, err = pcall(wrapped, Damage, "sticker", function(original)
+    return function(payload)
+      return original(payload, {})
+    end
+  end, function()
+    run_acid_hazard(position, 1)
+  end)
+  local native_hurt = hurt(native)
+  local stickers = native.valid and #(native.stickers or {}) or -1
+  destroy_all({ native })
+  assert(ok, err)
+  assert(native_hurt, "the pool spared the native")
+  assert(stickers == 0, stickers .. " stickers on the native")
+end)
+
+test("a payload's sticker must exist and be a sticker", function()
+  local real = Damage.sticker("acid", prototypes.entity)
+  local missing = Damage.sticker("acid", {})
+  local wrong = Damage.sticker("acid", { ["acid-sticker-big"] = { type = "fire" } })
+  local none = Damage.sticker("poison", prototypes.entity)
+  assert(real == "acid-sticker-big", tostring(real))
+  assert(missing == nil, "a missing sticker: " .. tostring(missing))
+  assert(wrong == nil, "a sticker of another type: " .. tostring(wrong))
+  assert(none == nil, "poison has a sticker: " .. tostring(none))
+end)
+
+test("a sticker counts as one more target of its hit", function()
+  local position = { 5160, 4000 }
+  Helpers.arena(surface(), position)
+  local native = still_native({ position[1] + 1, position[2] })
+  local function hit(sticker)
+    local _, dealt = Damage.hit({
+      surface = surface(),
+      position = { x = position[1], y = position[2] },
+      radius = 3,
+      payload = "acid",
+      damage = 1,
+      force = Names.TAMED,
+      sticker = sticker,
+    })
+    return dealt
+  end
+  local ok, plain, slowed = pcall(function()
+    return hit(nil), hit("acid-sticker-big")
+  end)
+  destroy_all({ native })
+  assert(ok, plain)
+  assert(plain == 1, plain .. " targets without a sticker")
+  assert(slowed == 2, slowed .. " targets with a sticker")
+end)
+
+test("a sticker takes the force that dealt the hit", function()
+  local position = { 5200, 4000 }
+  Helpers.arena(surface(), position)
+  local player = game.forces["player"]
+  local character = Helpers.character(surface(), { position[1] + 1, position[2] })
+  local old = player.friendly_fire
+  player.friendly_fire = false
+  local ok, err = pcall(Damage.hit, {
+    surface = surface(),
+    position = { x = position[1], y = position[2] },
+    radius = 3,
+    payload = "acid",
+    damage = 1,
+    force = "player",
+    sticker = "acid-sticker-big",
+  })
+  player.friendly_fire = old
+  local sticker = character.valid and (character.stickers or {})[1]
+  local force = sticker and sticker.force.name
+  destroy_all({ character })
+  assert(ok, err)
+  assert(force == "enemy", "the sticker's force is " .. tostring(force))
+end)
+
+-- The trail pass reaches every monster within 2 * acid_trail_ticks only
+-- while fewer than about 300 monsters leave a trail.
+local function few_trails()
+  local n = table_size(storage.trails)
+  assert(n < 300, n .. " trail monsters left by earlier tests: the pass is too slow for the wait")
+end
+
+test("an acid trail still hits when another mod removed its puddle", function()
+  with_entry({ 5080, 4000 }, "ao-biter-larva-acid", function(entry)
+    local p = entry.unit.position
+    destroy_all(surface().find_entities_filtered({ name = Names.PUDDLE, position = p, radius = 2 }))
+    local chest = Helpers.chest(surface(), { p.x + 0.8, p.y })
+    local ok, err = pcall(wrapped, Damage, "entity_exists", function(original)
+      return function(name)
+        return name ~= Names.PUDDLE and original(name)
+      end
+    end, function()
+      Damage.trail(entry, Names.TAMED)
+    end)
+    local puddles =
+      surface().count_entities_filtered({ name = Names.PUDDLE, position = p, radius = 2 })
+    local chest_hurt = hurt(chest)
+    destroy_all({ chest, entry.unit })
+    assert(ok, err)
+    assert(puddles == 0, puddles .. " puddles")
+    assert(chest_hurt, "the trail spared the chest")
+  end)
+end)
+
+test("an acid monster's trail hurts a chest and another monster, never itself", function()
+  few_trails()
+  with_entry({ 5000, 4000 }, "ao-biter-larva-acid", function(entry)
+    local p = entry.unit.position
+    local chest = Helpers.chest(surface(), { p.x + 0.8, p.y })
+    local other = surface().create_entity({
+      name = "medium-biter",
+      position = { p.x - 0.8, p.y },
+      force = Names.TAMED,
+    })
+    other.disabled_by_script = true
+    after_ticks(2 * Balance.acid_trail_ticks, function()
+      local chest_hurt = hurt(chest)
+      local other_hurt = hurt(other)
+      local self_whole = entry.unit.health == entry.unit.max_health
+      local puddles = surface().count_entities_filtered({
+        name = Names.PUDDLE,
+        position = p,
+        radius = 2,
+      })
+      destroy_all({ chest, other, entry.unit })
+      assert(chest_hurt, "the trail spared the chest")
+      assert(other_hurt, "the trail spared the other tamed monster")
+      assert(self_whole, "the trail hurt its own monster")
+      assert(puddles >= 1, "no puddle look-alike")
+    end)
+  end)
+end)
+
+test("an old-save entry with the vanilla trail name drops the look-alike", function()
+  few_trails()
+  with_entry({ 5040, 4000 }, "ao-biter-larva-acid", function(entry)
+    entry.trail = "acid-splash-fire-spitter-small"
+    local p = entry.unit.position
+    after_ticks(2 * Balance.acid_trail_ticks, function()
+      local function count(name)
+        return surface().count_entities_filtered({ name = name, position = p, radius = 2 })
+      end
+      local lookalikes, vanilla = count(Names.PUDDLE), count("acid-splash-fire-spitter-small")
+      entry.unit.destroy()
+      assert(lookalikes >= 1, "no puddle look-alike")
+      assert(vanilla == 0, vanilla .. " vanilla puddles")
+    end)
+  end)
+end)

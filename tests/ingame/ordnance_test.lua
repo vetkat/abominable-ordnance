@@ -150,12 +150,12 @@ test("a native biter that dies sets off nothing", function()
   end)
 end)
 
--- The acid trail puddles near a position.
+-- The acid trail look-alikes near a position.
 local function puddles_near(position, radius)
   return surface().count_entities_filtered({
     position = position,
     radius = radius,
-    name = "acid-splash-fire-spitter-small",
+    name = Names.PUDDLE,
   })
 end
 
@@ -182,16 +182,6 @@ test("another object's destruction leaves the loaded entries alone", function()
     local kept = storage.loaded[id] ~= nil
     storage.loaded[id] = nil
     assert(kept, "a render object's destruction removed a loaded entry")
-  end)
-end)
-
-test("an acid trail whose entity is missing does nothing", function()
-  with_loaded_monster({ 980, 700 }, "ao-biter-larva-acid", function(unit)
-    storage.loaded[unit.unit_number].trail = "ao-no-such-puddle"
-    after_ticks(Balance.acid_trail_ticks + 1, function()
-      assert(unit.valid, "the monster is gone")
-      unit.destroy()
-    end)
   end)
 end)
 
@@ -245,10 +235,14 @@ end)
 test("a configuration change adds old acid monsters to the trail list", function()
   with_loaded_monster({ 1140, 700 }, "ao-biter-larva-acid", function(unit)
     local number = unit.unit_number
+    local entry = storage.loaded[number]
+    entry.trail = "acid-splash-fire-spitter-small"
     storage.trails = nil
     Setup.on_configuration_changed()
-    assert(storage.trails[number], "the old acid monster has no trail entry")
+    local trail = entry.trail
     unit.destroy()
+    assert(storage.trails[number], "the old acid monster has no trail entry")
+    assert(trail == nil, "the old entry keeps its trail name " .. tostring(trail))
   end)
 end)
 
@@ -267,6 +261,9 @@ test("every payload effect entity exists", function()
     assert(prototypes.entity[payload.death.entity], payload.death.entity)
     if payload.trail then
       assert(prototypes.entity[payload.trail], payload.trail)
+    end
+    if payload.sticker then
+      assert(prototypes.entity[payload.sticker], payload.sticker)
     end
   end
 end)

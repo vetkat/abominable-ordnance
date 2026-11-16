@@ -33,8 +33,8 @@ function Stubs.ordnance_opts()
   }
 end
 
--- Stand-ins for the vanilla poison cloud and big acid puddle, which the
--- look-alikes copy. Every entity and damage type exists.
+-- Stand-ins for the vanilla poison cloud and the big and small acid
+-- puddles, which the look-alikes copy. Every entity and damage type exists.
 function Stubs.lookalike_opts()
   return {
     cloud = {
@@ -68,6 +68,20 @@ function Stubs.lookalike_opts()
       maximum_spread_count = 100,
       initial_lifetime = 1920,
       maximum_lifetime = 1920,
+      lifetime_increase_by = 20,
+    },
+    puddle = {
+      type = "fire",
+      name = "acid-splash-fire-spitter-small",
+      pictures = { { filename = "puddle.png" } },
+      damage_per_tick = { amount = 1, type = "acid" },
+      on_damage_tick_effect = { type = "direct" },
+      created_effect = { type = "direct" },
+      on_fuel_added_action = { type = "direct" },
+      spawn_entity = "fire-flame-on-tree",
+      maximum_spread_count = 100,
+      initial_lifetime = 600,
+      maximum_lifetime = 1800,
       lifetime_increase_by = 20,
     },
     entity_exists = function()

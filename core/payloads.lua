@@ -29,7 +29,10 @@ Payloads.ALL = {
     -- One pool hurts only what stands in it, so the death spreads five
     -- look-alikes. One hazard covers them.
     death = { entity = Names.POOL, spread = true, hazard = true },
-    trail = "acid-splash-fire-spitter-small",
+    -- The trail look-alike under a live acid monster.
+    trail = Names.PUDDLE,
+    -- The hazard slows the units and characters it hits.
+    sticker = "acid-sticker-big",
   },
   {
     name = "poison",
@@ -167,16 +170,22 @@ function Payloads.on_death(names, position, exists)
   return out
 end
 
--- The entity that a live monster with these payloads leaves behind, or
--- nil.
+-- The trail look-alike of the first payload that has a trail, and that
+-- payload's name. Nil when no payload leaves a trail.
 function Payloads.trail(names)
   for _, name in ipairs(names) do
     local payload = BY_NAME[name]
     if payload and payload.trail then
-      return payload.trail
+      return payload.trail, name
     end
   end
   return nil
+end
+
+-- The sticker that a payload's hazard puts on mobile targets, or nil.
+function Payloads.sticker(name)
+  local payload = BY_NAME[name]
+  return payload and payload.sticker or nil
 end
 
 return Payloads

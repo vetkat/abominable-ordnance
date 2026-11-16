@@ -501,6 +501,50 @@ functional-core work loop goes here too.
 - PR 2, review fix: `wrap_deaths` in `tests/ingame/damage_test.lua`
   wraps the death event for `kill_by_hit` and for the test of a cause
   that a death handler destroys. Cost if wrong: none.
+- PR 3, Task 10: `Ordnance.lookalikes` in `data-final-fixes.lua`
+  builds the trail puddle, with the guards of the pool. There is no
+  puddle when the vanilla small puddle or its damage type is missing.
+  It keeps the vanilla damage type as it stands, and it loses its
+  trigger fields. The plan put it in `data.lua`. Cost if wrong: none,
+  because the trail hit does not need the puddle.
+- PR 3, Task 10: `puddles_near` in `tests/ingame/ordnance_test.lua`
+  counts the look-alike from Task 10 on, not from Task 11. New acid
+  monsters drop the look-alike from Task 10 on, so the commit stays
+  green. Cost if wrong: none.
+- PR 3, Task 11: the new in-game tests use `x = 4960`, `5000` and
+  `5040`. The plan's spots 4500 to 4580 belong to tests of PR 2. Cost if
+  wrong: none.
+- PR 3, Task 11: the sticker test runs `Damage.run_hazards` by hand on a
+  table of its own, as the test of the drained table does. It runs two
+  hits and asserts one sticker on the native: the engine renews a
+  sticker of the same name and does not stack it. Cost if wrong: the
+  test does not cover the `on_tick` call, which the other hazard tests
+  cover.
+- PR 3, Task 11: the trail tests wait `2 * acid_trail_ticks`, not
+  `acid_trail_ticks + 2`. One full pass then always falls inside the
+  wait. Cost if wrong: a test fails when about 300 loaded monsters
+  from earlier tests still live.
+- PR 3, Task 11: only units and characters get the sticker, as the spec
+  says. The vanilla sticker also slows cars and spider vehicles. Cost
+  if wrong: a car in an acid pool takes damage but does not slow.
+- PR 3, review fix: `sticker_of` is now the public
+  `Damage.sticker(payload, entity_prototypes)`, like
+  `Damage.damage_type`. It also checks that the prototype is a sticker.
+  An in-game test passes it an empty table to stand for a removed
+  sticker. Cost if wrong: one more public name in `shell/damage.lua`.
+- PR 3, review fix: each sticker counts as one more target in the
+  second return value of `Damage.hit`, so stickers use the
+  `hazard_targets` budget too. Cost if wrong: on a dense nest, the
+  hazard pass stops a little earlier and catches up later.
+- PR 3, review fix: a sticker takes the force that `Forces.attacker`
+  chose for the hit, not `hit.force`. Cost if wrong: none.
+- PR 3, review fix: `rebuild_trails` clears `entry.trail` on old saves.
+  Cost if wrong: none, because nothing reads the field.
+- PR 3, review fix: the sticker test has a car where it had a chest. A
+  car can carry a sticker, so it tests the unit and character filter.
+  The test of the missing puddle wraps `Damage.entity_exists` and
+  restores it on every path. It fails when the guard in
+  `Damage.trail` goes. Cost if wrong: none.
 
 ## Interface sheet
 
