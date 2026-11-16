@@ -67,7 +67,7 @@ describe("locale/en/locale.cfg", function()
     for _, p in ipairs(LauncherPrototypes.prototypes(Stubs.launcher_opts({ 0, 1, 2, 3 }))) do
       all[#all + 1] = p
     end
-    Common.append(all, Stasis.prototypes(all, { Stasis.BASE }))
+    Common.append(all, Stasis.prototypes(all, { Stasis.BASE, Stasis.CRYO }))
     for _, p in ipairs(all) do
       local section = SECTION[p.type]
       if section then

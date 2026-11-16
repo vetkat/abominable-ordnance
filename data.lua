@@ -57,7 +57,26 @@ end
 local sources = {}
 Common.append(sources, lifecycle)
 Common.append(sources, ordnance)
-data:extend(Stasis.prototypes(sources, { Stasis.BASE }))
+-- With Space Age, the cryo ward needs these Aquilo prototypes. Another
+-- mod can remove one. Then only the base ward loads, and the log says
+-- why. A mod that removes one later, in data-updates.lua or
+-- data-final-fixes.lua, still breaks the load.
+local has = {}
+for _, need in ipairs(Stasis.CRYO.needs) do
+  has[Stasis.key(need.type, need.name)] = (data.raw[need.type] or {})[need.name] ~= nil
+end
+-- The ward recipe runs where Aquilo's pressure holds, so read it from the
+-- planet and not from a number of our own.
+local aquilo = (data.raw.planet or {}).aquilo
+local pressure = aquilo and aquilo.surface_properties and aquilo.surface_properties.pressure
+if space_age and aquilo and not pressure then
+  log("Abominable Ordnance: Aquilo has no pressure, so the cryo ward uses the balance value")
+end
+local kinds, missing = Stasis.kinds({ space_age = space_age, has = has, pressure = pressure })
+for _, key in ipairs(missing) do
+  log("Abominable Ordnance: no cryo ward, because " .. key .. " is missing")
+end
+data:extend(Stasis.prototypes(sources, kinds))
 
 data:extend(LauncherPrototypes.prototypes({
   turret = vanilla("artillery-turret", "artillery-turret"),

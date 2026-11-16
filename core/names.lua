@@ -26,5 +26,10 @@ return {
   WARDED = "ao-warded-",
   PACK = "ao-ward-",
   UNPACK = "ao-unward-",
+  CRYO_TECH = "ao-cryo-ward",
+  CRYO_WARD = "ao-cryo-ward",
+  CRYO_WARDED = "ao-cryo-warded-",
+  CRYO_PACK = "ao-cryo-ward-",
+  CRYO_UNPACK = "ao-cryo-unward-",
   FERAL = "ao-feral",
 }

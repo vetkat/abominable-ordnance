@@ -16,6 +16,8 @@ local Stasis = {}
 Stasis.SUBGROUP = "ao-stasis"
 Stasis.WARD_ICON = "__base__/graphics/icons/plastic-bar.png"
 Stasis.WARD_TINT = { r = 0.55, g = 0.8, b = 1, a = 1 }
+-- A colder blue than the base ward, so the two icons differ at a glance.
+Stasis.CRYO_TINT = { r = 0.3, g = 0.55, b = 1, a = 1 }
 
 local PACKS = {
   "automation-science-pack",
@@ -24,8 +26,25 @@ local PACKS = {
   "chemical-science-pack",
 }
 
+local CRYO_PACKS = Common.copy(PACKS)
+CRYO_PACKS[#CRYO_PACKS + 1] = "space-science-pack"
+CRYO_PACKS[#CRYO_PACKS + 1] = "cryogenic-science-pack"
+
+-- The ward recipe fields that a kind may set beyond its ingredients.
+local WARD_RECIPE_FIELDS =
+  { "surface_conditions", "main_product", "auto_recycle", "allow_productivity", "allow_quality" }
+
 local function item(name, amount)
   return { type = "item", name = name, amount = amount }
+end
+
+local function fluid(name, amount)
+  return { type = "fluid", name = name, amount = amount }
+end
+
+-- The key of a prototype in a set of facts, as "type/name".
+function Stasis.key(type, name)
+  return type .. "/" .. name
 end
 
 -- The base ward of slice 5, in both modes.
@@ -58,14 +77,97 @@ local function base_kind()
       packs = PACKS,
     },
     -- The prototypes of other mods that the kind needs. The builder does
-    -- not read this. The kind picker that the next PR adds will drop a
-    -- kind whose needs are missing.
+    -- not read this. Stasis.kinds drops a kind whose needs are missing.
     -- The base ward needs none: data.lua asserts its vanilla ingredients.
     needs = {},
   }
 end
 
 Stasis.BASE = base_kind()
+
+-- The cryo ward of Space Age. A cryogenic plant on Aquilo makes it from
+-- lithium plates and cold fluoroketone, and gives hot fluoroketone back
+-- into Aquilo's loop. The pressure condition keeps the recipe on
+-- Aquilo. The plant takes quality modules, so the recipe allows no
+-- quality and no recycling: a ward made with quality and recycled would
+-- give lithium plates a second roll. The recipe needs the pressure of
+-- Aquilo, which the data stage reads from the planet. Without a
+-- pressure, the kind falls back to the balance value.
+function Stasis.cryo_kind(pressure)
+  local c = Balance.cryo
+  pressure = pressure or c.pressure
+  return {
+    name = Names.CRYO_WARD,
+    factor = c.factor,
+    pack_time = c.pack_time,
+    warded = Names.CRYO_WARDED,
+    pack = Names.CRYO_PACK,
+    unpack = Names.CRYO_UNPACK,
+    tint = Stasis.CRYO_TINT,
+    stack = c.ward.stack,
+    recipe = {
+      categories = { "cryogenics" },
+      time = c.ward.time,
+      ingredients = {
+        item("lithium-plate", c.ward.lithium),
+        fluid("fluoroketone-cold", c.ward.cold),
+      },
+      results = { item(Names.CRYO_WARD, 1), fluid("fluoroketone-hot", c.ward.hot) },
+      surface_conditions = { { property = "pressure", min = pressure, max = pressure } },
+      main_product = Names.CRYO_WARD,
+      auto_recycle = false,
+      allow_productivity = false,
+      allow_quality = false,
+    },
+    research = {
+      name = Names.CRYO_TECH,
+      prerequisites = { Names.STASIS_TECH, "cryogenic-science-pack" },
+      count = c.research.count,
+      time = c.research.time,
+      packs = CRYO_PACKS,
+    },
+    needs = {
+      { type = "item", name = "lithium-plate" },
+      { type = "fluid", name = "fluoroketone-cold" },
+      { type = "fluid", name = "fluoroketone-hot" },
+      { type = "recipe-category", name = "cryogenics" },
+      { type = "technology", name = "cryogenic-science-pack" },
+      { type = "item", name = "space-science-pack" },
+      { type = "item", name = "cryogenic-science-pack" },
+      { type = "assembling-machine", name = "cryogenic-plant" },
+      { type = "planet", name = "aquilo" },
+    },
+  }
+end
+
+Stasis.CRYO = Stasis.cryo_kind()
+
+-- Picks the kinds to build from the facts of the data stage. The field
+-- space_age is true when Space Age is on. The field has is a set of
+-- "type/name" keys for the prototypes that exist. The field pressure is
+-- the pressure of Aquilo, and may be nil.
+--
+-- Returns the kinds and the keys that the cryo kind needs but has lacks.
+-- The base kind is always in the list. The cryo kind joins it with Space
+-- Age when nothing is missing.
+function Stasis.kinds(facts)
+  local kinds = { Stasis.BASE }
+  if not facts.space_age then
+    return kinds, {}
+  end
+  local has = facts.has or {}
+  local missing = {}
+  for _, need in ipairs(Stasis.CRYO.needs) do
+    local key = Stasis.key(need.type, need.name)
+    if not has[key] then
+      missing[#missing + 1] = key
+    end
+  end
+  if #missing == 0 then
+    kinds[#kinds + 1] = Stasis.cryo_kind(facts.pressure)
+  end
+  return kinds, missing
+end
 
 -- The 10 lifecycle items of version 1: the eggs, the larvae and the
 -- larva rockets. A version 2 item joins only by a change here.
@@ -214,6 +316,9 @@ local function ward_kit(kind)
     Common.copy(k.results)
   )
   recipe.subgroup = Stasis.SUBGROUP
+  for field, value in pairs(Common.pick(k, WARD_RECIPE_FIELDS)) do
+    recipe[field] = value
+  end
   local ward_item = Common.item(kind.name, ward_icons(kind), Stasis.SUBGROUP, kind.stack)
   recipe.order = ward_item.order
   return ward_item, recipe

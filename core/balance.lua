@@ -77,6 +77,14 @@ return {
     ward = { stack = 50, time = 2, plastic = 2, steel = 1, circuit = 1 },
     research = { count = 150, time = 30 },
   },
+  cryo = {
+    factor = 100,
+    pack_time = 1,
+    ward = { stack = 50, time = 4, lithium = 2, cold = 10, hot = 5 },
+    -- The fallback when the data stage cannot read the pressure of Aquilo.
+    pressure = 300,
+    research = { count = 500, time = 60 },
+  },
   feral = {
     radius = 5,
     per_payload = 2,
