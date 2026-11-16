@@ -254,7 +254,7 @@ end)
 
 test("every payload effect entity exists", function()
   for _, payload in ipairs(Payloads.ALL) do
-    assert(prototypes.entity[payload.death.name], payload.death.name)
+    assert(prototypes.entity[payload.death.entity], payload.death.entity)
     if payload.trail then
       assert(prototypes.entity[payload.trail], payload.trail)
     end
