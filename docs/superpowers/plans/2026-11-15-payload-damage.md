@@ -493,6 +493,10 @@ functional-core work loop goes here too.
   there is no pool when that type is missing. A missing acid type also
   stops the acid damage, so the pool would only mislead. Cost if wrong:
   an acid death shows no pools while another mod removes the type.
+- PR 2, review fix: the acid test ends its hazard by setting its end
+  tick and last hit to the current tick. Then the pass removes it and
+  keeps the cursor valid. Cost if wrong: the hazard lives one more tick,
+  after the test destroyed its pools and chest.
 - PR 2, review fix: `wrap_deaths` in `tests/ingame/damage_test.lua`
   wraps the death event for `kill_by_hit` and for the test of a cause
   that a death handler destroys. Cost if wrong: none.

@@ -587,8 +587,11 @@ test("an acid death leaves five pool look-alikes and one hazard that hurts a che
       local chest_hurt = hurt(chest)
       destroy_all(pools)
       destroy_all({ chest })
+      -- End the hazards now. The pass removes them and keeps its cursor
+      -- valid.
       for _, id in ipairs(ids) do
-        storage.hazards[id] = nil
+        storage.hazards[id].end_tick = game.tick
+        storage.hazards[id].last_hit = game.tick
       end
       assert(#pools == 5, #pools .. " pool look-alikes")
       assert(#ids == 1, #ids .. " acid hazards")
@@ -688,6 +691,8 @@ test("a hazard whose payload the mod no longer knows leaves without damage", fun
   Helpers.arena(surface(), position)
   local chest = Helpers.chest(surface(), { position[1] + 1, position[2] })
   local id = add_hazard({ x = position[1], y = position[2] }, "glitter", 600)
+  -- The pass visits hazard_visits (50) hazards per tick. The hazards of
+  -- earlier tests stay below 150, so 3 ticks reach this one.
   after_ticks(3, function()
     local whole = chest.health == chest.max_health
     local gone = storage.hazards[id] == nil
