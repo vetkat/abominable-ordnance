@@ -1,4 +1,10 @@
 import json
+import os
+import pathlib
+import subprocess
+import threading
+
+import pytest
 
 from tools import api
 
@@ -90,7 +96,7 @@ PROTOTYPE = {
 
 
 def find(query):
-    return api.lookup(RUNTIME, PROTOTYPE, query)
+    return api.search(RUNTIME, PROTOTYPE, query)[0]
 
 
 def test_a_method_shows_its_table_parameters_and_return():
@@ -140,7 +146,7 @@ def test_a_define_lists_its_values():
 
 def test_a_prototype_shows_typename_parent_and_properties():
     text = find("UnitPrototype")
-    assert "unit" in text and "EntityWithOwnerPrototype" in text
+    assert 'type "unit"' in text and "EntityWithOwnerPrototype" in text
     assert "movement_speed" in text
 
 
@@ -156,17 +162,18 @@ def test_a_prototype_type_renders_dictionary():
 
 def test_an_unknown_name_suggests_close_matches():
     text = find("LuaSurface.create_entty")
-    assert "no match" in text and "LuaSurface.create_entity" in text
+    assert "no match" in text and "close: " in text and "LuaSurface.create_entity" in text
 
 
 def test_an_unknown_name_with_nothing_close_says_so():
-    assert "no match" in find("zzzzqqq")
+    text = find("zzzzqqq")
+    assert "no match" in text and "close:" not in text
 
 
 def test_a_long_description_is_cut():
     long_runtime = {**RUNTIME, "concepts": [{
         "name": "Big", "description": "x" * 1000, "type": "string"}]}
-    assert len(api.lookup(long_runtime, PROTOTYPE, "Big")) < 400
+    assert len(api.search(long_runtime, PROTOTYPE, "Big")[0]) < 400
 
 
 def test_main_reads_the_files_and_prints(tmp_path, capsys):
@@ -192,7 +199,7 @@ def test_a_prototype_property_is_found_on_a_parent():
         "properties": [{"name": "collision_box", "type": "BoundingBox",
                         "optional": True}],
     }], "types": []}
-    text = api.lookup(RUNTIME, proto, "UnitPrototype.collision_box")
+    text = api.search(RUNTIME, proto, "UnitPrototype.collision_box")[0]
     assert "EntityWithOwnerPrototype.collision_box?: BoundingBox" in text
     assert "inherited by UnitPrototype" in text
 
@@ -203,5 +210,252 @@ def test_an_inherited_property_names_only_the_asking_prototype():
         {"name": "B", "parent": "A", "properties": []},
         {"name": "C", "parent": "B", "properties": []},
     ], "types": []}
-    text = api.lookup({}, proto, "C.p")
+    text = api.search({}, proto, "C.p")[0]
     assert text.count("inherited") == 1 and "inherited by C" in text
+
+
+def lookup_in(proto, query, runtime=None):
+    return api.search(runtime or {}, proto, query)[0]
+
+
+def lookup_ends(proto, query):
+    """Look the name up in a thread, so a loop that never ends fails the test."""
+    done = []
+    thread = threading.Thread(target=lambda: done.append(lookup_in(proto, query)),
+                              daemon=True)
+    thread.start()
+    thread.join(2)
+    assert done, "the lookup did not end"
+    return done[0]
+
+
+def test_a_parent_loop_in_the_data_ends():
+    proto = {"prototypes": [
+        {"name": "A", "parent": "B", "properties": [{"name": "p", "type": "x"}]},
+        {"name": "B", "parent": "A", "properties": [{"name": "q", "type": "x"}]},
+    ], "types": []}
+    assert "inherited by A" in lookup_ends(proto, "A.q")
+
+
+def test_the_nearest_parent_wins():
+    proto = {"prototypes": [
+        {"name": "A", "parent": None, "properties": [
+            {"name": "p", "type": "x", "description": "from A"}]},
+        {"name": "B", "parent": "A", "properties": [
+            {"name": "p", "type": "x", "description": "from B"}]},
+        {"name": "C", "parent": "B", "properties": []},
+    ], "types": []}
+    text = lookup_in(proto, "C.p")
+    assert "from B" in text and "from A" not in text
+
+
+def test_an_own_property_beats_an_inherited_one():
+    proto = {"prototypes": [
+        {"name": "A", "parent": None, "properties": [
+            {"name": "p", "type": "x", "description": "from A"}]},
+        {"name": "B", "parent": "A", "properties": [
+            {"name": "p", "type": "x", "description": "from B"}]},
+    ], "types": []}
+    text = lookup_in(proto, "B.p")
+    assert "from B" in text and "inherited" not in text
+
+
+def test_a_summary_ends_with_dots_at_exactly_the_cap():
+    text = api.summary("x" * 1000)
+    assert text.endswith("...") and len(text) == api.SUMMARY
+    assert api.summary("y" * api.SUMMARY) == "y" * api.SUMMARY
+
+
+def test_a_summary_joins_lines_with_a_space():
+    assert api.summary("one\ntwo\n\nthree") == "one two"
+
+
+def test_a_default_of_zero_is_shown():
+    proto = {"prototypes": [{"name": "A", "parent": None, "properties": [
+        {"name": "n", "type": "int", "default": 0}]}], "types": []}
+    assert "default: 0" in lookup_in(proto, "A.n")
+
+
+def test_a_write_only_attribute_shows_w():
+    runtime = {"classes": [{"name": "C", "attributes": [
+        {"name": "w", "write_type": "string"}]}]}
+    assert "C.w: string [W]" in lookup_in({}, "C.w", runtime)
+
+
+def test_main_with_two_names_prints_usage(tmp_path, capsys):
+    assert api.main(["a", "b"], tmp_path) == 2
+    assert "usage" in capsys.readouterr().err
+
+
+def test_main_with_an_empty_name_prints_usage(tmp_path, capsys):
+    assert api.main([" "], tmp_path) == 2
+    assert "usage" in capsys.readouterr().err
+
+
+def test_main_with_corrupt_json_says_how_to_get_it(tmp_path, capsys):
+    (tmp_path / "runtime-api.json").write_text("{nope")
+    (tmp_path / "prototype-api.json").write_text("{}")
+    assert api.main(["ForceID"], tmp_path) == 1
+    assert "make lua" in capsys.readouterr().err
+
+
+def test_main_with_an_unknown_name_exits_one(tmp_path, capsys):
+    (tmp_path / "runtime-api.json").write_text(json.dumps(RUNTIME))
+    (tmp_path / "prototype-api.json").write_text(json.dumps(PROTOTYPE))
+    assert api.main(["zzzzqqq"], tmp_path) == 1
+    assert "no match" in capsys.readouterr().out
+
+
+DEFINES = {"defines": [
+    {"name": "events", "values": [{"name": "on_tick", "description": "Each tick."}]},
+    {"name": "control_behavior", "subkeys": [
+        {"name": "lamp", "subkeys": [
+            {"name": "color_mode", "values": [{"name": "packed_rgb"}]}]}]},
+    {"name": "big", "values": [{"name": f"v{n}"} for n in range(25)]},
+]}
+
+
+def test_a_define_value_is_found_with_its_description():
+    text = find_in(DEFINES, "defines.events.on_tick")
+    assert "defines.events.on_tick" in text and "Each tick." in text
+
+
+def test_a_define_subkey_value_is_found():
+    assert "packed_rgb" in find_in(DEFINES, "defines.control_behavior.lamp.color_mode")
+    assert "defines.control_behavior.lamp.color_mode.packed_rgb" in find_in(
+        DEFINES, "defines.control_behavior.lamp.color_mode.packed_rgb")
+    assert "subkeys: lamp" in find_in(DEFINES, "defines.control_behavior")
+
+
+def test_a_long_define_group_shows_a_count_and_the_first_twenty():
+    text = find_in(DEFINES, "defines.big")
+    assert "25 values" in text and "v19" in text and "v20" not in text
+    assert text.splitlines()[0].endswith("...")
+
+
+def find_in(runtime, query):
+    return api.search(runtime, {}, query)[0]
+
+
+BOTH_RUNTIME = {"concepts": [{"name": "Color", "description": "Runtime colour.",
+                              "type": "table"}]}
+BOTH_PROTO = {"prototypes": [], "types": [{"name": "Color", "description": "Proto colour.",
+                                           "type": "table"}]}
+
+
+def test_a_runtime_concept_beats_a_prototype_type_of_the_same_name():
+    text = api.search(BOTH_RUNTIME, BOTH_PROTO, "Color")[0]
+    assert "Runtime colour." in text and "[runtime]" in text
+    assert "also a prototype type: prototype:Color" in text
+
+
+def test_the_prototype_type_is_found_with_its_prefix():
+    text = api.search(BOTH_RUNTIME, BOTH_PROTO, "prototype:Color")[0]
+    assert "Proto colour." in text and "[prototype]" in text
+
+
+def test_a_name_in_one_stage_only_has_no_also_note():
+    assert "also a" not in api.search(RUNTIME, PROTOTYPE, "ForceID")[0]
+
+
+def test_a_tuple_renders_its_values_in_square_brackets():
+    kind = {"complex_type": "tuple", "values": ["double", "string", "LuaEntity"]}
+    assert api.render(kind) == "[double, string, LuaEntity]"
+
+
+def test_a_struct_does_not_render_as_a_bare_word():
+    assert api.render({"complex_type": "struct"}) == "struct (see members)"
+
+
+def test_a_table_with_nested_parameters_renders_them():
+    inner = {"complex_type": "table", "parameters": [
+        {"name": "x", "type": "double", "optional": False}]}
+    outer = {"complex_type": "table", "parameters": [
+        {"name": "pos", "type": inner, "optional": True}]}
+    assert api.render(outer) == "{pos?: {x: double}}"
+
+
+def test_an_unknown_type_renders_as_a_question_mark():
+    assert api.render({}) == "?"
+    assert api.render(None) == "?"
+
+
+def test_a_prototype_is_found_by_its_type_string():
+    assert "UnitPrototype" in find("unit")
+
+
+def test_a_type_string_never_shadows_a_runtime_name():
+    proto = {"prototypes": [{"name": "UnitPrototype", "typename": "LuaSurface",
+                             "parent": None, "properties": []}], "types": []}
+    assert "class LuaSurface" in api.search(RUNTIME, proto, "LuaSurface")[0]
+
+
+def test_a_name_matches_ignoring_case_and_a_trailing_dot():
+    assert "LuaSurface.pollute(" in find("luasurface.POLLUTE.")
+
+
+ROOT = pathlib.Path(__file__).resolve().parents[2]
+
+
+def make_api(env_extra, *args):
+    env = {k: v for k, v in os.environ.items() if k != "NAME"} | env_extra
+    return subprocess.run(["make", "-s", "-o", ".factorio-api/stamp", "api", *args],
+                          cwd=ROOT, capture_output=True, text=True, env=env)
+
+
+def test_make_api_does_not_run_shell_code_in_the_name():
+    payload = 'x"; echo PWNED; "'
+    done = make_api({}, f"NAME={payload}")
+    assert done.returncode in (0, 1, 2)
+    assert "PWNED" not in done.stdout.splitlines()
+    # The script ran: it looked the name up, or, without the downloaded
+    # API (as in CI), it asked for `make lua`.
+    assert f"no match for {payload}" in done.stdout or "make lua" in done.stderr
+
+
+def test_make_api_ignores_a_name_from_the_environment():
+    done = make_api({"NAME": "myhost"})
+    assert "usage" in done.stderr and "myhost" not in done.stdout + done.stderr
+
+
+@pytest.mark.skipif(not (ROOT / ".factorio-api" / "runtime-api.json").exists(),
+                    reason="needs the downloaded API: run `make lua`")
+def test_make_api_takes_a_name_from_the_command_line():
+    done = make_api({"NAME": "myhost"}, "NAME=defines.direction.north")
+    assert "defines.direction.north" in done.stdout
+
+
+def test_a_cycle_that_leaves_out_the_child_ends():
+    proto = {"prototypes": [
+        {"name": "A", "parent": "B", "properties": []},
+        {"name": "B", "parent": "C", "properties": []},
+        {"name": "C", "parent": "B", "properties": [{"name": "p", "type": "x"}]},
+    ], "types": []}
+    text = lookup_ends(proto, "A.p")
+    assert text.count("inherited") == 1 and "inherited by A" in text
+
+
+def test_a_property_without_a_description_has_no_blank_last_line():
+    proto = {"prototypes": [{"name": "A", "parent": None, "properties": [
+        {"name": "n", "type": "int"}]}], "types": []}
+    assert not lookup_in(proto, "A.n").endswith("\n")
+
+
+def test_an_event_define_says_it_is_an_event():
+    runtime = {"events": [{"name": "on_tick", "data": []}],
+               "defines": [{"name": "events", "values": [{"name": "on_tick"}]}]}
+    assert "(event on_tick)" in lookup_in({}, "defines.events.on_tick", runtime)
+
+
+def test_a_miss_reports_the_query_as_asked_without_the_dot_or_spaces():
+    assert "no match for zzzz" in find(" zzzz. ")
+
+
+def test_main_with_a_name_that_is_only_dots_prints_usage(tmp_path, capsys):
+    assert api.main(["."], tmp_path) == 2
+    assert "usage" in capsys.readouterr().err
+
+
+def test_make_api_ignores_an_api_name_from_the_environment():
+    done = make_api({"API_NAME": "sneaky"})
+    assert "usage" in done.stderr and "sneaky" not in done.stdout + done.stderr
