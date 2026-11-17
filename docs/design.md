@@ -549,6 +549,13 @@ Answered:
 
 Open:
 
+- [ ] Version 2: acid pools hurt trees and Gleba plants, as the acid rule
+  says. Keep that, or spare plants?
+- [ ] Version 2: acid pools slow only units and characters. Should they
+  also slow spider-units, such as pentapods, and vehicles?
+- [ ] Version 2: a blueprint or a script can set the cryo ward recipe off
+  Aquilo, and the game then crafts it. Does the cryo ward need a script
+  guard?
 - [ ] Version 2 payload targets (draft, revisit in version 2). Grenade:
   everything, rocks included, like explosive. Slowdown: anything that
   moves (natives, players, your moving buildings, tamed monsters).
