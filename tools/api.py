@@ -61,8 +61,13 @@ def field(item: dict) -> str:
     return f"{item.get('name')}{mark}: {render(item.get('type'))}"
 
 
+def in_order(params: list) -> list:
+    # The API file sorts parameters by name. "order" gives the call order.
+    return sorted(params, key=lambda p: p.get("order", 0))
+
+
 def method(owner: str, item: dict) -> str:
-    params = ", ".join(field(p) for p in item.get("parameters", []))
+    params = ", ".join(field(p) for p in in_order(item.get("parameters", [])))
     table = (item.get("format") or {}).get("takes_table")
     call = f"{owner}.{item['name']}" + ("{" + params + "}" if table else f"({params})")
     returns = [render(r.get("type")) + ("?" if r.get("optional") else "")
