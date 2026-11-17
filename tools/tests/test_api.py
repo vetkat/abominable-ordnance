@@ -119,6 +119,16 @@ def test_a_positional_method_uses_round_brackets():
     assert "LuaSurface.pollute(amount: double)" in find("LuaSurface.pollute")
 
 
+def test_a_positional_method_lists_its_parameters_by_order():
+    # The API file lists parameters by name. The order field gives the call order.
+    die = {"name": "die", "format": {"takes_table": False}, "parameters": [
+        {"name": "cause", "type": "LuaEntity", "optional": True, "order": 1},
+        {"name": "force", "type": "ForceID", "optional": True, "order": 0},
+    ]}
+    assert api.method("LuaEntity", die).startswith(
+        "LuaEntity.die(force?: ForceID, cause?: LuaEntity)")
+
+
 def test_an_attribute_shows_type_and_access():
     assert "LuaSurface.always_day: boolean [RW]" in find("LuaSurface.always_day")
     assert "LuaSurface.index: uint32 [R]" in find("LuaSurface.index")
