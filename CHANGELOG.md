@@ -64,6 +64,8 @@ mod uses [semantic versioning](https://semver.org/spec/v2.0.0.html).
   packs an egg, a larva or a larva rocket into an item that spoils 100
   times more slowly. Pack and unpack work anywhere. The research needs
   Stasis ward and the cryogenic science pack.
+- A monster loaded with a poison capsule hurts living things within 3
+  tiles once a second, with a small green puff. It spares its own side.
 
 ### Changed
 

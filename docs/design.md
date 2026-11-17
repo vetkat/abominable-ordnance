@@ -57,7 +57,8 @@ step after Capture is a machine or a recipe, so you can automate it.
 6. **Fire.** The larva launcher and artillery fire loaded larvae as
    long-range ammo. The larva turns into its full monster where it lands.
 7. **Detonate.** The monster attacks the area where it lands, applies its
-   live effect (such as an acid trail), and triggers its payload on death.
+   live effect (an acid trail or a poison aura), and triggers its payload on
+   death.
 
 ## Lifecycle: eggs, embryos and larvae
 
@@ -149,7 +150,7 @@ in this table.
 | Grenade | None | Grenade blast |
 | Cluster grenade | None | Cluster scatter |
 | Sulfuric acid (barrel) | Acid trail: small acid puddles under it | Large acid pool |
-| Poison capsule | Small poison aura | Poison cloud |
+| Poison capsule | Small poison aura: hurts living things nearby, spares its own side | Poison cloud |
 | Slowdown capsule | Slows nearby enemies | Slowdown burst |
 | Flamethrower ammo | Leaves a fire trail | Fire burst |
 | Atomic bomb | Glows, moves slowly | Nuclear explosion |
