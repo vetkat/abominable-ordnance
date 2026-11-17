@@ -28,6 +28,8 @@ Slices 1 (lifecycle) and 2 (ordnance) ship in this release.
   ([design][logistics-and-delivery])
 - [x] Feral behaviour: too close, idle, or by a chance per payload
   ([design][feral-behaviour-and-risks])
+- [ ] Poison aura: a poison-loaded monster has a small poison aura while
+  it lives ([design][ordnance-loading])
 - [x] Payload damage follows the payload: explosive hurts everything,
   poison living things, acid everything except rocks
   ([design][ordnance-loading])

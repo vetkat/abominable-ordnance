@@ -11,12 +11,18 @@ Event handlers, `storage` and the game API calls are the shell. Keep each
 handler short: read from the game, call the core, then write the result to
 the game.
 
-`control.lua` holds the event handlers. The folder `shell/` holds game API
-code that `control.lua` and the in-game tests both call, for example the
-force setup in `shell/tamed.lua` and the payload damage in
-`shell/damage.lua`. All other shell code stays in
-`control.lua`. The in-game tests live in `tests/ingame/`. `make ingame`
-runs them in a real Factorio with the factorio-test mod.
+`control.lua` holds the event handlers. The folder `shell/` holds game API code
+that `control.lua` and the in-game tests both call:
+
+- `shell/tamed.lua` sets up the forces.
+- `shell/damage.lua` deals the payload damage.
+- `shell/feral.lua` runs the feral behaviour.
+- `shell/launcher.lua` runs the launcher.
+- `shell/setup.lua` holds `on_init` and `on_configuration_changed`.
+
+All other shell code stays in `control.lua`. The in-game tests live in
+`tests/ingame/`. `make ingame` runs them in a real Factorio with the
+factorio-test mod.
 
 ## The core
 
@@ -101,17 +107,19 @@ the same result. A difference breaks the sync, and the game stops. So:
 A player can add the mod to an old save, or update it. The code must keep
 that save working:
 
-- Create each `storage` field in `on_init` and in
-  `on_configuration_changed`, as `storage.x = storage.x or default`. A
-  second run then does no harm (`shell/setup.lua`). The code may create a
-  field later when every reader reads it as `storage.x or default`, as
-  with `storage.seed`.
+- Create each `storage` field in `on_init` and in `on_configuration_changed`,
+  as `storage.x = storage.x or default`. A second run then does no harm
+  (`shell/setup.lua`). The code may create a field later when every reader
+  reads it as `storage.x or default`. `storage.seed` does this, and so do the
+  cursors and next-tick fields of the trail and feral passes.
 - After a change to techs or recipes, call `reset_technology_effects()` on
   each force in `on_configuration_changed`. Old saves then get the new
   unlocks.
 - A stored entity can disappear. Check `.valid` before you use it.
-- A change to the shape of a `storage` field needs a migration file in
-  `migrations/`.
+- A change to the shape of a `storage` field needs a rebuild in
+  `on_configuration_changed`, for example the rebuild of `storage.trails`
+  in `shell/setup.lua`. Use a migration file in `migrations/` only when the
+  rebuild cannot run there.
 
 ## Other mods
 

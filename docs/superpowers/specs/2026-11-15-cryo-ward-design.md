@@ -185,7 +185,7 @@ that change how the game feels.
 | Pack and unpack | Anywhere, 1 s, any assembler or by hand |
 | Repacking | Unpack the base-warded item first. No direct recipe |
 | Research | Needs Stasis ward and the Aquilo science pack tech. 500 × the six packs below, 60 s |
-| Cryo icon | The base ward icon with a pale blue tint (`{ r = 0.6, g = 0.85, b = 1 }`) |
+| Cryo icon | The base ward icon with a colder blue tint (`{ 0.3, 0.55, 1 }`). The first value, `{ r = 0.6, g = 0.85, b = 1 }`, looked almost like the base ward's tint. The maintainer kept the colder blue on 2026-11-17 |
 | A save that drops Space Age | Cryo wards and cryo-warded items disappear, as any mod item does when its prototype goes away. The game warns at load |
 
 ## Game content
