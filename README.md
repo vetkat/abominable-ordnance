@@ -7,9 +7,9 @@ everything into one final Abomination.
 
 ## Status
 
-Version 0.2.0 is a test build of design version 1. It has every version 1
-feature except the poison aura. Release 1.0.0 follows after the poison aura
-and a test in the game, with and without Space Age. See the
+The mod has no release yet. Main holds a test build of design version 1. It
+has every version 1 feature except the poison aura. Release 1.0.0 follows after
+the poison aura and a test in the game, with and without Space Age. See the
 [roadmap](ROADMAP.md).
 
 ## Install
