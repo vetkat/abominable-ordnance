@@ -177,6 +177,34 @@ describe("the look-alikes", function()
     assert.is_nil(all["smoke-with-trigger/ao-poison-cloud"])
     assert.is_nil(all["fire/ao-acid-pool"])
     assert.is_nil(all["fire/ao-acid-puddle"])
+    assert.is_nil(all["smoke-with-trigger/ao-poison-puff"])
+  end)
+
+  it("make a small puff from the vanilla cloud, with no effects", function()
+    local p = lookalikes()["smoke-with-trigger/ao-poison-puff"]
+    assert.are.equal("cloud.png", p.animation.filename)
+    assert.is_true(p.hidden)
+    assert.is_nil(p.action)
+    assert.is_nil(p.created_effect)
+    assert.are.equal(4, p.particle_count)
+    assert.are.same({ 1.5, 0.9 }, p.particle_spread)
+    assert.are.equal(60, p.duration)
+    assert.are.equal(30, p.fade_away_duration)
+    assert.are.equal(20, p.spread_duration)
+    assert.is_true(p.fade_away_duration <= p.duration)
+  end)
+
+  it("make no puff when the vanilla cloud is missing", function()
+    local opts = Stubs.lookalike_opts()
+    opts.cloud = nil
+    assert.is_nil(build_with(opts)["smoke-with-trigger/ao-poison-puff"])
+  end)
+
+  it("leave the vanilla cloud unchanged", function()
+    local opts = Stubs.lookalike_opts()
+    Ordnance.lookalikes(opts)
+    assert.are.equal(1200, opts.cloud.duration)
+    assert.is_not_nil(opts.cloud.created_effect)
   end)
 
   it("copy the vanilla cloud's looks, with no action, for the cloud's time", function()
@@ -340,6 +368,9 @@ describe("the look-alikes", function()
     for _, p in ipairs(Ordnance.lookalikes(Stubs.lookalike_opts())) do
       names[#names + 1] = p.name
     end
-    assert.are.same({ "ao-acid-pool", "ao-acid-puddle", "ao-poison-cloud" }, names)
+    assert.are.same(
+      { "ao-acid-pool", "ao-acid-puddle", "ao-poison-cloud", "ao-poison-puff" },
+      names
+    )
   end)
 end)

@@ -67,7 +67,19 @@ test("a loaded monster attacks a nearby spawner", function()
   spawner.disabled_by_script = true
   Helpers.spoil(Helpers.spill(surface(), position, "ao-biter-larva-poison", 1))
   after_ticks(20 * 60, function()
-    assert(not spawner.valid or spawner.health < spawner.max_health, "the spawner is untouched")
+    local touched = not spawner.valid or spawner.health < spawner.max_health
+    -- The poison monster would stay in storage.trails for later tests.
+    for _, unit in
+      pairs(
+        surface().find_entities_filtered({ force = Names.TAMED, position = position, radius = 40 })
+      )
+    do
+      unit.destroy()
+    end
+    if spawner.valid then
+      spawner.destroy()
+    end
+    assert(touched, "the spawner is untouched")
   end)
 end)
 
@@ -192,10 +204,11 @@ test("an acid monster is in the trail list", function()
   end)
 end)
 
-test("a poison monster is not in the trail list", function()
+test("a poison monster is in the trail list", function()
   with_loaded_monster({ 1060, 700 }, "ao-biter-larva-poison", function(unit)
-    assert(storage.trails[unit.unit_number] == nil, "the poison monster has a trail entry")
+    local listed = storage.trails[unit.unit_number] ~= nil
     unit.destroy()
+    assert(listed, "the poison monster has no trail entry")
   end)
 end)
 
@@ -259,8 +272,8 @@ end)
 test("every payload effect entity exists", function()
   for _, payload in ipairs(Payloads.ALL) do
     assert(prototypes.entity[payload.death.entity], payload.death.entity)
-    if payload.trail then
-      assert(prototypes.entity[payload.trail], payload.trail)
+    if payload.live then
+      assert(prototypes.entity[payload.live.lookalike], payload.live.lookalike)
     end
     if payload.sticker then
       assert(prototypes.entity[payload.sticker], payload.sticker)

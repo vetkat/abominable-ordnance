@@ -29,8 +29,9 @@ Payloads.ALL = {
     -- One pool hurts only what stands in it, so the death spreads five
     -- look-alikes. One hazard covers them.
     death = { entity = Names.POOL, spread = true, hazard = true },
-    -- The trail look-alike under a live acid monster.
-    trail = Names.PUDDLE,
+    -- Under a live acid monster: a puddle look-alike and a small hit
+    -- that spares only the monster.
+    live = { lookalike = Names.PUDDLE, balance_key = "trail", spare = "self" },
     -- The hazard slows the units and characters it hits.
     sticker = "acid-sticker-big",
   },
@@ -41,6 +42,10 @@ Payloads.ALL = {
     targets = { organic = true },
     damage_type = "poison",
     death = { entity = Names.CLOUD, hazard = true },
+    -- Around a live poison monster: a puff look-alike and a hit that
+    -- spares the monster's whole force, so a pack does not poison
+    -- itself.
+    live = { lookalike = Names.PUFF, balance_key = "aura", spare = "force" },
   },
 }
 
@@ -170,13 +175,13 @@ function Payloads.on_death(names, position, exists)
   return out
 end
 
--- The trail look-alike of the first payload that has a trail, and that
--- payload's name. Nil when no payload leaves a trail.
-function Payloads.trail(names)
+-- The live effect of the first payload that has one, and that
+-- payload's name. Nil when no payload acts while its monster lives.
+function Payloads.live(names)
   for _, name in ipairs(names) do
     local payload = BY_NAME[name]
-    if payload and payload.trail then
-      return payload.trail, name
+    if payload and payload.live then
+      return payload.live, name
     end
   end
   return nil

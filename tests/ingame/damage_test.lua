@@ -924,7 +924,7 @@ test("an acid trail still hits when another mod removed its puddle", function()
         return name ~= Names.PUDDLE and original(name)
       end
     end, function()
-      Damage.trail(entry, Names.TAMED)
+      Damage.live(entry, Names.TAMED)
     end)
     local puddles =
       surface().count_entities_filtered({ name = Names.PUDDLE, position = p, radius = 2 })
@@ -979,5 +979,146 @@ test("an old-save entry with the vanilla trail name drops the look-alike", funct
       assert(lookalikes >= 1, "no puddle look-alike")
       assert(vanilla == 0, vanilla .. " vanilla puddles")
     end)
+  end)
+end)
+
+-- A biter of a force that stands still, for the aura tests.
+local function still_biter(position, force)
+  local biter = surface().create_entity({
+    name = "medium-biter",
+    position = position,
+    force = force,
+  })
+  biter.disabled_by_script = true
+  return biter
+end
+
+test("a poison aura hurts natives, trees and players, and spares its pack", function()
+  few_trails()
+  with_entry({ 5200, 4000 }, "ao-biter-larva-poison", function(entry)
+    local p = entry.unit.position
+    local native = still_biter({ p.x + 2, p.y }, "enemy")
+    local tree = surface().create_entity({ name = "tree-01", position = { p.x, p.y + 2 } })
+    local player = Helpers.character(surface(), { p.x, p.y - 2 })
+    local packmate = still_biter({ p.x - 2, p.y }, Names.TAMED)
+    local chest = Helpers.chest(surface(), { p.x + 1.5, p.y + 1.5 })
+    after_ticks(2 * Balance.acid_trail_ticks, function()
+      local result = {
+        native = hurt(native),
+        tree = hurt(tree),
+        player = hurt(player),
+        packmate = hurt(packmate),
+        chest = hurt(chest),
+        self = hurt(entry.unit),
+      }
+      destroy_all({ native, tree, player, packmate, chest, entry.unit })
+      assert(result.native, "the aura spared the native")
+      assert(result.tree, "the aura spared the tree")
+      assert(result.player, "the aura spared the player's character")
+      assert(not result.packmate, "the aura hurt a tamed packmate")
+      assert(not result.chest, "the aura hurt a chest")
+      assert(not result.self, "the aura hurt its own monster")
+    end)
+  end)
+end)
+
+test("a poison aura does not reach 5 tiles", function()
+  few_trails()
+  with_entry({ 5280, 4000 }, "ao-biter-larva-poison", function(entry)
+    local p = entry.unit.position
+    local native = still_biter({ p.x + 5, p.y }, "enemy")
+    after_ticks(2 * Balance.acid_trail_ticks, function()
+      local native_hurt = hurt(native)
+      destroy_all({ native, entry.unit })
+      assert(not native_hurt, "the aura reached 5 tiles")
+    end)
+  end)
+end)
+
+test("a feral poison aura hurts tamed monsters and spares feral ones", function()
+  few_trails()
+  with_entry({ 5360, 4000 }, "ao-biter-larva-poison", function(entry)
+    FeralShell.go_feral(entry, game.tick)
+    entry.unit.disabled_by_script = true
+    local p = entry.unit.position
+    local tamed = still_biter({ p.x + 2, p.y }, Names.TAMED)
+    local feral = still_biter({ p.x - 2, p.y }, Names.FERAL)
+    after_ticks(2 * Balance.acid_trail_ticks, function()
+      local tamed_hurt, feral_hurt = hurt(tamed), hurt(feral)
+      destroy_all({ tamed, feral, entry.unit })
+      assert(tamed_hurt, "the feral aura spared a tamed monster")
+      assert(not feral_hurt, "the feral aura hurt a feral monster")
+    end)
+  end)
+end)
+
+test("a hit with spare_force spares that force and hurts the others", function()
+  local p = { x = 5440, y = 4000 }
+  Helpers.arena(surface(), { p.x, p.y })
+  local native = still_biter({ p.x + 1, p.y }, "enemy")
+  local tamed = still_biter({ p.x - 1, p.y }, Names.TAMED)
+  Damage.hit({
+    surface = surface(),
+    position = p,
+    radius = 3,
+    payload = "poison",
+    damage = 3,
+    force = Names.TAMED,
+    spare_force = Names.TAMED,
+  })
+  local native_hurt, tamed_hurt = hurt(native), hurt(tamed)
+  destroy_all({ native, tamed })
+  assert(native_hurt, "spare_force spared the native")
+  assert(not tamed_hurt, "spare_force hurt its own force")
+end)
+
+test("a hit with a limit damages at most that many targets", function()
+  local p = { x = 5520, y = 4000 }
+  Helpers.arena(surface(), { p.x, p.y })
+  local trees = {}
+  for i = -2, 2 do
+    trees[#trees + 1] = surface().create_entity({ name = "tree-01", position = { p.x + i, p.y } })
+  end
+  local _, dealt = Damage.hit({
+    surface = surface(),
+    position = p,
+    radius = 3,
+    payload = "poison",
+    damage = 1,
+    force = Names.TAMED,
+    limit = 2,
+  })
+  destroy_all(trees)
+  assert(dealt == 2, dealt .. " targets hit, not 2")
+end)
+
+test("a poison aura still hits when another mod removed its puff", function()
+  with_entry({ 5600, 4000 }, "ao-biter-larva-poison", function(entry)
+    local p = entry.unit.position
+    local native = still_biter({ p.x + 2, p.y }, "enemy")
+    local ok, err = pcall(wrapped, Damage, "entity_exists", function(original)
+      return function(name)
+        return name ~= Names.PUFF and original(name)
+      end
+    end, function()
+      Damage.live(entry, Names.TAMED)
+    end)
+    local puffs = surface().count_entities_filtered({ name = Names.PUFF, position = p, radius = 3 })
+    local native_hurt = hurt(native)
+    destroy_all({ native, entry.unit })
+    assert(ok, err)
+    assert(puffs == 0, puffs .. " puffs")
+    assert(native_hurt, "the aura spared the native")
+  end)
+end)
+
+test("a poison monster missing from the trail list returns on a configuration change", function()
+  with_entry({ 5680, 4000 }, "ao-biter-larva-poison", function(entry)
+    local id = entry.unit.unit_number
+    storage.trails[id] = nil
+    Setup.on_configuration_changed()
+    local listed = storage.trails[id] ~= nil
+    destroy_all({ entry.unit })
+    assert(listed, "the rebuild did not list the poison monster")
   end)
 end)
