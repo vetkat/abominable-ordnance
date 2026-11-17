@@ -40,9 +40,9 @@ setting, players can fire them at other players' bases in multiplayer.
 The loop runs from a captured egg to a detonation in enemy territory. Every
 step after Capture is a machine or a recipe, so you can automate it.
 
-1. **Capture.** Get eggs from native nests and, in Space Age, captive
-   spawners and pentapod egg farms. Catch worms and demolisher hatchlings in
-   the field.
+1. **Capture.** Get eggs from native nests and, in Space Age, captive spawners
+   and pentapod egg farms. A nest drops eggs only for a force with the Monster
+   husbandry research. Catch worms and demolisher hatchlings in the field.
 2. **Breed.** Breeding pods turn eggs and feed into more eggs. An extractor
    turns one egg into an embryo, with an x% chance of an egg back.
 3. **Load.** An incubator turns ten eggs into a larva. A loading chamber then
@@ -107,7 +107,7 @@ branch off it for hybrids and facehuggers.
 | Embryo | Extractor: uses up one egg, with an x% chance of an egg back | Crossbreeding in jazz pods, the facehugger lab, shipping a species between planets | Dies. Safe to put on a rocket |
 | Hybrid egg | Jazz pod: two embryos of different species | Incubator, or the Abomination fusion. It can't breed, so every hybrid needs a fresh cross | Hatches a wild hybrid |
 | Larva | Incubator: ten eggs, also for hybrid eggs | Loading chamber input | Becomes a wild, unloaded monster |
-| Loaded larva | Loading chamber: larva + 1 to 3 ordnance | Larva rockets and artillery shells | Becomes its full loaded monster on the spot |
+| Loaded larva | Loading chamber: larva + 1 to 3 ordnance + 1 larva rocket casing | Larva rockets and artillery shells | Becomes its full loaded monster on the spot |
 | Facehugger | Facehugger lab: embryo + catalyst | Converting enemies. The embryo's species decides what the host becomes | Dies |
 
 The feed is monster chow, and spitters need spitter chow. A chemical plant
@@ -291,13 +291,13 @@ intact.
 The stasis ward keeps lifecycle items from spoiling on the way. The larva
 launcher and artillery fire loaded larvae.
 
-- **Stasis ward.** Each lifecycle item has a warded version with a very
-  long spoil time, for example "warded biter egg". An assembler packs an item
-  into its warded version, and another recipe unpacks it. A recipe's output
-  keeps its ingredients' freshness, so the warded item starts at the same
-  spoil progress, and its timer runs 20 times more slowly. The probe
-  confirmed this for assembler packs and unpacks and for hand-craft packs.
-  Warded items stack and travel by belt, train or rocket.
+- **Stasis ward.** Each lifecycle item has a warded version with a very long
+  spoil time, for example "warded biter egg". An assembler packs an item and
+  one ward into its warded version, and unpacking gives the ward back. A
+  recipe's output keeps its ingredients' freshness, so the warded item starts
+  at the same spoil progress, and its timer runs 20 times more slowly. The
+  probe confirmed this for assembler packs and unpacks and for hand-craft
+  packs. Warded items stack and travel by belt, train or rocket.
 - **Cryo ward (Space Age).** A cryogenic plant on Aquilo makes a cryo ward
   from lithium plates and cold fluoroketone. It slows the spoil timer 100
   times and ships to any planet.
@@ -317,13 +317,20 @@ launcher and artillery fire loaded larvae.
 
 ## Research tree
 
-The four version 1 techs start four branches. The Breeding and Loading
-branches meet at the Abomination. Science packs are proposals: Nauvis packs
-for the core of each branch, planet packs for the planet species. The planet
-techs sit on side branches, so the core of every branch works without Space
-Age.
+Each of the four version 1 techs heads one of four branches. Larva rockets and
+Stasis ward need Ordnance loading. The launcher has nothing to fire without
+loaded larvae. The ward's pack recipes for loaded larvae need those items to
+exist first.
 
-Research tree, 4 branches and 18 techs. The top row is version 1:
+The Breeding and Loading branches meet at the Abomination. Science packs are
+proposals: Nauvis packs for the core of each branch, planet packs for the
+planet species. The planet techs sit on side branches, so the core of every
+branch works without Space Age.
+
+Research tree, 4 branches and 18 techs. The top row is version 1. The tree
+leaves out the three speed and three range upgrades of the larva launcher. It
+also leaves out the Cryo ward tech of Space Age, which needs Stasis ward and
+the cryogenic science pack:
 
 ```mermaid
 flowchart TD
@@ -364,6 +371,8 @@ flowchart TD
     pentapod --> abomination
     hatchlings --> abomination
     orifices2 --> abomination
+    ordnance --> rockets
+    ordnance --> stasis
 ```
 
 The Abomination needs Interbreeding, Pentapod breeding, Demolisher
@@ -431,11 +440,12 @@ hard parts are prototype count, demolishers and the player transformation.
   `ao-land-<species>-<payload>` effect, which reads `target_position`. The
   spoil effect stays `ao-hatch-`. The script deals the blast, with the
   payload's targets and damage type.
-- **Live and death effects.** Track loaded units in `storage`. Live effects
-  run from `on_nth_tick`. Death effects come from `on_entity_died`. It
-  shows a look-alike explosion, cloud or puddles, and the script deals the
-  damage by the payload's target rule. Lingering clouds and pools are
-  hazards in a batched pass.
+- **Live and death effects.** Track loaded units in `storage`. Live effects run
+  from `on_tick` in batches: a cursor visits a few units each tick, and a pass
+  starts once per interval. Death effects come from `on_entity_died`. It shows
+  a look-alike explosion, cloud or puddles, and the script deals the damage by
+  the payload's target rule. Lingering clouds and pools are hazards in a
+  batched pass.
 - **Forces.** Loaded monsters join an allied force that is hostile to the
   natives. Going feral moves the unit to a separate feral force that is
   hostile to everyone. With PvP on, each player force gets its own allied
@@ -534,6 +544,8 @@ Answered:
   both modes. Space Age adds a cryo ward made on Aquilo from cold
   fluoroketone and lithium plates, which slows spoiling 100 times
   (`docs/superpowers/specs/2026-11-15-cryo-ward-design.md`).
+- [x] Captive spawners: they give Space Age's `biter-egg`. An adopt recipe
+  turns one `biter-egg` and monster chow into the mod's biter egg.
 
 Open:
 
@@ -551,8 +563,6 @@ Open:
   ammo. Should artillery shells reuse them, with no new item per larva?
 - [ ] Spoiled loaded larvae: does the monster start on your side, as
   slice 2 builds it, or start feral?
-- [ ] Captive spawners: do they give the mod's own biter egg or Space Age's
-  `biter-egg`?
 - [ ] Captured worms and hatchlings: how does a caught animal become the
   first egg?
 - [ ] Shipped embryos: which recipe turns an embryo back into an egg on
