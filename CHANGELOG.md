@@ -4,7 +4,7 @@ All notable changes to this mod are in this file. The format follows
 [Keep a Changelog 1.0.0](https://keepachangelog.com/en/1.0.0/), and the
 mod uses [semantic versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.1.1] - 2026-11-17
+## [0.2.0] - 2026-11-17
 
 ### Added
 
