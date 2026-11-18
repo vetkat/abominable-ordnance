@@ -73,6 +73,12 @@ test("the feral force is at war with the natives, players and the tamed force", 
   end
 end)
 
+test("the feral force and neutral are at peace, so feral monsters spare trees", function()
+  local feral = game.forces[Names.FERAL]
+  assert(feral.get_cease_fire("neutral"), "the feral force attacks neutral")
+  assert(game.forces["neutral"].get_cease_fire(feral), "neutral attacks the feral force")
+end)
+
 test("a second setup keeps the tamed and the feral force at war", function()
   Tamed.ensure()
   Tamed.ensure()

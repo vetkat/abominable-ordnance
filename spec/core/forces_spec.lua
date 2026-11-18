@@ -44,8 +44,11 @@ describe("the force rules", function()
     assert.is_false(Forces.feral_cease_fire("player"))
     assert.is_false(Forces.feral_cease_fire("ao-tamed"))
     assert.is_false(Forces.feral_cease_fire("some-scenario-force"))
-    assert.is_nil(Forces.feral_cease_fire("neutral"))
     assert.is_nil(Forces.feral_cease_fire("ao-feral"))
+  end)
+
+  it("put the feral force at peace with neutral, so it spares trees and rocks", function()
+    assert.is_true(Forces.feral_cease_fire("neutral"))
   end)
 
   it("give no nest loot for kills of the feral force", function()
