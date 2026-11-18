@@ -197,31 +197,31 @@ test("an explosive death hurts the same targets as its landing, once", function(
   end)
 end)
 
-test("the first of two explosive monsters kills the second through the queue", function()
+-- An explosive death spares the pack's other explosive monsters, so the
+-- second monster carries acid.
+test("an explosive monster's death kills an acid packmate through the queue", function()
   local position = { 4100, 4000 }
   Helpers.arena(surface(), position, 40)
   game.forces["enemy"].set_evolution_factor(0, surface())
   Helpers.spoil(Helpers.spill(surface(), position, "ao-biter-larva-explosive", 1))
   Helpers.spoil(
-    Helpers.spill(surface(), { position[1] + 2.5, position[2] }, "ao-biter-larva-explosive", 1)
+    Helpers.spill(surface(), { position[1] + 2.5, position[2] }, "ao-biter-larva-acid", 1)
   )
   after_ticks(1, function()
     local units = Helpers.find_units(surface(), position, { force = Names.TAMED })
     assert(#units == 2, #units .. " tamed units")
+    -- The explosive monster goes first.
     table.sort(units, function(a, b)
-      return a.position.x < b.position.x
+      return storage.loaded[a.unit_number].payloads[1] == "explosive"
+        and storage.loaded[b.unit_number].payloads[1] ~= "explosive"
     end)
     local first, second = units[1], units[2]
     first.disabled_by_script = true
     second.disabled_by_script = true
-    -- Only the second death reaches the chest.
-    local chest = Helpers.chest(surface(), { second.position.x + 3, second.position.y })
     local radius = Balance.payload_damage.explosive.radius
-    local out_of_reach = distance(first.position, chest.position) > radius
     local in_reach = distance(first.position, second.position) <= radius
-    if not (out_of_reach and in_reach) then
-      destroy_all({ first, second, chest })
-      assert(out_of_reach, "precondition: the chest is within reach of the first")
+    if not in_reach then
+      destroy_all({ first, second })
       assert(in_reach, "precondition: the second is beyond reach of the first")
     end
     local ids = { first.unit_number, second.unit_number }
@@ -230,16 +230,29 @@ test("the first of two explosive monsters kills the second through the queue", f
     -- The death only queued its detonation, and no tick passed.
     local second_alive = second.valid
     local queued = storage.detonation_counter > counter
+    local second_spot = second.position
     after_ticks(3, function()
       local second_gone = not second.valid
-      local chest_hurt = hurt(chest)
+      -- The second death ran when its acid pool started.
+      local pool_started = false
+      for _, h in pairs(storage.hazards) do
+        if h.payload == "acid" and distance(h.position, second_spot) < 1 then
+          pool_started = true
+        end
+      end
       local queue_empty = next(storage.detonations) == nil
       local entries_left = storage.loaded[ids[1]] ~= nil or storage.loaded[ids[2]] ~= nil
-      destroy_all({ chest, second })
+      destroy_all({ second })
+      -- End the acid hazard, so it does not reach later tests.
+      for _, h in pairs(storage.hazards) do
+        if h.payload == "acid" and distance(h.position, second_spot) < 10 then
+          h.end_tick, h.last_hit = game.tick, game.tick
+        end
+      end
       assert(second_alive, "the first death killed the second inside its own event")
       assert(queued, "the first death left nothing in the queue")
       assert(second_gone, "the first death did not kill the second monster")
-      assert(chest_hurt, "the second death did not run")
+      assert(pool_started, "the second death did not run")
       assert(queue_empty, "the queue still holds a detonation")
       assert(not entries_left, "a loaded entry is still there")
     end)
@@ -936,29 +949,37 @@ test("an acid trail still hits when another mod removed its puddle", function()
   end)
 end)
 
-test("an acid monster's trail hurts a chest and another monster, never itself", function()
+test("an acid monster's trail hurts a chest and a native, and spares its pack", function()
   few_trails()
   with_entry({ 5000, 4000 }, "ao-biter-larva-acid", function(entry)
     local p = entry.unit.position
     local chest = Helpers.chest(surface(), { p.x + 0.8, p.y })
-    local other = surface().create_entity({
+    local packmate = surface().create_entity({
       name = "medium-biter",
       position = { p.x - 0.8, p.y },
       force = Names.TAMED,
     })
-    other.disabled_by_script = true
+    packmate.disabled_by_script = true
+    local native = surface().create_entity({
+      name = "medium-biter",
+      position = { p.x, p.y + 0.8 },
+      force = "enemy",
+    })
+    native.disabled_by_script = true
     after_ticks(2 * Balance.acid_trail_ticks, function()
       local chest_hurt = hurt(chest)
-      local other_hurt = hurt(other)
+      local packmate_hurt = hurt(packmate)
+      local native_hurt = hurt(native)
       local self_whole = entry.unit.health == entry.unit.max_health
       local puddles = surface().count_entities_filtered({
         name = Names.PUDDLE,
         position = p,
         radius = 2,
       })
-      destroy_all({ chest, other, entry.unit })
+      destroy_all({ chest, packmate, native, entry.unit })
       assert(chest_hurt, "the trail spared the chest")
-      assert(other_hurt, "the trail spared the other tamed monster")
+      assert(native_hurt, "the trail spared the native")
+      assert(not packmate_hurt, "the trail hurt a tamed packmate")
       assert(self_whole, "the trail hurt its own monster")
       assert(puddles >= 1, "no puddle look-alike")
     end)
@@ -989,9 +1010,9 @@ local function clear_trees(p)
 end
 
 -- A biter of a force that stands still, for the aura tests.
-local function still_biter(position, force)
+local function still_biter(position, force, name)
   local biter = surface().create_entity({
-    name = "medium-biter",
+    name = name or "medium-biter",
     position = position,
     force = force,
   })
@@ -1187,4 +1208,123 @@ test("a poison aura hits at most its max_targets", function()
     assert(#trees > Balance.payload_damage.aura.max_targets, #trees .. " trees")
     assert(hit <= Balance.payload_damage.aura.max_targets, hit .. " trees hit")
   end)
+end)
+
+-- A loaded monster that stands still, registered with its payloads for
+-- the death tests. The caller unregisters it with forget().
+local function kin_biter(position, force, payloads, name)
+  local biter = still_biter(position, force, name)
+  storage.loaded[biter.unit_number] = { unit = biter, payloads = payloads, test = true }
+  return biter
+end
+
+-- Removes every entry that kin_biter registered, even for a unit that
+-- died, and destroys the biters.
+local function forget(biters)
+  for id, entry in pairs(storage.loaded) do
+    if entry.test then
+      storage.loaded[id] = nil
+    end
+  end
+  destroy_all(biters)
+end
+
+-- Ends the hazards near p now and removes the look-alikes near it.
+local function clear_death(p, payload)
+  for _, id in ipairs(hazards_at(p, payload)) do
+    storage.hazards[id].end_tick = game.tick
+    storage.hazards[id].last_hit = game.tick
+  end
+  destroy_all(surface().find_entities_filtered({
+    name = { Names.CLOUD, Names.POOL },
+    position = p,
+    radius = 8,
+  }))
+end
+
+test("a death effect spares pack monsters with the same payload and hurts the rest", function()
+  local p = { 6000, 4000 }
+  Helpers.arena(surface(), p, 20)
+  clear_trees(p)
+  local same = kin_biter({ p[1] + 1.5, p[2] }, Names.TAMED, { "acid", "poison" })
+  local other = kin_biter({ p[1] - 1.5, p[2] }, Names.TAMED, { "acid" })
+  local plain = still_biter({ p[1], p[2] + 1.5 }, Names.TAMED)
+  local native = still_biter({ p[1], p[2] - 1.5 }, "enemy")
+  Damage.detonate({
+    surface = surface().index,
+    position = { x = p[1], y = p[2] },
+    payload = "poison",
+    force = Names.TAMED,
+  })
+  Damage.run_hazards(game.tick)
+  local result =
+    { same = hurt(same), other = hurt(other), plain = hurt(plain), native = hurt(native) }
+  clear_death({ x = p[1], y = p[2] }, "poison")
+  forget({ same, other, plain, native })
+  assert(not result.same, "the death hurt a pack monster with the same payload")
+  assert(result.other, "the death spared a pack monster with another payload")
+  assert(result.plain, "the death spared a plain tamed monster")
+  assert(result.native, "the death spared the native")
+end)
+
+test("a death effect hurts a monster with the same payload on another side", function()
+  local p = { 6040, 4000 }
+  Helpers.arena(surface(), p, 20)
+  clear_trees(p)
+  local tamed = kin_biter({ p[1] + 1.5, p[2] }, Names.TAMED, { "poison" })
+  local feral = kin_biter({ p[1] - 1.5, p[2] }, Names.FERAL, { "poison" })
+  Damage.detonate({
+    surface = surface().index,
+    position = { x = p[1], y = p[2] },
+    payload = "poison",
+    force = Names.FERAL,
+  })
+  Damage.run_hazards(game.tick)
+  local tamed_hurt, feral_hurt = hurt(tamed), hurt(feral)
+  clear_death({ x = p[1], y = p[2] }, "poison")
+  forget({ tamed, feral })
+  assert(tamed_hurt, "a feral death spared a tamed poison monster")
+  assert(not feral_hurt, "a feral death hurt a feral poison monster")
+end)
+
+test("a death pool spares pack monsters with the same payload on each visit", function()
+  local p = { 6080, 4000 }
+  Helpers.arena(surface(), p, 20)
+  clear_trees(p)
+  Damage.detonate({
+    surface = surface().index,
+    position = { x = p[1], y = p[2] },
+    payload = "acid",
+    force = Names.TAMED,
+  })
+  -- Placed after the death, so only the pool's own hits can reach them.
+  local same = kin_biter({ p[1] + 1, p[2] }, Names.TAMED, { "acid" })
+  local other = kin_biter({ p[1] - 1, p[2] }, Names.TAMED, { "poison" })
+  Damage.run_hazards(game.tick + Balance.payload_damage.hazard_interval)
+  local same_hurt, other_hurt = hurt(same), hurt(other)
+  clear_death({ x = p[1], y = p[2] }, "acid")
+  forget({ same, other })
+  assert(other_hurt, "the pool spared a pack monster with another payload")
+  assert(not same_hurt, "the pool hurt a pack monster with the same payload")
+end)
+
+test("an explosive death spares pack monsters with the same payload", function()
+  local p = { 6120, 4000 }
+  Helpers.arena(surface(), p, 20)
+  clear_trees(p)
+  -- Big biters survive the blast, so no death of theirs sets anything off.
+  local same = kin_biter({ p[1] + 1.5, p[2] }, Names.TAMED, { "explosive" }, "big-biter")
+  local other = kin_biter({ p[1] - 1.5, p[2] }, Names.TAMED, { "poison" }, "big-biter")
+  Damage.detonate({
+    surface = surface().index,
+    position = { x = p[1], y = p[2] },
+    payload = "explosive",
+    force = Names.TAMED,
+  })
+  local same_hurt, other_hurt = hurt(same), hurt(other)
+  local alive = same.valid and other.valid
+  forget({ same, other })
+  assert(alive, "precondition: a big biter died in the blast")
+  assert(other_hurt, "the explosion spared a pack monster with another payload")
+  assert(not same_hurt, "the explosion hurt a pack monster with the same payload")
 end)

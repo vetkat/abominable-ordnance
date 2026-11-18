@@ -304,8 +304,8 @@ local PUFF_SHAPE = {
   name = Names.PUFF,
   duration = 60,
   fields = {
-    particle_count = 4,
-    particle_spread = { 1.5, 0.9 },
+    particle_count = 8,
+    particle_spread = { 3, 1.8 },
     fade_away_duration = 30,
     spread_duration = 20,
   },

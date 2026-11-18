@@ -69,6 +69,12 @@ mod uses [semantic versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Changed
 
+- An acid trail spares its monster's own side, like the poison aura.
+- A death effect spares the loaded monsters of its own side that carry
+  the same payload. A poison death spares the pack's other poison
+  monsters and hurts its acid ones.
+- An explosive death no longer sets off the pack's other explosive
+  monsters.
 - The stasis ward builder takes a list of ward kinds, so a second ward
   can share it. Nothing changes in the game.
 - Each payload decides what its landing blast and its death effect

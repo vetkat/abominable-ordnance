@@ -77,7 +77,7 @@ return {
     trail = { damage = 5, radius = 1 },
     -- The poison aura: one hit a second around a live poison monster.
     -- max_targets caps the entities that one hit finds.
-    aura = { damage = 3, radius = 3, max_targets = 20 },
+    aura = { damage = 3, radius = 3, max_targets = 8 },
     hazard_interval = 30,
     hazard_hits = 10,
     hazard_targets = 200,

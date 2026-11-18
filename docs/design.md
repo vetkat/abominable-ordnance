@@ -149,7 +149,7 @@ in this table.
 | Explosive rocket | None | Rocket-sized explosion |
 | Grenade | None | Grenade blast |
 | Cluster grenade | None | Cluster scatter |
-| Sulfuric acid (barrel) | Acid trail: small acid puddles under it | Large acid pool |
+| Sulfuric acid (barrel) | Acid trail: small acid puddles under it, spares its own side | Large acid pool |
 | Poison capsule | Small poison aura: hurts living things nearby, spares its own side | Poison cloud |
 | Slowdown capsule | Slows nearby enemies | Slowdown burst |
 | Flamethrower ammo | Leaves a fire trail | Fire burst |
@@ -164,6 +164,13 @@ its death effect hurt, and each uses its own damage type (decided
 - Poison capsule: living things only (natives, players, tamed monsters,
   trees).
 - Sulfuric acid: everything except rocks.
+
+**Own side.** A live effect spares every monster of its own side. A
+death effect spares the loaded monsters of its own side that carry the
+same payload, and hurts the rest of the pack. So a poison death spares
+the pack's other poison monsters and hurts its acid ones. An explosive
+death no longer sets off the pack's other explosive monsters (decided
+2026-11-18, after the play test).
 
 **Expand Orifices.** By default a monster holds one payload. The Expand
 Orifices I research adds a second slot, and Expand Orifices II adds a third.

@@ -152,11 +152,24 @@ function Damage.sticker(payload, entity_prototypes)
   return proto and proto.type == "sticker" and name or nil
 end
 
+-- True when the target is a loaded monster of the hit's force that
+-- carries the hit's payload. A death effect spares these: a poison
+-- death spares the pack's other poison monsters, not its acid ones.
+local function kin(target, hit)
+  if target.type ~= "unit" or target.force.name ~= hit.force then
+    return false
+  end
+  local entry = storage.loaded[target.unit_number]
+  return entry ~= nil and Payloads.carries(entry.payloads, hit.payload)
+end
+
 -- One hit of a payload. hit has surface, position, radius, payload,
 -- damage and force (a force name). It may have cause (the entity that
 -- set it off), skip (an entity the hit spares), spare_force (a force
 -- name whose entities the hit spares), limit (the most entities its
--- search finds) and sticker (a sticker name for each mobile survivor).
+-- search finds), spare_kin (true to spare the loaded monsters of its
+-- force that carry its payload) and sticker (a sticker name for each
+-- mobile survivor).
 -- A sticker takes the force that dealt the hit. The hit checks each
 -- target first, because an earlier target's death can take a later one
 -- with it, and another mod's death handler can destroy the cause. It
@@ -178,7 +191,7 @@ function Damage.hit(hit)
   local targets =
     Damage.targets(hit.surface, hit.position, hit.radius, hit.payload, hit.limit, hit.spare_force)
   for _, target in ipairs(targets) do
-    if target.valid and target ~= hit.skip then
+    if target.valid and target ~= hit.skip and not (hit.spare_kin and kin(target, hit)) then
       local force = target.force
       local name = force.name
       local attacker = attackers[name]
@@ -270,6 +283,7 @@ function Damage.detonate(d)
         payload = plan.payload,
         damage = plan.hit.damage,
         force = d.force,
+        spare_kin = true,
       })
     end
     if plan.hazard then
@@ -317,6 +331,7 @@ local function hazard_hit(hazard, count)
     payload = hazard.payload,
     damage = n.damage * count,
     force = hazard.force,
+    spare_kin = true,
     sticker = Damage.sticker(hazard.payload, prototypes.entity),
   })
   return true, dealt
@@ -371,8 +386,8 @@ function Damage.run_hazards(tick)
 end
 
 -- One step of a monster's live effect: its look-alike at the monster
--- and one hit around it. The hit always spares the monster. With spare
--- "force", it spares the monster's whole force too, read from the unit.
+-- and one hit around it. The hit spares the monster's whole force, read
+-- from the unit, so a pack never hurts itself while it lives.
 -- The hit applies even when another mod removed the look-alike's
 -- vanilla source.
 function Damage.live(entry, force)
@@ -394,9 +409,8 @@ function Damage.live(entry, force)
     damage = n.damage,
     force = force,
     cause = unit,
-    skip = unit,
     limit = n.max_targets,
-    spare_force = live.spare == "force" and unit.force.name or nil,
+    spare_force = unit.force.name,
   })
 end
 

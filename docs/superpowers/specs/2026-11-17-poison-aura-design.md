@@ -1,5 +1,8 @@
 # Abominable Ordnance: the poison aura
 
+> The section "Changes after the play test" at the end replaces
+> the `spare` field, the target limit of 20 and the puff size below.
+
 Date: 2026-11-17. Status: approved by EGM after three rounds. The agent
 (Claude) wrote this spec from the maintainer's decisions of 2026-11-17
 and from the payload damage spec
@@ -336,3 +339,17 @@ The plan holds the steps. Two parts matter for the design:
 - Live effects of the version 2 payloads.
 - A mod setting for the aura.
 - A lazy repair of `storage.trails` for test-build saves.
+
+## Changes after the play test
+
+The maintainer's play test on 2026-11-18 changed three things:
+
+- The puff showed about 1 tile wide. It now has `particle_count = 8`
+  and `particle_spread = { 3, 1.8 }`.
+- With 300 monsters in a forest, the time usage reached about 1.2 ms
+  while trees took damage. The aura's `max_targets` is now 8, not 20.
+- The code drops the `spare` field. The acid trail now spares its own
+  side too, so every live effect spares the monster's force.
+- A death effect now spares the loaded monsters of its own force that
+  carry the same payload, through `spare_kin` on `Damage.hit`. The
+  launcher's landing blast does not set it, so it spares nobody.

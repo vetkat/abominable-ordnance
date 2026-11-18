@@ -29,9 +29,8 @@ Payloads.ALL = {
     -- One pool hurts only what stands in it, so the death spreads five
     -- look-alikes. One hazard covers them.
     death = { entity = Names.POOL, spread = true, hazard = true },
-    -- Under a live acid monster: a puddle look-alike and a small hit
-    -- that spares only the monster.
-    live = { lookalike = Names.PUDDLE, balance_key = "trail", spare = "self" },
+    -- Under a live acid monster: a puddle look-alike and a small hit.
+    live = { lookalike = Names.PUDDLE, balance_key = "trail" },
     -- The hazard slows the units and characters it hits.
     sticker = "acid-sticker-big",
   },
@@ -42,10 +41,8 @@ Payloads.ALL = {
     targets = { organic = true },
     damage_type = "poison",
     death = { entity = Names.CLOUD, hazard = true },
-    -- Around a live poison monster: a puff look-alike and a hit that
-    -- spares the monster's whole force, so a pack does not poison
-    -- itself.
-    live = { lookalike = Names.PUFF, balance_key = "aura", spare = "force" },
+    -- Around a live poison monster: a puff look-alike and a hit.
+    live = { lookalike = Names.PUFF, balance_key = "aura" },
   },
 }
 
@@ -149,6 +146,16 @@ local function entities(death, position, exists)
     }
   end
   return out
+end
+
+-- True when a monster's payloads hold the payload name.
+function Payloads.carries(payloads, name)
+  for _, payload in ipairs(payloads or {}) do
+    if payload == name then
+      return true
+    end
+  end
+  return false
 end
 
 -- One plan per payload of a monster that dies at a position. A plan
