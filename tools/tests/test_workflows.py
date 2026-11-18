@@ -152,3 +152,19 @@ def test_check_cancels_superseded_pr_runs_only():
     text = read("check.yml")
     assert "concurrency:" in text
     assert "cancel-in-progress: ${{ github.event_name == 'pull_request' }}" in text
+
+
+def test_a_red_bot_pr_fails_the_daily_run_after_the_retest():
+    runs = step_runs(version_jobs()[1]["bump"])
+    assert "| python3 -m tools.pr_status" in runs
+    # The branch is pushed again first, so a fix on main gets a new test.
+    assert runs.index("tools.pr_status") < runs.index("git push --force")
+    assert runs.rstrip().endswith('[ "$red" = 0 ]')
+
+
+def test_a_red_bot_pr_mentions_the_owner_once_per_version():
+    runs = step_runs(version_jobs()[1]["bump"])
+    assert version_jobs()[1]["bump"]["steps"][-1]["run"].startswith("set -o pipefail")
+    assert 'marker="<!-- factorio-version red $VERSION -->"' in runs
+    assert '@$GITHUB_REPOSITORY_OWNER' in runs
+    assert 'grep -qF "$marker"' in runs

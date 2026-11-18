@@ -230,6 +230,15 @@ version in the open PR. If the maintainer closes the PR, the next run
 opens it again. If the release data cannot be read, the job fails with a
 clear message.
 
+CI on a PR from the App emails nobody, because GitHub emails only the
+account that started a run. So when the open PR has a red `all-checks`,
+the daily run pushes the branch again and then fails. It also mentions
+the repository owner in a comment on the PR, once per version, and that
+mention sends the owner a normal notification. A failed scheduled run
+may email nobody either, because the daily enable call can change who owns
+the run. `tools/pr_status.py` reads the result. A cancelled run next to
+a green or running one does not count as red.
+
 A PR opened with `github.token` starts no workflows, so the job uses a
 token from a GitHub App. The App ID is the repository variable
 `AO_BOT_ID`, and its private key is the secret `AO_BOT_KEY`. The App has
