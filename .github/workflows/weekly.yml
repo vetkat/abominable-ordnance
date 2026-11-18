@@ -1,7 +1,7 @@
 name: weekly
 
-# Each job fails and does nothing else. GitHub tells the maintainer when a
-# scheduled run fails.
+# The job fails and does nothing else. GitHub tells the maintainer when a
+# scheduled run fails. factorio-version.yml keeps this workflow on.
 on:
   schedule:
     - cron: "17 6 * * 1"
@@ -25,9 +25,3 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ github.token }}
         run: lychee --no-progress $(git ls-files '*.md')
-
-  factorio-version:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v7
-      - run: python3 -m tools.factorio_version
