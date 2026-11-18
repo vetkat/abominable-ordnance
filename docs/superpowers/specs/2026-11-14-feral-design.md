@@ -1,5 +1,10 @@
 # Abominable Ordnance: slice 4, feral behaviour
 
+> Changed on 2026-11-18 (pull request #55): the feral force is at peace
+> with `neutral`. `Forces.feral_cease_fire("neutral")` returns true, not
+> nil, because a new force starts at war with neutral. Where the text below
+> says nil for neutral, or "hostile to everyone", read it with this change.
+
 Date: 2026-11-14. Status: approved. The agent wrote this
 spec from `docs/design.md` while the maintainer was away. The maintainer
 allows the build after an EGM review finds no new Blocker or Major issue.

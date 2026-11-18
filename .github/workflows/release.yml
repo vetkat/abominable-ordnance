@@ -2,7 +2,7 @@ name: release
 
 # A tag v<version> on main builds the zip and makes a GitHub release.
 # A manual run in dry-run mode builds the zip and publishes nothing.
-# Publishing to the mod portal arrives with design version 1.
+# Publishing to the mod portal is a later change.
 on:
   push:
     tags: ["v*"]
