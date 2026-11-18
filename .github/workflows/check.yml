@@ -81,7 +81,7 @@ jobs:
       - uses: actions/setup-python@v7
         with:
           python-version: "3.12"
-      - run: pip install pytest
+      - run: pip install pytest pyyaml
       - run: make gates
 
   tools:
@@ -91,7 +91,7 @@ jobs:
       - uses: actions/setup-python@v7
         with:
           python-version: "3.12"
-      - run: pip install pytest
+      - run: pip install pytest pyyaml
       - run: make tools
 
   ingame:

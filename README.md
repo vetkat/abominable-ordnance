@@ -24,7 +24,7 @@ The tools, on Arch Linux:
 
 ```bash
 sudo pacman -S lua52 lua52-busted luacheck luarocks lychee lua-language-server
-sudo pacman -S ruby nodejs npm python-pytest poppler
+sudo pacman -S ruby nodejs npm python-pytest python-yaml poppler
 gem install mdl
 luarocks --lua-version 5.2 install --local luacov
 npm ci

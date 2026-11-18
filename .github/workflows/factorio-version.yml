@@ -1,0 +1,93 @@
+name: factorio-version
+
+# Every day: move the pin in .factorio-version to Factorio's newest stable
+# release, through a PR that merges itself when CI passes. A red PR means
+# the mod does not work on the new version.
+on:
+  schedule:
+    - cron: "17 6 * * *"
+  workflow_dispatch:
+
+permissions: {}
+
+concurrency:
+  group: factorio-version
+  cancel-in-progress: false
+
+jobs:
+  # GitHub turns off scheduled workflows in a public repository after 60
+  # days with no activity. This call keeps both of them on.
+  keepalive:
+    runs-on: ubuntu-latest
+    permissions:
+      actions: write
+    steps:
+      - env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          for file in factorio-version.yml weekly.yml; do
+            gh api -X PUT "repos/$GITHUB_REPOSITORY/actions/workflows/$file/enable"
+          done
+
+  bump:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      # The tool writes version=X.Y.Z to the output only after it checks
+      # that the version is X.Y.Z in ASCII digits.
+      - id: pin
+        run: python3 -m tools.factorio_version
+      # A PR from github.token starts no CI, so the PR uses an App token.
+      - uses: actions/create-github-app-token@v2
+        id: app
+        if: steps.pin.outputs.version
+        with:
+          app-id: ${{ vars.AO_BOT_ID }}
+          private-key: ${{ secrets.AO_BOT_KEY }}
+          permission-contents: write
+          permission-pull-requests: write
+      # Each run builds the branch again from main and force-pushes it. That
+      # keeps the PR up to date with main, so auto-merge never waits on a
+      # stale branch, and CI runs again after a fix lands on main.
+      - name: Open or update the PR that moves the pin
+        if: steps.pin.outputs.version
+        env:
+          GH_TOKEN: ${{ steps.app.outputs.token }}
+          VERSION: ${{ steps.pin.outputs.version }}
+        run: |
+          branch="ci/factorio-version"
+          title="ci: test Factorio $VERSION"
+          gh auth setup-git
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git switch -c "$branch"
+          git add .factorio-version
+          git commit -m "$title"
+          git push --force origin "$branch"
+          cat > "$RUNNER_TEMP/body.md" <<BODY
+          Factorio $VERSION is the newest stable release. This PR moves the
+          pin in \`.factorio-version\`, so CI runs every test on it. The PR
+          merges itself when CI passes. If CI fails, the mod needs a fix for
+          this version.
+
+          ## Review angles
+
+          - Multiplayer safety: n/a
+          - Save compatibility: n/a
+          - Mod compatibility: n/a
+          - Performance (UPS): n/a
+          - Test quality: n/a
+          - Security: n/a
+          BODY
+          pr=$(gh pr list --head "$branch" --state open --json url,isCrossRepository \
+            --jq '[.[] | select(.isCrossRepository | not)][0].url // empty')
+          if [ -z "$pr" ]; then
+            pr=$(gh pr create --head "$branch" --title "$title" --body-file "$RUNNER_TEMP/body.md")
+          else
+            gh pr edit "$pr" --title "$title" --body-file "$RUNNER_TEMP/body.md"
+          fi
+          gh pr merge "$pr" --auto --squash

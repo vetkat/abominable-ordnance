@@ -66,7 +66,7 @@ The agent checked these facts on 2026-11-12.
 | Links | lychee: links inside the repository on every push, external links once a week | External sites fail at random, so they must not block a PR. |
 | Coverage | luacov. The floor is 90% of the lines in `core/`. An empty `core/` passes. | The core holds the logic, and the shell is tested in game. |
 | Game tests | Headless Factorio with `factorio-test`, base game only and with Space Age | A plain load test shows that the mod loads, but not that it works. |
-| Factorio version | Pinned in `.factorio-version`. A weekly job fails when a newer stable version exists. | Steam updates the maintainer's game, so CI must notice when it falls behind. |
+| Factorio version | Pinned in `.factorio-version`. A daily job opens a PR that moves the pin to a newer stable version. | Steam updates the maintainer's game, so CI must notice when it falls behind. |
 | Updates | Dependabot, weekly, for GitHub Actions, with the commit prefix `ci` | The prefix makes its PR titles pass the title check. |
 | Local gates | A git pre-commit hook for the fixed checks. A Claude Code hook that blocks a commit until the review skills have run. | The git hook catches mistakes from everyone. Only the Claude hook can make the agent run a skill. |
 | Design doc | Converted to `docs/design.md`, which is then the source of truth for the design. The PDF is no longer used. | A Markdown file works with diffs, linters and reviews. |
@@ -112,7 +112,7 @@ LICENSE                  MIT, as in Hattorio
 .gitignore               build/, changelog.txt, caches
 .githooks/pre-commit     runs make fast
 .claude/settings.json    the Claude Code hook
-.github/workflows/       check.yml, release.yml, weekly.yml
+.github/workflows/       check.yml, release.yml, weekly.yml, factorio-version.yml
 .github/dependabot.yml, .github/pull_request_template.md
 Makefile
 ```
@@ -210,17 +210,37 @@ every file that the zip ships, except `changelog.txt`. A PR with the label
 `no-changelog` skips the rule. The rule runs per PR in CI only. A local
 version would fire on every small TDD commit.
 
-### Weekly checks
+### Scheduled checks
 
-`weekly.yml` runs once a week. It has two jobs. Each one fails and does
-nothing else, because GitHub already tells the maintainer when a scheduled
-run fails:
+`weekly.yml` runs once a week. Its job **`links`** runs lychee on every
+link, external ones included. The job fails and does nothing else,
+because GitHub already tells the maintainer when a scheduled run fails.
 
-- **`links`**: lychee on every link, external ones included.
-- **`factorio-version`**: fails when Factorio's latest stable headless
-  version is newer than `.factorio-version`. The job reads Factorio's
-  public release data. If that data cannot be read, the job fails with a
-  clear message.
+`factorio-version.yml` runs every day. It reads Factorio's public release
+data. The latest stable headless version can be newer than
+`.factorio-version`. Then the job writes the new pin on the branch
+`ci/factorio-version` and opens a PR with auto-merge. CI then runs every
+test on the new version, and the PR merges when they pass. A red PR means
+the mod needs a fix for that version.
+
+Each run builds that branch again from `main` and force-pushes it, while
+the pin on `main` is older than the release. So the PR stays up to date
+with `main`, CI runs again after a fix, and a newer release replaces the
+version in the open PR. If the maintainer closes the PR, the next run
+opens it again. If the release data cannot be read, the job fails with a
+clear message.
+
+A PR opened with `github.token` starts no workflows, so the job uses a
+token from a GitHub App. The App ID is the repository variable
+`AO_BOT_ID`, and its private key is the secret `AO_BOT_KEY`. The App has
+read and write access to contents and pull requests in this repository
+only. The job makes the token only when it has a new version, and the
+checkout does not store it.
+
+GitHub turns off scheduled workflows in a public repository after 60 days
+with no activity. A second job in the same workflow enables both
+scheduled workflows through the API every day. Only that job has the
+`actions: write` permission.
 
 `dependabot.yml` updates the GitHub Actions versions once a week.
 

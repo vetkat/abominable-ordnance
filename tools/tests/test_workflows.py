@@ -1,6 +1,10 @@
 """Static checks on the workflows and the Makefile, for rules that only fail on GitHub."""
 import pathlib
 
+import yaml
+
+from tools import pr_checks
+
 ROOT = pathlib.Path(__file__).resolve().parents[2]
 
 
@@ -70,10 +74,72 @@ def test_release_checks_that_the_tag_is_on_main():
     assert "merge-base --is-ancestor" in read("release.yml")
 
 
-def test_weekly_has_links_and_factorio_version_jobs():
+def test_weekly_checks_links_only():
     text = read("weekly.yml")
-    assert "links:" in text and "factorio-version:" in text
-    assert "schedule:" in text
+    assert "links:" in text and "schedule:" in text
+    assert "factorio_version" not in text and "factorio-version:" not in text
+
+
+def version_jobs():
+    data = yaml.safe_load(read("factorio-version.yml"))
+    return data, data["jobs"]
+
+
+def step_runs(job):
+    return "\n".join(step.get("run", "") for step in job["steps"])
+
+
+def test_factorio_version_runs_daily_and_moves_the_pin():
+    data, jobs = version_jobs()
+    assert data[True]["schedule"] == [{"cron": "17 6 * * *"}]
+    runs = step_runs(jobs["bump"])
+    assert "python3 -m tools.factorio_version" in runs
+    assert 'gh pr merge "$pr" --auto --squash' in runs
+
+
+def test_only_the_keepalive_job_can_enable_workflows():
+    data, jobs = version_jobs()
+    assert "permissions" not in data or data["permissions"] == {}
+    assert jobs["keepalive"]["permissions"] == {"actions": "write"}
+    assert jobs["bump"]["permissions"] == {"contents": "read"}
+    runs = step_runs(jobs["keepalive"])
+    assert "for file in factorio-version.yml weekly.yml; do" in runs
+    assert "actions/workflows/$file/enable" in runs
+
+
+def test_the_app_token_is_made_only_for_a_new_version_and_never_stored():
+    _, jobs = version_jobs()
+    steps = jobs["bump"]["steps"]
+    checkout = next(s for s in steps if s.get("uses", "").startswith("actions/checkout"))
+    assert checkout["with"]["persist-credentials"] is False
+    app = next(s for s in steps if s.get("uses", "").startswith("actions/create-github-app-token"))
+    assert app["if"] == "steps.pin.outputs.version"
+    assert app["with"]["permission-contents"] == "write"
+    assert app["with"]["permission-pull-requests"] == "write"
+    pr = steps[-1]
+    assert pr["if"] == "steps.pin.outputs.version"
+    assert pr["env"]["GH_TOKEN"] == "${{ steps.app.outputs.token }}"
+
+
+def test_untrusted_values_reach_the_shell_through_env_only():
+    _, jobs = version_jobs()
+    for job in jobs.values():
+        for step in job["steps"]:
+            assert "${{" not in step.get("run", ""), step
+
+
+def test_the_bot_pr_reuses_one_branch_from_this_repository():
+    runs = step_runs(version_jobs()[1]["bump"])
+    assert 'branch="ci/factorio-version"' in runs
+    assert 'git push --force origin "$branch"' in runs
+    assert "isCrossRepository" in runs
+
+
+def test_the_bot_pr_body_passes_the_pr_check():
+    runs = step_runs(version_jobs()[1]["bump"])
+    body = runs[runs.index("<<BODY"):runs.index("\nBODY")]
+    assert pr_checks.review_problems(body, [], "ao-bot[bot]") == []
+    assert pr_checks.title_problems("ci: test Factorio 2.1.25") == []
 
 
 def test_push_runs_check_on_main_only():
