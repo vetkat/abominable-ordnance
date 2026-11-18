@@ -90,10 +90,26 @@ local function search_types(payload)
   return c.search[payload] or nil
 end
 
+-- Every force but spare, in the game's own order, or nil when there is
+-- no force to spare.
+local function forces_but(spare)
+  if not spare then
+    return nil
+  end
+  local out = {}
+  for name in pairs(game.forces) do
+    if name ~= spare then
+      out[#out + 1] = name
+    end
+  end
+  return out
+end
+
 -- The entities with health within radius of a position that the
--- payload hurts. With a limit, the search finds at most that many
--- entities, before the payload's rule filters them.
-function Damage.targets(surface, position, radius, payload, limit)
+-- payload hurts. The search leaves out the entities of spare_force.
+-- With a limit, it finds at most that many entities, so the spared
+-- force never uses up the limit. The payload's rule filters them after.
+function Damage.targets(surface, position, radius, payload, limit, spare_force)
   local types = search_types(payload)
   if types and #types == 0 then
     return {}
@@ -103,6 +119,7 @@ function Damage.targets(surface, position, radius, payload, limit)
     position = position,
     radius = radius,
     type = types,
+    force = forces_but(spare_force),
     limit = limit,
   })
   for _, entity in pairs(found) do
@@ -158,30 +175,30 @@ function Damage.hit(hit)
   local survivors, dealt = {}, 0
   -- The attacker for each target force, read once per hit.
   local attackers = {}
-  local targets = Damage.targets(hit.surface, hit.position, hit.radius, hit.payload, hit.limit)
+  local targets =
+    Damage.targets(hit.surface, hit.position, hit.radius, hit.payload, hit.limit, hit.spare_force)
   for _, target in ipairs(targets) do
     if target.valid and target ~= hit.skip then
       local force = target.force
-      if force.name ~= hit.spare_force then
-        local attacker = attackers[force.name]
-        if not attacker then
-          attacker = Forces.attacker(hit.force, force.name, force.friendly_fire)
-          attackers[force.name] = attacker
-        end
-        local cause = hit.cause and hit.cause.valid and attacker == hit.force and hit.cause or nil
-        target.damage(hit.damage, attacker, kind, nil, cause)
-        dealt = dealt + 1
-        if target.valid then
-          survivors[#survivors + 1] = target
-          if hit.sticker and MOBILE[target.type] then
-            local sticker = hit.surface.create_entity({
-              name = hit.sticker,
-              position = target.position,
-              target = target,
-              force = attacker,
-            })
-            dealt = dealt + (sticker and 1 or 0)
-          end
+      local name = force.name
+      local attacker = attackers[name]
+      if not attacker then
+        attacker = Forces.attacker(hit.force, name, force.friendly_fire)
+        attackers[name] = attacker
+      end
+      local cause = hit.cause and hit.cause.valid and attacker == hit.force and hit.cause or nil
+      target.damage(hit.damage, attacker, kind, nil, cause)
+      dealt = dealt + 1
+      if target.valid then
+        survivors[#survivors + 1] = target
+        if hit.sticker and MOBILE[target.type] then
+          local sticker = hit.surface.create_entity({
+            name = hit.sticker,
+            position = target.position,
+            target = target,
+            force = attacker,
+          })
+          dealt = dealt + (sticker and 1 or 0)
         end
       end
     end

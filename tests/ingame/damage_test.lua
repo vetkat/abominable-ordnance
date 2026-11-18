@@ -982,6 +982,12 @@ test("an old-save entry with the vanilla trail name drops the look-alike", funct
   end)
 end)
 
+-- Removes the trees around a position, so the test's own targets fill
+-- the aura's limit.
+local function clear_trees(p)
+  destroy_all(surface().find_entities_filtered({ type = "tree", position = p, radius = 5 }))
+end
+
 -- A biter of a force that stands still, for the aura tests.
 local function still_biter(position, force)
   local biter = surface().create_entity({
@@ -997,8 +1003,10 @@ test("a poison aura hurts natives, trees and players, and spares its pack", func
   few_trails()
   with_entry({ 5200, 4000 }, "ao-biter-larva-poison", function(entry)
     local p = entry.unit.position
+    clear_trees(p)
     local native = still_biter({ p.x + 2, p.y }, "enemy")
     local tree = surface().create_entity({ name = "tree-01", position = { p.x, p.y + 2 } })
+    assert(tree, "no tree")
     local player = Helpers.character(surface(), { p.x, p.y - 2 })
     local packmate = still_biter({ p.x - 2, p.y }, Names.TAMED)
     local chest = Helpers.chest(surface(), { p.x + 1.5, p.y + 1.5 })
@@ -1027,9 +1035,11 @@ test("a poison aura does not reach 5 tiles", function()
   with_entry({ 5280, 4000 }, "ao-biter-larva-poison", function(entry)
     local p = entry.unit.position
     local native = still_biter({ p.x + 5, p.y }, "enemy")
+    local near = still_biter({ p.x - 2, p.y }, "enemy")
     after_ticks(2 * Balance.acid_trail_ticks, function()
-      local native_hurt = hurt(native)
-      destroy_all({ native, entry.unit })
+      local native_hurt, near_hurt = hurt(native), hurt(near)
+      destroy_all({ native, near, entry.unit })
+      assert(near_hurt, "the aura hit nothing, so the test proves nothing")
       assert(not native_hurt, "the aura reached 5 tiles")
     end)
   end)
@@ -1075,10 +1085,12 @@ end)
 test("a hit with a limit damages at most that many targets", function()
   local p = { x = 5520, y = 4000 }
   Helpers.arena(surface(), { p.x, p.y })
+  clear_trees(p)
   local trees = {}
   for i = -2, 2 do
     trees[#trees + 1] = surface().create_entity({ name = "tree-01", position = { p.x + i, p.y } })
   end
+  assert(#trees == 5, #trees .. " trees")
   local _, dealt = Damage.hit({
     surface = surface(),
     position = p,
@@ -1096,6 +1108,7 @@ test("a poison aura still hits when another mod removed its puff", function()
   with_entry({ 5600, 4000 }, "ao-biter-larva-poison", function(entry)
     local p = entry.unit.position
     local native = still_biter({ p.x + 2, p.y }, "enemy")
+    destroy_all(surface().find_entities_filtered({ name = Names.PUFF, position = p, radius = 3 }))
     local ok, err = pcall(wrapped, Damage, "entity_exists", function(original)
       return function(name)
         return name ~= Names.PUFF and original(name)
@@ -1120,5 +1133,58 @@ test("a poison monster missing from the trail list returns on a configuration ch
     local listed = storage.trails[id] ~= nil
     destroy_all({ entry.unit })
     assert(listed, "the rebuild did not list the poison monster")
+  end)
+end)
+
+test("a hit spares its own force before its limit counts", function()
+  local p = { x = 5760, y = 4000 }
+  Helpers.arena(surface(), { p.x, p.y })
+  clear_trees(p)
+  local pack = {}
+  for i = 0, 24 do
+    pack[#pack + 1] = still_biter({ p.x - 2 + i % 5, p.y - 2 + math.floor(i / 5) }, Names.TAMED)
+  end
+  local native = still_biter({ p.x, p.y + 2.8 }, "enemy")
+  Damage.hit({
+    surface = surface(),
+    position = p,
+    radius = 3,
+    payload = "poison",
+    damage = 3,
+    force = Names.TAMED,
+    spare_force = Names.TAMED,
+    limit = 20,
+  })
+  local native_hurt = hurt(native)
+  destroy_all(pack)
+  destroy_all({ native })
+  assert(#pack == 25, #pack .. " pack monsters")
+  assert(native_hurt, "the spared pack filled the limit and the native was not hit")
+end)
+
+test("a poison aura hits at most its max_targets", function()
+  with_entry({ 5840, 4000 }, "ao-biter-larva-poison", function(entry)
+    local p = entry.unit.position
+    clear_trees(p)
+    local trees = {}
+    for dx = -2, 2 do
+      for dy = -2, 2 do
+        if dx ~= 0 or dy ~= 0 then
+          trees[#trees + 1] =
+            surface().create_entity({ name = "tree-01", position = { p.x + dx, p.y + dy } })
+        end
+      end
+    end
+    Damage.live(entry, Names.TAMED)
+    local hit = 0
+    for _, tree in pairs(trees) do
+      if hurt(tree) then
+        hit = hit + 1
+      end
+    end
+    destroy_all(trees)
+    destroy_all({ entry.unit })
+    assert(#trees > Balance.payload_damage.aura.max_targets, #trees .. " trees")
+    assert(hit <= Balance.payload_damage.aura.max_targets, hit .. " trees hit")
   end)
 end)

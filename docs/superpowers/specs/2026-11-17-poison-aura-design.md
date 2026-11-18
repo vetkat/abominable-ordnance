@@ -161,11 +161,12 @@ the monster's own pack.
   most that many entities. The aura uses `max_targets = 20`. The trail
   pass makes at most 5 hits a tick, so the aura deals at most 100 damage
   calls a tick, in a forest or in a crowd.
-- **What the limit costs.** The limit counts entities before the spare
-  rule, so the monster's own side can use some of those slots. Within 3
-  tiles that is rare, and the cap only bounds the work. The search order
-  is the game's own and the same for every player, so the limit is
-  multiplayer-safe.
+- **The search leaves out the spared force.** `Damage.targets` passes
+  every force except `spare_force` to the search, so the monster's own
+  pack never uses up the limit. The search order is the game's own and
+  the same for every player, so the limit is multiplayer-safe. (The
+  first draft counted the spared force inside the limit. The code review
+  found that a dense pack could then fill all 20 slots.)
 - **`Damage.live(entry, force)`** replaces `Damage.trail(entry, force)`.
   It creates the look-alike on `force` when the prototype exists. Then it
   deals the hit with `cause = unit`, `skip = unit` and the `limit` from
