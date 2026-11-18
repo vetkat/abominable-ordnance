@@ -291,19 +291,43 @@ local function cloud_looks(created_effect, entity_exists)
   return out[1] and out or nil
 end
 
--- The poison cloud, for as long as its hazard lasts. Its created_effect
--- keeps only its smoke and sound.
-local function cloud(vanilla, entity_exists)
+-- The two look-alikes made from the vanilla poison cloud. The cloud
+-- keeps the vanilla smoke and sound for as long as its hazard lasts. The
+-- puff shows the aura for one second: a few particles, no extra smokes
+-- and no sound.
+local CLOUD_SHAPE = {
+  name = Names.CLOUD,
+  duration = Balance.payload_damage.poison.ticks,
+  keep_looks = true,
+}
+local PUFF_SHAPE = {
+  name = Names.PUFF,
+  duration = 60,
+  fields = {
+    particle_count = 8,
+    particle_spread = { 3, 1.8 },
+    fade_away_duration = 30,
+    spread_duration = 20,
+  },
+}
+
+-- A look-alike of the vanilla cloud in a shape. It deals no damage. With
+-- keep_looks, its created_effect keeps only the vanilla smoke and sound.
+-- Without it, it has no created_effect.
+local function cloud(vanilla, entity_exists, shape)
   if not vanilla then
     return nil
   end
   local p = Common.copy(vanilla)
-  p.name = Names.CLOUD
+  p.name = shape.name
   p.hidden = true
   p.action = nil
   p.action_cooldown = 0
-  p.duration = Balance.payload_damage.poison.ticks
-  p.created_effect = cloud_looks(vanilla.created_effect, entity_exists)
+  p.duration = shape.duration
+  p.created_effect = shape.keep_looks and cloud_looks(vanilla.created_effect, entity_exists) or nil
+  for key, value in pairs(shape.fields or {}) do
+    p[key] = Common.copy(value)
+  end
   return p
 end
 
@@ -343,7 +367,8 @@ function Ordnance.lookalikes(opts)
   out[#out + 1] =
     puddle(opts.pool, Names.POOL, Balance.payload_damage.acid.ticks, opts.damage_exists)
   out[#out + 1] = puddle(opts.puddle, Names.PUDDLE, nil, opts.damage_exists)
-  out[#out + 1] = cloud(opts.cloud, opts.entity_exists)
+  out[#out + 1] = cloud(opts.cloud, opts.entity_exists, CLOUD_SHAPE)
+  out[#out + 1] = cloud(opts.cloud, opts.entity_exists, PUFF_SHAPE)
   return out
 end
 

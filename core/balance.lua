@@ -50,6 +50,8 @@ return {
   },
   ordnance_research = { count = 250, time = 30 },
   acid_spread = 1.5,
+  -- The trail pass runs every live effect (acid trail, poison aura), not
+  -- only acid. The name stays for old saves.
   acid_trail_ticks = 60,
   trail_batch = 5,
   casing = { stack = 50, time = 5, steel = 2, explosives = 1, circuit = 1 },
@@ -73,6 +75,9 @@ return {
     poison = { damage = 8, radius = 11, ticks = 1200 },
     acid = { damage = 10, radius = 3, ticks = 900 },
     trail = { damage = 5, radius = 1 },
+    -- The poison aura: one hit a second around a live poison monster.
+    -- max_targets caps the entities that one hit finds.
+    aura = { damage = 3, radius = 3, max_targets = 8 },
     hazard_interval = 30,
     hazard_hits = 10,
     hazard_targets = 200,

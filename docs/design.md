@@ -57,7 +57,8 @@ step after Capture is a machine or a recipe, so you can automate it.
 6. **Fire.** The larva launcher and artillery fire loaded larvae as
    long-range ammo. The larva turns into its full monster where it lands.
 7. **Detonate.** The monster attacks the area where it lands, applies its
-   live effect (such as an acid trail), and triggers its payload on death.
+   live effect (an acid trail or a poison aura), and triggers its payload on
+   death.
 
 ## Lifecycle: eggs, embryos and larvae
 
@@ -148,8 +149,8 @@ in this table.
 | Explosive rocket | None | Rocket-sized explosion |
 | Grenade | None | Grenade blast |
 | Cluster grenade | None | Cluster scatter |
-| Sulfuric acid (barrel) | Acid trail: small acid puddles under it | Large acid pool |
-| Poison capsule | Small poison aura | Poison cloud |
+| Sulfuric acid (barrel) | Acid trail: small acid puddles under it, spares its own side | Large acid pool |
+| Poison capsule | Small poison aura: hurts living things nearby, spares its own side | Poison cloud |
 | Slowdown capsule | Slows nearby enemies | Slowdown burst |
 | Flamethrower ammo | Leaves a fire trail | Fire burst |
 | Atomic bomb | Glows, moves slowly | Nuclear explosion |
@@ -163,6 +164,13 @@ its death effect hurt, and each uses its own damage type (decided
 - Poison capsule: living things only (natives, players, tamed monsters,
   trees).
 - Sulfuric acid: everything except rocks.
+
+**Own side.** A live effect spares every monster of its own side. A
+death effect hurts the whole pack, so an explosive death can set off
+the pack's other explosive monsters (decided 2026-11-18, after the play
+test). The play test build tried a rule that spared monsters with the
+same payload. We dropped it: with Expand Orifices, a pack that carries
+every payload would spare itself in each death.
 
 **Expand Orifices.** By default a monster holds one payload. The Expand
 Orifices I research adds a second slot, and Expand Orifices II adds a third.

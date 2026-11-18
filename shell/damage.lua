@@ -90,9 +90,26 @@ local function search_types(payload)
   return c.search[payload] or nil
 end
 
+-- Every force but spare, in the game's own order, or nil when there is
+-- no force to spare.
+local function forces_but(spare)
+  if not spare then
+    return nil
+  end
+  local out = {}
+  for name in pairs(game.forces) do
+    if name ~= spare then
+      out[#out + 1] = name
+    end
+  end
+  return out
+end
+
 -- The entities with health within radius of a position that the
--- payload hurts.
-function Damage.targets(surface, position, radius, payload)
+-- payload hurts. The search leaves out the entities of spare_force.
+-- With a limit, it finds at most that many entities, so the spared
+-- force never uses up the limit. The payload's rule filters them after.
+function Damage.targets(surface, position, radius, payload, limit, spare_force)
   local types = search_types(payload)
   if types and #types == 0 then
     return {}
@@ -102,6 +119,8 @@ function Damage.targets(surface, position, radius, payload)
     position = position,
     radius = radius,
     type = types,
+    force = forces_but(spare_force),
+    limit = limit,
   })
   for _, entity in pairs(found) do
     if entity.is_entity_with_health and Payloads.hits(payload, Damage.class_of(entity)) then
@@ -135,14 +154,15 @@ end
 
 -- One hit of a payload. hit has surface, position, radius, payload,
 -- damage and force (a force name). It may have cause (the entity that
--- set it off), skip (an entity the hit spares) and sticker (a sticker
--- name for each mobile survivor). A sticker takes the force that dealt
--- the hit. The hit checks each target first, because an earlier
--- target's death can take a later one with it, and another mod's death
--- handler can destroy the cause. It returns the targets that still
--- exist, and the number of targets it damaged plus the stickers it
--- created, for the target budget. When another mod removed the damage
--- type, the hit deals no damage.
+-- set it off), skip (an entity the hit spares), spare_force (a force
+-- name whose entities the hit spares), limit (the most entities its
+-- search finds) and sticker (a sticker name for each mobile survivor).
+-- A sticker takes the force that dealt the hit. The hit checks each
+-- target first, because an earlier target's death can take a later one
+-- with it, and another mod's death handler can destroy the cause. It
+-- returns the targets that still exist, and the number of targets it
+-- damaged plus the stickers it created, for the target budget. When
+-- another mod removed the damage type, the hit deals no damage.
 --
 -- The natives may deal the hit for a force with friendly fire off. Then
 -- the hit has no cause, because a cause from another force would
@@ -155,13 +175,16 @@ function Damage.hit(hit)
   local survivors, dealt = {}, 0
   -- The attacker for each target force, read once per hit.
   local attackers = {}
-  for _, target in ipairs(Damage.targets(hit.surface, hit.position, hit.radius, hit.payload)) do
+  local targets =
+    Damage.targets(hit.surface, hit.position, hit.radius, hit.payload, hit.limit, hit.spare_force)
+  for _, target in ipairs(targets) do
     if target.valid and target ~= hit.skip then
       local force = target.force
-      local attacker = attackers[force.name]
+      local name = force.name
+      local attacker = attackers[name]
       if not attacker then
-        attacker = Forces.attacker(hit.force, force.name, force.friendly_fire)
-        attackers[force.name] = attacker
+        attacker = Forces.attacker(hit.force, name, force.friendly_fire)
+        attackers[name] = attacker
       end
       local cause = hit.cause and hit.cause.valid and attacker == hit.force and hit.cause or nil
       target.damage(hit.damage, attacker, kind, nil, cause)
@@ -347,20 +370,22 @@ function Damage.run_hazards(tick)
   end
 end
 
--- One trail step of a loaded monster: a puddle look-alike under it and
--- one hit around it that spares the monster itself. The hit applies
--- even when another mod removed the look-alike's vanilla puddle.
-function Damage.trail(entry, force)
-  local puddle, payload = Payloads.trail(entry.payloads)
-  if not payload then
+-- One step of a monster's live effect: its look-alike at the monster
+-- and one hit around it. The hit spares the monster's whole force, read
+-- from the unit, so a pack never hurts itself while it lives.
+-- The hit applies even when another mod removed the look-alike's
+-- vanilla source.
+function Damage.live(entry, force)
+  local live, payload = Payloads.live(entry.payloads)
+  if not live then
     return
   end
   local unit = entry.unit
   local surface, position = unit.surface, unit.position
-  if Damage.entity_exists(puddle) then
-    surface.create_entity({ name = puddle, position = position, force = force })
+  if Damage.entity_exists(live.lookalike) then
+    surface.create_entity({ name = live.lookalike, position = position, force = force })
   end
-  local n = Balance.payload_damage.trail
+  local n = Balance.payload_damage[live.balance_key]
   Damage.hit({
     surface = surface,
     position = position,
@@ -369,7 +394,8 @@ function Damage.trail(entry, force)
     damage = n.damage,
     force = force,
     cause = unit,
-    skip = unit,
+    limit = n.max_targets,
+    spare_force = unit.force.name,
   })
 end
 

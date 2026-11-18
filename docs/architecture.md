@@ -120,6 +120,9 @@ that save working:
   `on_configuration_changed`, for example the rebuild of `storage.trails`
   in `shell/setup.lua`. Use a migration file in `migrations/` only when the
   rebuild cannot run there.
+- `storage.trails` keeps its old name. It lists every loaded monster with a
+  live effect (the acid trail and the poison aura), and the trail pass runs
+  them all.
 
 ## Other mods
 

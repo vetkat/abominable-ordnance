@@ -1,5 +1,8 @@
 # Abominable Ordnance: the poison aura
 
+> The section "Changes after the play test" at the end replaces
+> the `spare` field, the target limit of 20 and the puff size below.
+
 Date: 2026-11-17. Status: approved by EGM after three rounds. The agent
 (Claude) wrote this spec from the maintainer's decisions of 2026-11-17
 and from the payload damage spec
@@ -161,11 +164,12 @@ the monster's own pack.
   most that many entities. The aura uses `max_targets = 20`. The trail
   pass makes at most 5 hits a tick, so the aura deals at most 100 damage
   calls a tick, in a forest or in a crowd.
-- **What the limit costs.** The limit counts entities before the spare
-  rule, so the monster's own side can use some of those slots. Within 3
-  tiles that is rare, and the cap only bounds the work. The search order
-  is the game's own and the same for every player, so the limit is
-  multiplayer-safe.
+- **The search leaves out the spared force.** `Damage.targets` passes
+  every force except `spare_force` to the search, so the monster's own
+  pack never uses up the limit. The search order is the game's own and
+  the same for every player, so the limit is multiplayer-safe. (The
+  first draft counted the spared force inside the limit. The code review
+  found that a dense pack could then fill all 20 slots.)
 - **`Damage.live(entry, force)`** replaces `Damage.trail(entry, force)`.
   It creates the look-alike on `force` when the prototype exists. Then it
   deals the hit with `cause = unit`, `skip = unit` and the `limit` from
@@ -335,3 +339,17 @@ The plan holds the steps. Two parts matter for the design:
 - Live effects of the version 2 payloads.
 - A mod setting for the aura.
 - A lazy repair of `storage.trails` for test-build saves.
+
+## Changes after the play test
+
+The maintainer's play test on 2026-11-18 changed these things:
+
+- The puff showed about 1 tile wide. It now has `particle_count = 8`
+  and `particle_spread = { 3, 1.8 }`.
+- With 300 monsters in a forest, the time usage reached about 1.2 ms
+  while trees took damage. The aura's `max_targets` is now 8, not 20.
+- The code drops the `spare` field. The acid trail now spares its own
+  side too, so every live effect spares the monster's force.
+- A death effect still hurts the whole pack. The maintainer dropped a
+  rule that spared the monsters with the same payload, because with
+  Expand Orifices a pack that carries every payload would spare itself.

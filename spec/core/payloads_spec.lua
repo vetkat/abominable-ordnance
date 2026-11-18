@@ -172,10 +172,29 @@ describe("the death plans", function()
     assert.are.same({ "poison", "explosive" }, { plans[1].payload, plans[2].payload })
   end)
 
-  it("give acid a trail look-alike and no other payload one", function()
-    assert.are.same({ "ao-acid-puddle", "acid" }, { Payloads.trail({ "acid" }) })
-    assert.are.same({ "ao-acid-puddle", "acid" }, { Payloads.trail({ "poison", "acid" }) })
-    assert.are.same({}, { Payloads.trail({ "poison", "glitter" }) })
+  it("give acid a live trail", function()
+    local live, name = Payloads.live({ "acid" })
+    assert.are.same({ lookalike = "ao-acid-puddle", balance_key = "trail" }, live)
+    assert.are.equal("acid", name)
+  end)
+
+  it("give poison a live aura", function()
+    local live, name = Payloads.live({ "poison" })
+    assert.are.same({ lookalike = "ao-poison-puff", balance_key = "aura" }, live)
+    assert.are.equal("poison", name)
+  end)
+
+  it("take the live effect of the first payload that has one", function()
+    assert.are.equal("poison", select(2, Payloads.live({ "explosive", "poison", "acid" })))
+  end)
+
+  it("give no live effect to explosive or an unknown payload", function()
+    assert.are.same({}, { Payloads.live({ "explosive" }) })
+    assert.are.same({}, { Payloads.live({ "glitter" }) })
+  end)
+
+  it("give the aura 3 damage in radius 3, at most 8 targets", function()
+    assert.are.same({ damage = 3, radius = 3, max_targets = 8 }, Balance.payload_damage.aura)
   end)
 
   it("give only acid a sticker", function()

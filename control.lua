@@ -106,7 +106,7 @@ local function load_monster(monster, payload)
   monster.ai_settings.allow_try_return_to_spawner = false
   local payloads = { payload.name }
   storage.loaded[monster.unit_number] = { unit = monster, payloads = payloads }
-  if Payloads.trail(payloads) then
+  if Payloads.live(payloads) then
     storage.trails[monster.unit_number] = true
   end
   script.register_on_object_destroyed(monster)
@@ -240,10 +240,12 @@ script.on_event(defines.events.on_object_destroyed, function(event)
   end
 end)
 
--- An acid-loaded monster leaves a small acid puddle where it walks, and
--- one hit damages what stands around it. Each tick visits at most
--- Balance.trail_batch monsters, and a new pass starts at most once per
--- Balance.acid_trail_ticks.
+-- The trail pass runs every live effect: the acid trail and the poison
+-- aura. storage.trails keeps its old name for saves. An acid monster
+-- leaves a small acid puddle where it walks, and a poison monster a
+-- puff. One hit damages what stands around it. Each tick visits at
+-- most Balance.trail_batch monsters, and a new pass starts at most once
+-- per Balance.acid_trail_ticks.
 local function trail_tick(tick)
   local go, next_tick =
     Trail.start(storage.trail_cursor, tick, storage.trail_next_tick, Balance.acid_trail_ticks)
@@ -256,7 +258,7 @@ local function trail_tick(tick)
   for _, id in ipairs(ids) do
     local entry = storage.loaded[id]
     if entry and entry.unit.valid then
-      Damage.trail(entry, FeralShell.force_of(entry))
+      Damage.live(entry, FeralShell.force_of(entry))
     end
   end
 end
