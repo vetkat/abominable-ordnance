@@ -148,16 +148,6 @@ local function entities(death, position, exists)
   return out
 end
 
--- True when a monster's payloads hold the payload name.
-function Payloads.carries(payloads, name)
-  for _, payload in ipairs(payloads or {}) do
-    if payload == name then
-      return true
-    end
-  end
-  return false
-end
-
 -- One plan per payload of a monster that dies at a position. A plan
 -- names the payload, lists the entities to create, and carries the
 -- script hit (hit) or the hazard (hazard) when the payload has one. A

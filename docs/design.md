@@ -166,11 +166,11 @@ its death effect hurt, and each uses its own damage type (decided
 - Sulfuric acid: everything except rocks.
 
 **Own side.** A live effect spares every monster of its own side. A
-death effect spares the loaded monsters of its own side that carry the
-same payload, and hurts the rest of the pack. So a poison death spares
-the pack's other poison monsters and hurts its acid ones. An explosive
-death no longer sets off the pack's other explosive monsters (decided
-2026-11-18, after the play test).
+death effect hurts the whole pack, so an explosive death can set off
+the pack's other explosive monsters (decided 2026-11-18, after the play
+test). The play test build tried a rule that spared monsters with the
+same payload. We dropped it: with Expand Orifices, a pack that carries
+every payload would spare itself in each death.
 
 **Expand Orifices.** By default a monster holds one payload. The Expand
 Orifices I research adds a second slot, and Expand Orifices II adds a third.

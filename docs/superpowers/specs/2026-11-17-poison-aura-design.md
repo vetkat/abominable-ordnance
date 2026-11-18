@@ -342,7 +342,7 @@ The plan holds the steps. Two parts matter for the design:
 
 ## Changes after the play test
 
-The maintainer's play test on 2026-11-18 changed three things:
+The maintainer's play test on 2026-11-18 changed these things:
 
 - The puff showed about 1 tile wide. It now has `particle_count = 8`
   and `particle_spread = { 3, 1.8 }`.
@@ -350,6 +350,6 @@ The maintainer's play test on 2026-11-18 changed three things:
   while trees took damage. The aura's `max_targets` is now 8, not 20.
 - The code drops the `spare` field. The acid trail now spares its own
   side too, so every live effect spares the monster's force.
-- A death effect now spares the loaded monsters of its own force that
-  carry the same payload, through `spare_kin` on `Damage.hit`. The
-  launcher's landing blast does not set it, so it spares nobody.
+- A death effect still hurts the whole pack. The maintainer dropped a
+  rule that spared the monsters with the same payload, because with
+  Expand Orifices a pack that carries every payload would spare itself.

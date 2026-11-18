@@ -197,13 +197,6 @@ describe("the death plans", function()
     assert.are.same({ damage = 3, radius = 3, max_targets = 8 }, Balance.payload_damage.aura)
   end)
 
-  it("tell whether a monster's payloads hold a payload", function()
-    assert.is_true(Payloads.carries({ "acid", "poison" }, "poison"))
-    assert.is_false(Payloads.carries({ "acid" }, "poison"))
-    assert.is_false(Payloads.carries({}, "poison"))
-    assert.is_false(Payloads.carries(nil, "poison"))
-  end)
-
   it("give only acid a sticker", function()
     assert.are.equal("acid-sticker-big", Payloads.sticker("acid"))
     assert.is_nil(Payloads.sticker("poison"))
