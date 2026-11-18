@@ -15,12 +15,17 @@ function Forces.cease_fire(name)
   return true
 end
 
--- The cease-fire between the feral force and a force: false for war, or
--- nil to leave the relation alone. The feral force is at war with every
--- force except neutral and itself. This rule alone owns the pair of the
+-- The cease-fire between the feral force and a force: true for peace,
+-- false for war, or nil to leave the relation alone. The feral force is
+-- at peace with neutral, so it spares trees and rocks. A new force starts
+-- at war with neutral, so this rule must set the peace. The feral force
+-- is at war with every other force. This rule alone owns the pair of the
 -- tamed and the feral force.
 function Forces.feral_cease_fire(name)
-  if name == "neutral" or name == Names.FERAL then
+  if name == "neutral" then
+    return true
+  end
+  if name == Names.FERAL then
     return nil
   end
   return false

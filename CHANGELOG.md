@@ -51,9 +51,10 @@ mod uses [semantic versioning](https://semver.org/spec/v2.0.0.html).
   the item is lost with its ward.
 - Loaded monsters go feral when a player with a character comes within
   their feral radius: 5 tiles for a small monster, 1 more per size step.
-  A feral monster joins its own force, at war with everyone, hunts the
-  nearest enemy within 64 tiles, and its payload still goes off when it
-  dies. Feral kills drop no nest loot.
+  A feral monster joins its own force, at war with everyone but neutral
+  things such as trees and rocks. It hunts the nearest enemy within 64
+  tiles, and its payload still goes off when it dies. Feral kills drop no
+  nest loot.
 - Loaded monsters also go feral after 5 minutes with no natives within
   32 tiles, or by a small unstable chance: 0.2% per minute per payload.
   A feral monster whose attack fails wanders for about 50 s before it
@@ -105,6 +106,8 @@ mod uses [semantic versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- A feral monster attacked trees and rocks. The feral force is now at peace
+  with the neutral force, as the feral spec says.
 - In Space Age, a warded spitter egg and a warded spitter larva weighed less
   than the plain item. Every lifecycle item now has an explicit weight, and
   a warded item has the same weight.
