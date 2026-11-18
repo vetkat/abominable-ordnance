@@ -6,6 +6,8 @@ mod uses [semantic versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [1.0.0] - 2026-11-18
+
 ### Added
 
 - An empty mod that loads in Factorio 2.1, with and without Space Age.

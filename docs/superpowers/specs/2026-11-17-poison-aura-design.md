@@ -2,6 +2,7 @@
 
 > The section "Changes after the play test" at the end replaces
 > the `spare` field, the target limit of 20 and the puff size below.
+> Every mention of these in the body, the tests and the probe is stale.
 
 Date: 2026-11-17. Status: approved by EGM after three rounds. The agent
 (Claude) wrote this spec from the maintainer's decisions of 2026-11-17

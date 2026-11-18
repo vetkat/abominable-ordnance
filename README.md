@@ -7,9 +7,11 @@ everything into one final Abomination.
 
 ## Status
 
-The mod has no release yet. Main holds a test build of design version 1. It
-has every version 1 feature. Release 1.0.0 follows after a test in the game,
-with and without Space Age. See the [roadmap](ROADMAP.md).
+Release 1.0.0 ships design version 1. You breed eggs and larvae, load them
+with three payloads, and fire them from the larva launcher. Loaded monsters
+can go feral. The stasis and cryo wards slow the spoil timer. The mod runs
+in Factorio 2.1, with and without Space Age. See the [roadmap](ROADMAP.md)
+for later versions.
 
 ## Install
 

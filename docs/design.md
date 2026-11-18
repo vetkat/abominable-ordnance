@@ -270,7 +270,8 @@ monster goes feral in three ways:
 
 Feral monsters attack the nearest target, including you and your buildings,
 and their payload still goes off when they die. A feral monster joins its own
-force, which is hostile to everyone, so the natives fight it too. A feral
+force, which is hostile to every force except neutral, so the natives fight
+it too. It leaves trees and rocks alone. A feral
 monster hunts the nearest enemy within 64 tiles. A failed hunt makes it
 wander for about 50 s before it hunts again.
 
@@ -361,7 +362,7 @@ flowchart TD
         ordnance --> payloads --> orifices1 --> nuclear --> orifices2
     end
     subgraph delivery [Delivery]
-        rockets["Larva rockets<br/>Larva launcher<br/>Military + chemical"]
+        rockets["Larva rockets<br/>Larva launcher<br/>Needs Rocketry"]
         artillery["Larva artillery<br/>Larva artillery shells<br/>Needs Artillery"]
         rockets --> artillery
     end
@@ -456,8 +457,8 @@ hard parts are prototype count, demolishers and the player transformation.
   batched pass.
 - **Forces.** Loaded monsters join an allied force that is hostile to the
   natives. Going feral moves the unit to a separate feral force that is
-  hostile to everyone. With PvP on, each player force gets its own allied
-  monster force.
+  hostile to every force except neutral. With PvP on, each player force
+  gets its own allied monster force.
 - **Feral check.** Every 30 ticks as a starting value, search around each
   player with the largest feral radius and check the matches against
   `storage`. The too-close scan uses the character's position, and only

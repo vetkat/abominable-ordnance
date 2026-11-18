@@ -271,9 +271,9 @@ A manual run in `dry-run` mode does steps 2 to 4, with
 artefact and publishes nothing.
 
 This project does not publish to the mod portal. Nobody can withdraw a
-portal release, and nothing goes to the portal before design version 1.
-That project adds the upload, the `FACTORIO_API_KEY` secret and a required
-reviewer on a `mod-portal` environment.
+portal release. Release 1.0.0 (design version 1) also ships on GitHub
+only. A later change adds the upload, the `FACTORIO_API_KEY` secret and
+a required reviewer on a `mod-portal` environment.
 
 This `release.yml` differs from Hattorio's in four ways:
 
@@ -286,8 +286,8 @@ This `release.yml` differs from Hattorio's in four ways:
 ### Version rules
 
 MAJOR breaks saves or removes prototypes. MINOR adds features. PATCH fixes
-bugs. This project leaves the version at 0.1.0, unreleased. Design
-version N ships as release N.0.0.
+bugs. This project left the version at 0.1.0, unreleased, until
+release 1.0.0 on 2026-11-18. Design version N ships as release N.0.0.
 
 `check_version.py` has two modes:
 
@@ -441,7 +441,7 @@ These are the acceptance criteria for this project:
 ## Out of scope
 
 - Any mod feature. Those belong to the design version 1 project.
-- Uploads to the mod portal. They arrive with design version 1.
+- Uploads to the mod portal. They are a later change, after 1.0.0.
 - A fix for Hattorio's `factorio_version`, which still says "2.0".
 - Automated version bumps from commit messages.
 - Pinned versions for tools other than Lua, Factorio and `factorio-test`.
