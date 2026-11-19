@@ -182,6 +182,7 @@ end
 -- The monster wanders at once unless it already failed a wander in the
 -- mark window. Then it waits for the batch check, so a stuck unit
 -- can't fail-wander every few ticks.
+---@param event EventData.on_ai_command_completed
 function FeralShell.completed(event)
   local entry = storage.loaded[event.unit_number]
   if not entry or not entry.feral or not entry.unit.valid then

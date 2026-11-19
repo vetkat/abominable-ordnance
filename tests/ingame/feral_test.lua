@@ -283,6 +283,7 @@ test("a second failed wander inside the mark window waits for the batch check", 
       entry.hunting = false
       set_up()
       FeralShell.completed({
+        name = defines.events.on_ai_command_completed,
         unit_number = number,
         result = defines.behavior_result.fail,
         was_distracted = false,
@@ -318,6 +319,7 @@ test("a feral monster that waits for the batch check gets a command from it", fu
     entry.hunting = false
     entry.failed_at = game.tick - 1
     FeralShell.completed({
+      name = defines.events.on_ai_command_completed,
       unit_number = entry.unit.unit_number,
       result = defines.behavior_result.fail,
       was_distracted = false,
@@ -371,6 +373,7 @@ test("a success against the same target wanders instead of attacking again", fun
     FeralShell.go_feral(entry, game.tick)
     local first = entry.unit.commandable.command.type
     FeralShell.completed({
+      name = defines.events.on_ai_command_completed,
       unit_number = entry.unit.unit_number,
       result = defines.behavior_result.success,
       was_distracted = false,
@@ -393,6 +396,7 @@ test("a failed hunt marks the monster, a distraction does not", function()
     local number = entry.unit.unit_number
     entry.hunting = true
     FeralShell.completed({
+      name = defines.events.on_ai_command_completed,
       unit_number = number,
       result = defines.behavior_result.fail,
       was_distracted = true,
@@ -401,6 +405,7 @@ test("a failed hunt marks the monster, a distraction does not", function()
     local after_distraction = entry.failed_at
     local still_hunting = entry.hunting
     FeralShell.completed({
+      name = defines.events.on_ai_command_completed,
       unit_number = number,
       result = defines.behavior_result.fail,
       was_distracted = false,
@@ -421,6 +426,7 @@ test("a failure of another unit number leaves the entry alone", function()
     FeralShell.go_feral(entry, game.tick)
     entry.hunting = true
     FeralShell.completed({
+      name = defines.events.on_ai_command_completed,
       unit_number = entry.unit.unit_number + 1000000,
       result = defines.behavior_result.fail,
       was_distracted = false,

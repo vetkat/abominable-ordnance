@@ -70,6 +70,7 @@ end)
 -- reversal swaps the placed launchers, and the swap also catches a built
 -- launcher when it arrives. The build events have a filter on the four
 -- launcher names.
+---@param event EventData.on_research_finished|EventData.on_research_reversed
 local function research_changed(event)
   if Launcher.is_range_tech(event.research.name) then
     LauncherShell.sync(event.research.force)
@@ -83,6 +84,14 @@ for _, name in ipairs(Launcher.NAMES) do
   LAUNCHER_FILTER[#LAUNCHER_FILTER + 1] = { filter = "name", name = name }
 end
 
+---@alias BuiltEvent
+---| EventData.on_built_entity
+---| EventData.on_robot_built_entity
+---| EventData.on_space_platform_built_entity
+---| EventData.script_raised_built
+---| EventData.script_raised_revive
+
+---@param event BuiltEvent
 local function built(event)
   LauncherShell.on_built(event.entity)
 end
