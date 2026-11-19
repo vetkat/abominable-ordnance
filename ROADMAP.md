@@ -66,6 +66,14 @@ Slices 1 (lifecycle) and 2 (ordnance) ship in this release.
 - [ ] PvP setting for multiplayer ([design][concept])
 - [ ] Custom graphics for every building and item of the mod, with
   tooling to make the sprites
+- [ ] First upload to the Factorio mod portal. Until the custom graphics
+  are in, releases go to GitHub only.
+
+From version 3 on, every new building, item and monster gets its own
+custom graphics. No new asset uses a tinted vanilla copy.
+
+Until version 3, the mod does not keep old saves working. A change needs
+no migration unless a load would crash without it.
 
 [lifecycle]: docs/design.md#lifecycle-eggs-embryos-and-larvae
 [ordnance-loading]: docs/design.md#ordnance-loading
