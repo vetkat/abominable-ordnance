@@ -34,7 +34,9 @@ ifneq ($(shell command -v luarocks 2>/dev/null),)
   export PATH          := $(HOME)/.luarocks/bin:$(PATH)
 endif
 
-MARKDOWN = $(shell git ls-files '*.md')
+# art-reference/ holds third-party art on an unmerged branch: no gate scans it.
+NOT_ART  = ':!:art-reference'
+MARKDOWN = $(shell git ls-files '*.md' $(NOT_ART))
 
 .PHONY: setup fast check text lua tools gates format ingame stamp package api
 
@@ -50,7 +52,7 @@ check: fast gates ingame
 
 text:
 	mdl $(MARKDOWN)
-	python3 -m tools.text_check
+	python3 -m tools.text_check $(shell git ls-files $(NOT_ART))
 	lychee --offline --no-progress $(MARKDOWN)
 
 # The recipe deletes the old folder first, so no class from an old

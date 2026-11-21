@@ -6,7 +6,7 @@
   "workspace.library": [".factorio-api/factorio/library"],
   "workspace.ignoreDir": [
     ".factorio-api", "spec", "tools", "build", "node_modules", "docs",
-    ".lua", ".luarocks", ".install"
+    ".lua", ".luarocks", ".install", "art-reference"
   ],
   "workspace.checkThirdParty": false,
   "diagnostics.globals": [

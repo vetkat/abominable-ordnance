@@ -6,3 +6,4 @@ docs/archive/
 .luarocks/
 .install/
 .factorio-api/
+art-reference/

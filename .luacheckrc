@@ -6,6 +6,7 @@ max_line_length = 100
 exclude_files = {
   "spec/fixtures/**", "node_modules/**", "build/**", "docs/archive/**",
   ".lua/**", ".luarocks/**", ".install/**", ".factorio-api/**",
+  "art-reference/**",
 }
 
 -- Factorio's Lua environment. The game provides these, not Lua.
