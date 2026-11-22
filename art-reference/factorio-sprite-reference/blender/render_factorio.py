@@ -27,10 +27,6 @@ from mathutils import Vector
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import factorio_layout as L  # noqa: E402
 
-# Factorio light comes from the upper left: shadows fall right and a
-# little down the screen. Blender +X is east and -Y is south.
-SUN_DIRECTION = Vector((1.0, -0.4, -1.1))
-
 
 def parse(argv):
     p = argparse.ArgumentParser(prog="render_factorio.py")
@@ -43,6 +39,10 @@ def parse(argv):
     p.add_argument("--line-length", type=int, default=8)
     p.add_argument("--pitch", type=float, default=45.0,
                    help="camera degrees above the horizon")
+    p.add_argument("--shadow-angle", type=float, default=L.VANILLA_SHADOW_ANGLE_DEG,
+                   help="degrees south of east that shadows fall")
+    p.add_argument("--sun-elevation", type=float, default=45.0,
+                   help="sun degrees above the horizon; lower gives longer shadows")
     p.add_argument("--samples", type=int, default=64)
     p.add_argument("--out", required=True)
     args = p.parse_args(argv[argv.index("--") + 1:] if "--" in argv else [])
@@ -65,7 +65,7 @@ def add_object(scene, name, data):
     return obj
 
 
-def setup(scene, size, cam, samples):
+def setup(scene, size, cam, samples, sun_direction):
     """Camera, sun, render settings, a pivot and a shadow catcher."""
     r = scene.render
     r.engine = "CYCLES"
@@ -93,7 +93,7 @@ def setup(scene, size, cam, samples):
         sun_data = bpy.data.lights.new("factorio-sun", "SUN")
         sun_data.energy = 4.0
         sun = add_object(scene, "factorio-sun", sun_data)
-        sun.rotation_euler = SUN_DIRECTION.to_track_quat("-Z", "Y").to_euler()
+        sun.rotation_euler = Vector(sun_direction).to_track_quat("-Z", "Y").to_euler()
 
     model = models(scene)
     pivot = add_object(scene, "factorio-pivot", None)
@@ -132,7 +132,8 @@ def main():
     check(L.sheet_plan(size, args.frames, args.directions, args.line_length))
 
     cam = L.camera(size, args.pitch, args.headroom)
-    pivot, catcher = setup(scene, size, cam, args.samples)
+    sun = L.sun_direction(args.shadow_angle, args.sun_elevation)
+    pivot, catcher = setup(scene, size, cam, args.samples, sun)
     out = Path(args.out).resolve()
     layers = ["main", "shadow"]
     for layer in layers:

@@ -115,3 +115,29 @@ def test_scene_frames_needs_a_frame_for_each_sample():
 
 def test_cell_path_names_layer_direction_and_frame():
     assert L.cell_path("shadow", 3, 12) == "cells/shadow/d03_f012.png"
+
+
+def test_vanilla_shadow_angle_matches_the_centrifuge_offset():
+    # The centrifuge shadow sits about 73 px east and 7 px south.
+    assert math.isclose(math.tan(math.radians(L.VANILLA_SHADOW_ANGLE_DEG)), 7 / 73)
+
+
+def test_sun_at_zero_angle_throws_shadows_due_east():
+    x, y, z = L.sun_direction(0, 45)
+    assert math.isclose(x, math.sqrt(0.5))
+    assert math.isclose(y, 0, abs_tol=1e-12)
+    assert math.isclose(z, -math.sqrt(0.5))
+
+
+def test_positive_shadow_angle_turns_shadows_south():
+    _, y, _ = L.sun_direction(30, 45)
+    assert y < 0
+
+
+def test_sun_direction_is_a_unit_vector():
+    v = L.sun_direction(L.VANILLA_SHADOW_ANGLE_DEG, 30)
+    assert math.isclose(math.hypot(*v), 1)
+
+
+def test_lower_sun_travels_flatter():
+    assert L.sun_direction(0, 20)[2] > L.sun_direction(0, 60)[2]

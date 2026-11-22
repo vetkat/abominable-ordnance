@@ -9,6 +9,8 @@ import math
 PX_PER_TILE = 64
 MAX_SHEET_PX = 8192  # Factorio refuses larger textures.
 CAMERA_DISTANCE = 50.0
+# The vanilla centrifuge shadow sits 73 px east and 7 px south of the body.
+VANILLA_SHADOW_ANGLE_DEG = math.degrees(math.atan2(7, 73))
 
 
 def direction_yaws(direction_count):
@@ -135,3 +137,13 @@ def icon_mipmaps(size, levels):
 def cell_path(layer, direction, frame):
     """Where render_factorio.py writes a frame and pack_sheets.py reads it."""
     return f"cells/{layer}/d{direction:02}_f{frame:03}.png"
+
+
+def sun_direction(shadow_angle_deg, elevation_deg):
+    """The way sunlight travels, so shadows fall the angle south of east.
+
+    Blender +X is east and -Y is south. The elevation is the sun's height
+    above the horizon: a lower sun throws longer shadows.
+    """
+    a, e = math.radians(shadow_angle_deg), math.radians(elevation_deg)
+    return (math.cos(a) * math.cos(e), -math.sin(a) * math.cos(e), -math.sin(e))
