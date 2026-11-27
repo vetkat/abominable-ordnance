@@ -6,6 +6,7 @@
 -- entity that the effect names or the acid damage type there does not
 -- break the load. A mod that does so in its own data-final-fixes.lua and
 -- loads after this one still can.
+local LauncherPrototypes = require("core.prototypes.launcher")
 local Ordnance = require("core.prototypes.ordnance")
 
 local function raw(kind, name)
@@ -33,4 +34,15 @@ local lookalikes = Ordnance.lookalikes({
 })
 if #lookalikes > 0 then
   data:extend(lookalikes)
+end
+
+-- The vanilla artillery remote must not fire the larva launcher. This
+-- runs last, so it sees a category that another mod set earlier.
+local vanilla_flare = raw("artillery-flare", "artillery-flare")
+local category = LauncherPrototypes.vanilla_flare_category(
+  vanilla_flare,
+  raw("ammo-category", "artillery-shell") ~= nil
+)
+if category then
+  vanilla_flare.shot_category = category
 end

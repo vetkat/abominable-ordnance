@@ -11,6 +11,25 @@ local function build(levels, space_age)
   return Stubs.by_name(LauncherPrototypes.prototypes(opts))
 end
 
+describe("the vanilla flare", function()
+  it("gets the artillery shell category when it has none", function()
+    assert.are.equal(
+      "artillery-shell",
+      LauncherPrototypes.vanilla_flare_category({ type = "artillery-flare" }, true)
+    )
+  end)
+
+  it("keeps a category that another mod set", function()
+    local flare = { type = "artillery-flare", shot_category = "zz-shell" }
+    assert.is_nil(LauncherPrototypes.vanilla_flare_category(flare, true))
+  end)
+
+  it("changes nothing when the flare or the shell category is gone", function()
+    assert.is_nil(LauncherPrototypes.vanilla_flare_category(nil, true))
+    assert.is_nil(LauncherPrototypes.vanilla_flare_category({ type = "artillery-flare" }, false))
+  end)
+end)
+
 describe("the launcher prototypes", function()
   it("make a level 0 artillery turret that holds five rockets", function()
     local t = build()["artillery-turret/ao-larva-launcher"]
