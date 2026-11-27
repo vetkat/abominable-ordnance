@@ -6,6 +6,11 @@ mod uses [semantic versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Changed
+
+- The mod description warns that an update can break saves until
+  version 3.0.0.
+
 ## [1.0.0] - 2026-11-18
 
 ### Added

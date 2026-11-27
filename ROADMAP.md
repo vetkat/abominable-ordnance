@@ -42,6 +42,7 @@ Slices 1 (lifecycle) and 2 (ordnance) ship in this release.
 - [x] The first four research techs ([design][research-tree])
 - [x] Runs on vanilla Factorio 2.1 and with Space Age
   ([design][version-1-feature-list])
+- [ ] First upload to the Factorio mod portal
 
 ## 2.0.0: design version 2
 
@@ -66,14 +67,13 @@ Slices 1 (lifecycle) and 2 (ordnance) ship in this release.
 - [ ] PvP setting for multiplayer ([design][concept])
 - [ ] Custom graphics for every building and item of the mod, with
   tooling to make the sprites
-- [ ] First upload to the Factorio mod portal. Until the custom graphics
-  are in, releases go to GitHub only.
 
 From version 3 on, every new building, item and monster gets its own
 custom graphics. No new asset uses a tinted vanilla copy.
 
-Until version 3, the mod does not keep old saves working. A change needs
-no migration unless a load would crash without it.
+Until version 3, the mod does not keep old saves working, on GitHub or
+on the mod portal. A change needs no migration unless a load would crash without
+it. The mod description warns players about this.
 
 [lifecycle]: docs/design.md#lifecycle-eggs-embryos-and-larvae
 [ordnance-loading]: docs/design.md#ordnance-loading
