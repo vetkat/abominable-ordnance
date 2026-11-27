@@ -7,12 +7,13 @@ The maintainer chose the art on 2026-11-26. The reviews are in
 
 ## Purpose
 
-Release 1.0.0 uses tinted copies of vanilla graphics for every building,
+Version 0.9.0 uses tinted copies of vanilla graphics for every building,
 item and technology of the mod. This spec replaces most of them with
-openly licensed art for the content of design version 1. It ships as
-release 1.1.0. Three machines get bigger, so the release can break old
-saves and blueprints (see Risks). The mod description warns about this
-until 3.0.0.
+openly licensed art for the content of design version 1. It ships in
+release 1.0.0, because each major release ships with its own graphics. The
+maintainer withdrew the first 1.0.0, without the art, on 2026-11-27. Three
+machines get bigger, so the release can break old saves and blueprints
+(see Risks). The mod description warns about this until 3.0.0.
 
 A design version is a set of game content from `docs/design.md`. Release
 1.0.0 shipped design version 1. Releases 2.0.0 and 3.0.0 ship design

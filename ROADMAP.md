@@ -45,10 +45,6 @@ the version is 0.9.0.
 - [x] The first four research techs ([design][research-tree])
 - [x] Runs on vanilla Factorio 2.1 and with Space Age
   ([design][version-1-feature-list])
-- [ ] First upload to the Factorio mod portal
-
-## 1.1.0: graphics for design version 1
-
 - [x] Graphics from openly licensed mods for the breeding pod,
   incubator, loading chamber and larva launcher ([spec][v1-graphics])
 - [x] Own icons for eggs, larvae, loaded larvae, wards, larva rockets and
@@ -58,6 +54,8 @@ the version is 0.9.0.
   technologies
 - [x] The vanilla payload icons as badges on loaded larvae
 - [ ] Icons for the larva targeting remote and the larva flare
+- [ ] A play test of the graphics, with and without Space Age
+- [ ] First upload to the Factorio mod portal
 
 Loaded monsters stay tinted vanilla units until version 3.
 

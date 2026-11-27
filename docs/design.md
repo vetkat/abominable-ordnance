@@ -434,7 +434,7 @@ Ordinary prototypes plus a small control script can do most of the mod. The
 hard parts are prototype count, demolishers and the player transformation.
 
 - **Graphics.** Version 1 content gets openly licensed art in release
-  1.1.0 (see the
+  1.0.0 (see the
   [graphics spec](superpowers/specs/2026-11-26-v1-graphics-design.md)).
   Machines are at most 5×5: the breeding pod is 5×5, and the incubator
   and the loading chamber are 4×4. The loaded-larva icon is pale layers
