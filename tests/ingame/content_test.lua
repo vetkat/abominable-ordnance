@@ -1,5 +1,6 @@
 local Helpers = require("__abominable-ordnance__/tests/ingame/helpers")
 
+local Launcher = require("core.launcher")
 local Names = require("core.names")
 local Species = require("core.species")
 
@@ -90,7 +91,17 @@ end)
 
 test("the mod's buildings stay off Aquilo and space platforms", function()
   local space_travel = script.feature_flags["space_travel"]
-  for _, name in ipairs({ Names.POD, Names.INCUBATOR, Names.CHAMBER, Names.LAUNCHER }) do
+  -- Space Age turns space travel on, so the flag must follow the mode.
+  assert(
+    space_travel == (script.active_mods["space-age"] ~= nil),
+    "space travel does not follow Space Age"
+  )
+  local names = { Names.POD, Names.INCUBATOR, Names.CHAMBER }
+  for _, level in ipairs(Launcher.levels()) do
+    names[#names + 1] = Launcher.name(level)
+  end
+  for _, name in ipairs(names) do
+    assert(prototypes.entity[name], name .. " is missing")
     local min
     for _, c in pairs(prototypes.entity[name].surface_conditions or {}) do
       if c.property == "pressure" then

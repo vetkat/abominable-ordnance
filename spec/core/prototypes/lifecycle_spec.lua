@@ -41,7 +41,11 @@ describe("the lifecycle prototypes", function()
     opts.space_travel = true
     local pod = Stubs.by_name(Lifecycle.prototypes(opts))["assembling-machine/ao-breeding-pod"]
     assert.are.same({ { property = "pressure", min = 400 } }, pod.surface_conditions)
-    assert.is_nil(build(false)["assembling-machine/ao-breeding-pod"].surface_conditions)
+    -- Space Age alone does not decide it: the space travel flag does.
+    local sa = Stubs.lifecycle_opts(true)
+    sa.space_travel = false
+    local pod_sa = Stubs.by_name(Lifecycle.prototypes(sa))["assembling-machine/ao-breeding-pod"]
+    assert.is_nil(pod_sa.surface_conditions)
   end)
 
   it("give each egg its own icon with no tint", function()

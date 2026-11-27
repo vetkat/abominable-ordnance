@@ -5,9 +5,9 @@ local LauncherPrototypes = require("core.prototypes.launcher")
 local Names = require("core.names")
 local Stubs = require("spec.support.stubs")
 
-local function build(levels, space_age)
+local function build(levels, space_travel)
   local opts = Stubs.launcher_opts(levels)
-  opts.space_age = space_age
+  opts.space_travel = space_travel
   return Stubs.by_name(LauncherPrototypes.prototypes(opts))
 end
 
@@ -100,9 +100,7 @@ describe("the launcher prototypes", function()
 
   it("stay off Aquilo and space platforms, so they need no heat", function()
     for _, space_travel in ipairs({ false, true }) do
-      local opts = Stubs.launcher_opts({ 0, 1 })
-      opts.space_travel = space_travel
-      local t = Stubs.by_name(LauncherPrototypes.prototypes(opts))
+      local t = build({ 0, 1 }, space_travel)
       for _, name in ipairs({ "ao-larva-launcher", "ao-larva-launcher-1" }) do
         local turret = t["artillery-turret/" .. name]
         local want = space_travel and { { property = "pressure", min = 400 } } or nil

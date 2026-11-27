@@ -441,9 +441,10 @@ hard parts are prototype count, demolishers and the player transformation.
   that the mod tints per species, so a new species needs no new art for
   it. Eggs and larvae have one coloured icon per species. Loaded monsters
   stay tinted vanilla units until version 3.
-- **Placement.** The breeding pod, incubator, loading chamber and larva
-  launcher need a pressure of at least 400. That keeps them off Aquilo
-  and space platforms, so they need no heat and no frozen art.
+- **Placement.** With Space Age, the breeding pod, incubator, loading
+  chamber and larva launcher need a pressure of at least 400. That keeps
+  them off Aquilo and space platforms, so they need no heat and no frozen
+  art.
 - **Loaded larvae as items.** Version 1 generates one item per species ×
   payload in `data.lua`. Loaded monsters are vanilla units that the script
   tracks, so version 1 generates no entity prototypes for them. Hybrids and
