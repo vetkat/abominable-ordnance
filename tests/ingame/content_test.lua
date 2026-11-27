@@ -77,3 +77,13 @@ test("a loading chamber loads a larva with an explosive rocket", function()
     )
   end)
 end)
+
+test("the machines have their new footprints", function()
+  assert(prototypes.entity[Names.POD].tile_width == 5, "the pod is not 5 tiles wide")
+  assert(prototypes.entity[Names.POD].tile_height == 5, "the pod is not 5 tiles high")
+  for _, name in ipairs({ Names.INCUBATOR, Names.CHAMBER }) do
+    assert(prototypes.entity[name].tile_width == 4, name .. " is not 4 tiles wide")
+    assert(prototypes.entity[name].tile_height == 4, name .. " is not 4 tiles high")
+  end
+  assert(prototypes.entity["ao-loading-chamber-remnants"], "the chamber has no remnants")
+end)
