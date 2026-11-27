@@ -8,6 +8,10 @@ mod uses [semantic versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- Graphics files for the breeding pod, incubator, loading chamber and
+  larva launcher, for the egg, larva, loaded-larva, ward and larva rocket
+  icons, and for the four technologies. The prototypes do not use them
+  yet.
 - An empty mod that loads in Factorio 2.1, with and without Space Age.
 - In-game smoke tests that run in the headless server.
 - Biter and spitter eggs, monster chow, spitter chow and the breeding

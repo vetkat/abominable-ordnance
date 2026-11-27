@@ -47,6 +47,19 @@ the version is 0.9.0.
   ([design][version-1-feature-list])
 - [ ] First upload to the Factorio mod portal
 
+## 1.1.0: graphics for design version 1
+
+- [ ] Own graphics for the breeding pod, incubator, loading chamber and
+  larva launcher ([spec][v1-graphics])
+- [ ] Own icons for eggs, larvae, loaded larvae, wards, larva rockets and
+  the four technologies. The mod tints the larva rocket icon per species
+  ([spec][v1-graphics])
+- [ ] Icons for the larva rocket casing, the targeting remote and flare,
+  and the launcher upgrade technologies
+- [ ] The vanilla payload icons as badges on loaded larvae
+
+Loaded monsters stay tinted vanilla units until version 3.
+
 ## 2.0.0: design version 2
 
 - [ ] Expand Orifices I and II ([design][ordnance-loading])
@@ -68,8 +81,9 @@ the version is 0.9.0.
   ([design][feral-behaviour-and-risks])
 - [ ] Facehuggers on players ([design][facehuggers])
 - [ ] PvP setting for multiplayer ([design][concept])
-- [ ] Custom graphics for every building and item of the mod, with
-  tooling to make the sprites
+- [ ] Custom graphics for every building, item and monster that does not
+  have them yet, loaded monsters included, with tooling to make the
+  sprites
 
 From version 3 on, every new building, item and monster gets its own
 custom graphics. No new asset uses a tinted vanilla copy.
@@ -89,3 +103,4 @@ it. The mod description warns players about this.
 [crossbreeding]: docs/design.md#crossbreeding
 [facehuggers]: docs/design.md#facehuggers
 [concept]: docs/design.md#concept
+[v1-graphics]: docs/superpowers/specs/2026-11-26-v1-graphics-design.md

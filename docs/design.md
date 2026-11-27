@@ -433,6 +433,12 @@ It proves the core loop before adding planets. Ticked items are in the mod.
 Ordinary prototypes plus a small control script can do most of the mod. The
 hard parts are prototype count, demolishers and the player transformation.
 
+- **Graphics.** Version 1 content gets openly licensed art in release
+  1.1.0 (see the
+  [graphics spec](superpowers/specs/2026-11-26-v1-graphics-design.md)).
+  Machines are at most 5×5. Icons that change per species are pale layers
+  that the mod tints, so a new species needs no new icon art. Loaded
+  monsters stay tinted vanilla units until version 3.
 - **Loaded larvae as items.** Version 1 generates one item per species ×
   payload in `data.lua`. Loaded monsters are vanilla units that the script
   tracks, so version 1 generates no entity prototypes for them. Hybrids and

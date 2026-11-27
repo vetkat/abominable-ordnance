@@ -7,11 +7,14 @@
 # design.
 ing-form | docs/design.md | | names of game parts and actions in the design
 ing-form | locale/en/locale.cfg | breeding | the name of the breeding pod
+ing-form | CHANGELOG.md | loading | the name of the loading chamber
+ing-form | ROADMAP.md | loading | the name of the loading chamber
 ing-form | docs/superpowers/specs/*-lifecycle-design.md | | names of game parts and research (Breeding pod, Sulfur processing)
 ing-form | docs/superpowers/specs/*-ordnance-design.md | | names of game parts and research (Loading chamber, Ordnance loading, the Launching notes)
 ing-form | docs/superpowers/specs/*-launcher-design.md | | names of game parts and events (Casing, Landing, Spoiling, Ordnance loading)
 ing-form | docs/superpowers/specs/*-feral-design.md | | names of game events and states (Going feral, Replacing a unit)
 ing-form | docs/superpowers/specs/*-payload-damage-design.md | | names of game events (landing blast)
+ing-form | docs/superpowers/specs/*-v1-graphics-design.md | | names of game parts and prototypes (Breeding pod, assembling machine 3)
 
 # The review reports record what reviewers said and quote the old spec,
 # including its American spellings.
@@ -49,3 +52,14 @@ ing-form | docs/superpowers/specs/*-stasis-design.md | | names of recipes and ac
 # look-alike prototypes (plural "look-alikes").
 spelling | docs/superpowers/plans/*-payload-damage.md | scratchpad | the throwaway probe folder
 spelling | docs/superpowers/plans/*-payload-damage.md | alikes | the plural of look-alike
+
+# Credits name the artists as they sign their work.
+spelling | THIRD_PARTY.md | snouz | an artist's name
+spelling | THIRD_PARTY.md | Panglia | the name of snouz's mods
+spelling | THIRD_PARTY.md | hlittlezero | an artist's name
+spelling | THIRD_PARTY.md | Hlittlezero | the lettering on the original sprites
+spelling | docs/superpowers/specs/*-v1-graphics-design.md | snouz | an artist's name
+spelling | docs/superpowers/specs/*-v1-graphics-design.md | Panglia | the name of snouz's mods
+spelling | docs/superpowers/specs/*-v1-graphics-design.md | hlittlezero | an artist's name
+spelling | docs/superpowers/specs/*-v1-graphics-design.md | Hlittlezero | the lettering on the original sprites
+spelling | docs/superpowers/specs/*-v1-graphics-design.md | Nullius | the name of the mod that repacked the oxidizer
