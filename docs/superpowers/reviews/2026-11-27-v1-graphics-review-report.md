@@ -94,3 +94,45 @@ one new Major: `Graphics.icon_path` covered two folders, and both hold a
 The codebase reviewer checked the two path functions. The Major is
 closed and nothing new came up. The review ends here with no open
 Blocker or Major.
+
+## Plan, round 1
+
+`docs/superpowers/plans/2026-11-27-v1-graphics.md`, reviewed for
+implementation readiness and against the code. Each reviewer found one
+Blocker:
+
+- The larva icon test sat in the lifecycle task, but `ordnance.lua`
+  builds the larva. Fixed: the test moved to the ordnance task.
+- The plan ran `make test`, which does not exist. Fixed: the quick loop
+  is `busted`, and each commit runs `make fast`.
+
+The Majors, all fixed:
+
+- Tasks left specs red and broke the data stage between commits. Now the
+  first task only adds, the `data.lua` edits move into the tasks that need
+  them, and each data task runs `make ingame`.
+- `Graphics.machine`, the chamber sound and the corpse had no exact
+  shape. The plan now gives each one, and the corpse copies the fields of
+  the vanilla `big-remnants`.
+- The specs that break were not named. Every one is now listed by line.
+- `Common.tinted` and `Common.looks` would stay as dead code. The plan
+  deletes both in the task that removes their last caller.
+  `LauncherPrototypes.TINT` stays for the remote and flare.
+- The ward kinds had one icon for the item and the research. Each kind
+  now has `research.icon` and `research.icon_size`.
+- The unused-file test had no exact fixture. It now walks the folders
+  with `lfs`, builds the cryo kind from `Stasis.CRYO.needs`, and fails on
+  an empty walk.
+
+The check also found that the vanilla `big-remnants` is a 3×3 pile. The
+spec now says so.
+
+## Plan, rounds 2 and 3
+
+The readiness reviewer found every round 1 finding fixed and called the
+plan ready. The codebase reviewer found one new Major: Task 7 relied on
+the default `tile_width`, which the reviewer could not find in the
+local docs. `make api` does give that default, but the plan now sets
+`tile_width` and `tile_height` from the size and tests them. Round 3
+found the Major closed and nothing new. The review ends here with no
+open Blocker or Major.

@@ -198,8 +198,9 @@ A new pure module, `core/prototypes/graphics.lua`, holds the source
 values above as data and builds every look from them. It reads no game
 globals. Paths start with `__abominable-ordnance__/`. Its functions:
 
-- `Graphics.machine(name, size)` returns `{ graphics_set, corpse }` for the
+- `Graphics.machine(name, size)` returns the `graphics_set` of the
   breeding pod, the incubator or the loading chamber at `size` tiles.
+- `Graphics.chamber_sound()` returns the chamber's `working_sound`.
 - `Graphics.launcher(size)` returns the turret picture fields.
 - `Graphics.icon_path(file)` returns the full path of a file in
   `graphics/icons/`, and `Graphics.tech_path(file)` of a file in
@@ -240,8 +241,9 @@ vanilla looks today.
   The asserts in `looks()` go.
 - Remnants: the loading chamber gets a corpse prototype,
   `ao-loading-chamber-remnants`, with the remnants sheet. The pod and
-  the incubator use the vanilla `big-remnants`, because
-  `medium-remnants` is for 3×3 buildings. `data.lua` passes it only if it
+  the incubator use the vanilla `big-remnants`, the biggest generic
+  pile of rubble in the base game. It is a 3×3 pile, so it looks small
+  beside a 5×5 pod. `data.lua` passes it only if it
   exists, so a mod that removes it leaves the machines with no corpse.
 
 ### Larva launcher
