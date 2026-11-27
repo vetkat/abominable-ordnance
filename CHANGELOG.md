@@ -6,13 +6,6 @@ mod uses [semantic versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
-### Changed
-
-- The mod description warns that an update can break saves until
-  version 3.0.0.
-
-## [1.0.0] - 2026-11-18
-
 ### Added
 
 - An empty mod that loads in Factorio 2.1, with and without Space Age.
@@ -110,6 +103,8 @@ mod uses [semantic versioning](https://semver.org/spec/v2.0.0.html).
   It never hurts the monster that leaves it.
 - Acid pools slow the natives, characters and monsters they hit.
 - An acid monster from an old save now leaves the new puddles too.
+- The mod description warns that an update can break saves until
+  version 3.0.0.
 
 ### Fixed
 

@@ -13,7 +13,10 @@ date.
 
 ## 1.0.0: design version 1
 
-Slices 1 (lifecycle) and 2 (ordnance) ship in this release.
+Slices 1 (lifecycle) and 2 (ordnance) ship in this release. A first
+1.0.0 came out on 2026-11-18. The maintainer withdrew it on 2026-11-27,
+because each major release now ships with its own graphics. Until then
+the version is 0.9.0.
 
 - [x] Breeding pod (slice 1) and incubator (slice 2) for biters and
   spitters ([design][lifecycle])
