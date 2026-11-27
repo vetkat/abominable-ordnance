@@ -14,23 +14,6 @@ function Common.copy(value)
   return copy
 end
 
--- Returns a copy of a graphics table. Every sprite that is not a shadow,
--- a light or a glow gets the tint.
-function Common.tinted(value, tint)
-  if type(value) ~= "table" then
-    return value
-  end
-  local copy = {}
-  for k, v in pairs(value) do
-    copy[k] = Common.tinted(v, tint)
-  end
-  local sprite = copy.filename or copy.filenames or copy.stripes
-  if sprite and not (copy.draw_as_shadow or copy.draw_as_light or copy.draw_as_glow) then
-    copy.tint = tint
-  end
-  return copy
-end
-
 -- One icon layer. tint is optional, and size defaults to 64 px.
 function Common.icon(path, tint, size)
   return { { icon = path, icon_size = size or 64, tint = tint } }
@@ -84,16 +67,12 @@ end
 -- graphics ({ graphics_set, working_sound }) and numbers. The numbers are
 -- crafting_speed, energy_usage, pollution, max_health and mining_time.
 -- size is the footprint in tiles (default 3), and corpse names the
--- remnants. Without a corpse, the machine leaves none. With a tint, the graphics get it.
--- Without one, the machine uses them as given.
+-- remnants. Without a corpse, the machine leaves none. The machine uses
+-- the graphics as given.
 function Common.machine(spec)
   local n = spec.numbers
   local size = spec.size or 3
   local c, s = size / 2 - 0.3, size / 2
-  local graphics_set = spec.graphics.graphics_set
-  if spec.tint then
-    graphics_set = Common.tinted(graphics_set, spec.tint)
-  end
   return {
     type = "assembling-machine",
     name = spec.name,
@@ -116,7 +95,7 @@ function Common.machine(spec)
     energy_usage = n.energy_usage,
     module_slots = 0,
     allowed_effects = {},
-    graphics_set = graphics_set,
+    graphics_set = spec.graphics.graphics_set,
     working_sound = spec.graphics.working_sound,
   }
 end
@@ -134,7 +113,7 @@ end
 -- (recipe.time) and the item's stack size (stack).
 function Common.machine_kit(spec)
   local n = spec.numbers
-  local icons = Common.icon(spec.icon, spec.tint)
+  local icons = Common.icon(spec.icon)
   local recipe = Common.recipe(
     spec.name,
     { "crafting" },
@@ -147,7 +126,6 @@ function Common.machine_kit(spec)
     icons = icons,
     categories = spec.categories,
     graphics = spec.graphics,
-    tint = spec.tint,
     size = spec.size,
     corpse = spec.corpse,
     numbers = n,

@@ -11,19 +11,6 @@ local function numbers()
 end
 
 describe("the shared prototype helpers", function()
-  it("tint a copy of the graphics, but not shadows", function()
-    local g = {
-      layers = {
-        { filename = "a.png" },
-        { filename = "s.png", draw_as_shadow = true },
-      },
-    }
-    local t = Common.tinted(g, { r = 1 })
-    assert.are.same({ r = 1 }, t.layers[1].tint)
-    assert.is_nil(t.layers[2].tint)
-    assert.is_nil(g.layers[1].tint)
-  end)
-
   it("copy a table all the way down", function()
     local t = { a = { b = { 1, 2 } }, c = "x" }
     local c = Common.copy(t)
@@ -121,14 +108,13 @@ describe("the shared prototype helpers", function()
       icons = {},
       categories = { "c" },
       graphics = { graphics_set = { filename = "m.png" }, working_sound = { s = 1 } },
-      tint = { r = 1 },
       numbers = numbers(),
     })
     assert.are.equal("assembling-machine", m.type)
     assert.are.equal(0, m.module_slots)
     assert.are.same({}, m.allowed_effects)
     assert.are.same({ "c" }, m.crafting_categories)
-    assert.are.same({ r = 1 }, m.graphics_set.tint)
+    assert.are.same({ filename = "m.png" }, m.graphics_set)
     assert.are.same({ mining_time = 0.5, result = "ao-m" }, m.minable)
     assert.are.same({ s = 1 }, m.working_sound)
   end)
