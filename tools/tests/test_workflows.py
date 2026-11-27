@@ -114,6 +114,10 @@ def test_the_app_token_is_made_only_for_a_new_version_and_never_stored():
     assert checkout["with"]["persist-credentials"] is False
     app = next(s for s in steps if s.get("uses", "").startswith("actions/create-github-app-token"))
     assert app["if"] == "steps.pin.outputs.version"
+    # v2 has no client-id, and v3 deprecates app-id.
+    assert app["uses"] == "actions/create-github-app-token@v3"
+    assert app["with"]["client-id"] == "${{ vars.AO_BOT_CLIENT_ID }}"
+    assert "app-id" not in app["with"]
     assert app["with"]["permission-contents"] == "write"
     assert app["with"]["permission-pull-requests"] == "write"
     pr = steps[-1]
