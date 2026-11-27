@@ -84,6 +84,35 @@ describe("the shared prototype helpers", function()
     assert.is_nil(m.corpse)
   end)
 
+  it("finds a vanilla machine's sound, or nil when a mod removed it", function()
+    local hum = { sound = { filename = "hum.ogg" } }
+    local raw = { ["assembling-machine"] = { centrifuge = { working_sound = hum } } }
+    assert.are.equal(hum, Common.vanilla_sound(raw, "centrifuge"))
+    assert.is_nil(Common.vanilla_sound(raw, "chemical-plant"))
+    assert.is_nil(Common.vanilla_sound({}, "centrifuge"))
+  end)
+
+  it("names a vanilla corpse only when it exists", function()
+    local raw = { corpse = { ["big-remnants"] = { type = "corpse" } } }
+    assert.are.equal("big-remnants", Common.vanilla_corpse(raw, "big-remnants"))
+    assert.is_nil(Common.vanilla_corpse(raw, "huge-remnants"))
+    assert.is_nil(Common.vanilla_corpse({}, "big-remnants"))
+  end)
+
+  it("keeps its own copy of the sound", function()
+    local sound = { sound = { filename = "hum.ogg", volume = 0.5 } }
+    local m = Common.machine({
+      name = "ao-m",
+      icons = {},
+      categories = { "c" },
+      graphics = { graphics_set = {}, working_sound = sound },
+      numbers = numbers(),
+    })
+    assert.are.same(sound, m.working_sound)
+    assert.are_not.equal(sound, m.working_sound)
+    assert.are_not.equal(sound.sound, m.working_sound.sound)
+  end)
+
   it("takes the corpse from the spec", function()
     local m = Common.machine({
       name = "ao-m",

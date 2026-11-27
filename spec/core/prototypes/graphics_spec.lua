@@ -76,9 +76,49 @@ describe("the graphics module", function()
     end
   end)
 
+  it("reads each sheet from its own file", function()
+    local function base(layer)
+      return layer.filename:match("[^/]+$")
+    end
+    local want = {
+      ["breeding-pod"] = {
+        "pathogen-lab-animation.png",
+        "pathogen-lab-shadow.png",
+        "pathogen-lab-emission.png",
+      },
+      incubator = { "oxidizer-base.png", "oxidizer-shadow.png", "oxidizer-emission.png" },
+      ["loading-chamber"] = {
+        "simulation-chamber-base.png",
+        "simulation-chamber-shadow.png",
+        "simulation-chamber-screen-animation.png",
+        "simulation-chamber-layer4.png",
+        "simulation-chamber-glow.png",
+      },
+    }
+    for name, files in pairs(want) do
+      local g = Graphics.machine(name, Graphics.SIZE[name])
+      local got = { base(g.animation.layers[1]), base(g.animation.layers[2]) }
+      for _, v in ipairs(g.working_visualisations) do
+        got[#got + 1] = base(v.animation)
+      end
+      assert.are.same(files, got, name)
+    end
+    local l = Graphics.launcher(3)
+    assert.are.same(
+      { "rocket-turret-attack.png", "rocket-turret-attack-shadow.png" },
+      { base(l.layers[1]), base(l.layers[2]) }
+    )
+  end)
+
   it("has no tint on any building sheet", function()
-    for _, m in ipairs({ { "breeding-pod", 5 }, { "incubator", 4 }, { "loading-chamber", 4 } }) do
-      local found = sprites(Graphics.machine(m[1], m[2]))
+    local looks = {
+      Graphics.machine("breeding-pod", 5),
+      Graphics.machine("incubator", 4),
+      Graphics.machine("loading-chamber", 4),
+      Graphics.remnants(4),
+    }
+    for _, look in ipairs(looks) do
+      local found = sprites(look)
       assert.is_true(#found > 0)
       for _, s in ipairs(found) do
         assert.is_nil(s.tint, s.filename)

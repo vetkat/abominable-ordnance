@@ -34,7 +34,7 @@ describe("the launcher prototypes", function()
       for _, layer in ipairs(t.cannon_base_pictures.layers) do
         assert.is_nil(layer.tint)
       end
-      assert.are.same({ 0, 0, 0 }, t.cannon_base_shift)
+      assert.are.same({ 0.25, -0.5, 1.75 }, t.cannon_base_shift)
       assert.are.equal(0.001, t.turret_rotation_speed)
     end
   end)

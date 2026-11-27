@@ -13,11 +13,13 @@ local Common = require("core.prototypes.common")
 -- The pod and the incubator play the sound of a vanilla machine. Another
 -- mod can remove it, and then the machine has no sound.
 local function sound_of(name)
-  return ((data.raw["assembling-machine"] or {})[name] or {}).working_sound
+  return Common.vanilla_sound(data.raw, name)
 end
 
--- The machines leave the vanilla big-remnants, if another mod kept it.
-local corpse = (data.raw.corpse or {})["big-remnants"] and "big-remnants" or nil
+-- The machines leave the vanilla big-remnants, if another mod kept it. A
+-- mod that removes it later, in data-updates.lua or data-final-fixes.lua,
+-- still breaks the load.
+local corpse = Common.vanilla_corpse(data.raw, "big-remnants")
 
 -- The larva launcher copies vanilla artillery. Another mod can remove
 -- it, and the mod can't work without it.

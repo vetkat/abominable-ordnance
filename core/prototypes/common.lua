@@ -96,7 +96,8 @@ function Common.machine(spec)
     module_slots = 0,
     allowed_effects = {},
     graphics_set = spec.graphics.graphics_set,
-    working_sound = spec.graphics.working_sound,
+    -- A copy, so that a later change to the vanilla sound does not reach it.
+    working_sound = Common.copy(spec.graphics.working_sound),
   }
 end
 
@@ -153,6 +154,21 @@ function Common.technology(spec)
     effects = effects,
     unit = { count = spec.count, time = spec.time, ingredients = ingredients },
   }
+end
+
+-- The working sound of the vanilla assembling machine name in raw (the
+-- data.raw table), or nil when another mod removed it.
+function Common.vanilla_sound(raw, name)
+  return ((raw["assembling-machine"] or {})[name] or {}).working_sound
+end
+
+-- name, when raw holds that vanilla corpse, or nil when another mod
+-- removed it.
+function Common.vanilla_corpse(raw, name)
+  if (raw.corpse or {})[name] then
+    return name
+  end
+  return nil
 end
 
 -- The names of a list of recipes.

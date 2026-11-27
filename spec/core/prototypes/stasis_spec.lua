@@ -417,13 +417,27 @@ describe("the stasis ward", function()
     end)
 
     it("shows the payload badge and the ward badge apart on a loaded larva", function()
-      local loaded = Payloads.loaded_name(Species.ALL[1], Payloads.ALL[1])
-      local icons = out["item/" .. Stasis.warded_name(Stasis.BASE, loaded)].icons
-      local payload, ward = icons[#icons - 1], icons[#icons]
-      assert.are.equal(Payloads.ALL[1].icon, payload.icon)
-      assert.are.same({ 8, 8 }, payload.shift)
-      assert.are.equal(Graphics.icon_path("stasis-ward.png"), ward.icon)
-      assert.are.same({ -8, -8 }, ward.shift)
+      for _, k in ipairs({ Stasis.BASE, kind }) do
+        for _, payload in ipairs(Payloads.ALL) do
+          local loaded = Payloads.loaded_name(Species.ALL[1], payload)
+          for _, key in ipairs({
+            "item/" .. Stasis.warded_name(k, loaded),
+            "recipe/" .. Stasis.unpack_recipe(k, loaded),
+          }) do
+            local icons = out[key].icons
+            local badge, ward = icons[#icons - 1], icons[#icons]
+            assert.are.equal(payload.icon, badge.icon, key)
+            assert.are.same({ 8, 8 }, badge.shift, key)
+            assert.are.equal(k.icon, ward.icon, key)
+            assert.are.same({ -8, -8 }, ward.shift, key)
+            for _, layer in ipairs({ badge, ward }) do
+              assert.are.equal(0.25, layer.scale, key)
+              assert.is_nil(layer.tint, key)
+            end
+          end
+        end
+      end
+      assert.are.equal(Graphics.icon_path("stasis-ward.png"), Stasis.BASE.icon)
     end)
 
     it("takes the research from the kind", function()

@@ -100,7 +100,7 @@ function Stubs.launcher_opts(levels)
       base_picture = { layers = { { filename = "base.png" } } },
       cannon_barrel_pictures = { layers = { { filename = "barrel.png" } } },
       cannon_base_pictures = { layers = { { filename = "cannon.png" } } },
-      cannon_base_shift = { 0, 0, 0 },
+      cannon_base_shift = { 0.25, -0.5, 1.75 },
       base_picture_render_layer = "lower-object",
       cannon_barrel_recoil_shiftings = { { x = 0, y = 0, z = 0 } },
       cannon_barrel_recoil_shiftings_load_correction_matrix = { { x = 0, y = 0, z = 0 } },
