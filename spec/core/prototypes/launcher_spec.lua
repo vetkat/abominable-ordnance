@@ -5,9 +5,9 @@ local LauncherPrototypes = require("core.prototypes.launcher")
 local Names = require("core.names")
 local Stubs = require("spec.support.stubs")
 
-local function build(levels, space_age)
+local function build(levels, space_travel)
   local opts = Stubs.launcher_opts(levels)
-  opts.space_age = space_age
+  opts.space_travel = space_travel
   return Stubs.by_name(LauncherPrototypes.prototypes(opts))
 end
 
@@ -117,10 +117,16 @@ describe("the launcher prototypes", function()
     assert.are_not.equal(opts.turret.circuit_connector, t.circuit_connector)
   end)
 
-  it("keep warm on cold planets only with Space Age", function()
-    assert.is_nil(build()["artillery-turret/ao-larva-launcher"].heating_energy)
-    local t = build({ 0 }, true)["artillery-turret/ao-larva-launcher"]
-    assert.are.equal("200kW", t.heating_energy)
+  it("stay off Aquilo and space platforms, so they need no heat", function()
+    for _, space_travel in ipairs({ false, true }) do
+      local t = build({ 0, 1 }, space_travel)
+      for _, name in ipairs({ "ao-larva-launcher", "ao-larva-launcher-1" }) do
+        local turret = t["artillery-turret/" .. name]
+        local want = space_travel and { { property = "pressure", min = 400 } } or nil
+        assert.are.same(want, turret.surface_conditions)
+        assert.is_nil(turret.heating_energy)
+      end
+    end
   end)
 
   it("share no nested table with the vanilla prototypes", function()

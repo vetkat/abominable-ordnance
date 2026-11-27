@@ -14,6 +14,13 @@ function Common.copy(value)
   return copy
 end
 
+-- Where the mod's buildings may stand: a pressure of at least 400. That
+-- keeps them off Aquilo (300) and space platforms (0), so they never need
+-- heat or frozen art. Every other planet has more pressure. The game
+-- refuses surface conditions without space travel, and then there is no
+-- Aquilo and no platform, so the builders add them only with it.
+Common.SURFACE_CONDITIONS = { { property = "pressure", min = 400 } }
+
 -- One 64 px icon layer. tint is optional.
 function Common.icon(path, tint)
   return { { icon = path, icon_size = 64, tint = tint } }
@@ -85,6 +92,7 @@ function Common.machine(spec)
     selection_box = { { -s, -s }, { s, s } },
     tile_width = size,
     tile_height = size,
+    surface_conditions = spec.space_travel and Common.copy(Common.SURFACE_CONDITIONS) or nil,
     crafting_categories = spec.categories,
     crafting_speed = n.crafting_speed,
     energy_source = {
@@ -129,6 +137,7 @@ function Common.machine_kit(spec)
     graphics = spec.graphics,
     size = spec.size,
     corpse = spec.corpse,
+    space_travel = spec.space_travel,
     numbers = n,
   })
   return Common.placeable(spec.name, icons, n.stack), recipe, machine

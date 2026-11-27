@@ -117,6 +117,9 @@ mod uses [semantic versioning](https://semver.org/spec/v2.0.0.html).
   neighbours.
 - The ward icon in the corner of a warded item moves to the top left, so
   it no longer covers the payload icon.
+- With Space Age, the breeding pod, incubator, loading chamber and larva
+  launcher can no longer stand on Aquilo or on a space platform. The
+  launcher no longer needs heat.
 
 ### Fixed
 

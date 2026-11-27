@@ -113,6 +113,25 @@ describe("the shared prototype helpers", function()
     assert.are_not.equal(sound.sound, m.working_sound.sound)
   end)
 
+  it("keeps machines off Aquilo and space platforms, with space travel only", function()
+    local function machine(space_travel)
+      return Common.machine({
+        name = "ao-m",
+        icons = {},
+        categories = { "c" },
+        graphics = { graphics_set = {} },
+        space_travel = space_travel,
+        numbers = numbers(),
+      })
+    end
+    local m = machine(true)
+    assert.are.same({ { property = "pressure", min = 400 } }, m.surface_conditions)
+    assert.are_not.equal(Common.SURFACE_CONDITIONS, m.surface_conditions)
+    -- Without space travel the game refuses surface conditions.
+    assert.is_nil(machine(false).surface_conditions)
+    assert.is_nil(machine(nil).surface_conditions)
+  end)
+
   it("takes the corpse from the spec", function()
     local m = Common.machine({
       name = "ao-m",
