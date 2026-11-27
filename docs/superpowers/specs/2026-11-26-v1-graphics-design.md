@@ -270,8 +270,11 @@ artillery turret, as it does today.
 
 ### Icons
 
-- `Common.icon(path, tint, size)`: `tint` becomes optional and `size`
-  defaults to 64.
+- `Common.icon(path, tint)`: `tint` becomes optional.
+  `Graphics.tech_icon(file)` gives the 256 px icons of a technology, and
+  `Graphics.badge(icon, shift)` gives a small corner icon.
+- `Graphics.SIZE` holds the footprint of each building. The prototypes
+  and their art both read it.
 - Eggs and larvae use `egg-<species>.png` and `larva-<species>.png`, with
   no tint.
 - The loaded larva uses `Graphics.loaded_larva`: the four rocket layers,

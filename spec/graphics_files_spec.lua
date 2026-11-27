@@ -1,5 +1,6 @@
 -- Every art file that ships is in use, and every path the prototypes name
 -- exists. An unused file would only grow the mod zip.
+local A = require("spec.support.architecture")
 local lfs = require("lfs")
 local LauncherPrototypes = require("core.prototypes.launcher")
 local Lifecycle = require("core.prototypes.lifecycle")
@@ -16,24 +17,6 @@ local function named(value, out)
   elseif type(value) == "table" then
     for _, v in pairs(value) do
       named(v, out)
-    end
-  end
-  return out
-end
-
--- Every file under dir, as repository paths.
-local function walk(dir, out)
-  if lfs.attributes(dir, "mode") ~= "directory" then
-    return out
-  end
-  for name in lfs.dir(dir) do
-    if name ~= "." and name ~= ".." then
-      local path = dir .. "/" .. name
-      if lfs.attributes(path, "mode") == "directory" then
-        walk(path, out)
-      else
-        out[#out + 1] = path
-      end
     end
   end
   return out
@@ -63,9 +46,17 @@ local function all_prototypes()
 end
 
 describe("the art files", function()
+  local used
+
+  setup(function()
+    used = named(all_prototypes(), {})
+  end)
+
   it("uses every shipped art file", function()
-    local used = named(all_prototypes(), {})
-    local files = walk("sound", walk("graphics", {}))
+    local files = A.files("graphics", ".")
+    for _, path in ipairs(A.files("sound", ".")) do
+      files[#files + 1] = path
+    end
     assert.is_true(#files > 0)
     for _, path in ipairs(files) do
       assert.is_true(used[path] == true, path .. " ships, but no prototype uses it")
@@ -73,7 +64,7 @@ describe("the art files", function()
   end)
 
   it("names only files that exist", function()
-    for path in pairs(named(all_prototypes(), {})) do
+    for path in pairs(used) do
       assert.are.equal("file", lfs.attributes(path, "mode"), path)
     end
   end)

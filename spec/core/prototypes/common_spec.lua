@@ -96,10 +96,8 @@ describe("the shared prototype helpers", function()
     assert.are.equal("big-remnants", m.corpse)
   end)
 
-  it("makes an icon without tint and at 256 px", function()
-    local icons = Common.icon("t.png", nil, 256)
-    assert.are.same({ { icon = "t.png", icon_size = 256 } }, icons)
-    assert.is_nil(icons[1].tint)
+  it("makes an icon without tint", function()
+    assert.are.same({ { icon = "t.png", icon_size = 64 } }, Common.icon("t.png"))
   end)
 
   it("make an electric machine with no modules", function()

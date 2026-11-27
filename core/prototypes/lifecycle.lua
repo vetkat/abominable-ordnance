@@ -68,8 +68,11 @@ local function pod(sound, corpse)
     name = Names.POD,
     icon = Graphics.icon_path("breeding-pod.png"),
     categories = { Names.CATEGORY },
-    graphics = { graphics_set = Graphics.machine("breeding-pod", 5), working_sound = sound },
-    size = 5,
+    graphics = {
+      graphics_set = Graphics.machine("breeding-pod", Graphics.SIZE["breeding-pod"]),
+      working_sound = sound,
+    },
+    size = Graphics.SIZE["breeding-pod"],
     corpse = corpse,
     numbers = Balance.pod,
     ingredients = {
@@ -122,7 +125,7 @@ function Lifecycle.prototypes(opts)
   end
   out[#out + 1] = Common.technology({
     name = Names.TECH,
-    icons = Common.icon(Graphics.tech_path("monster-husbandry.png"), nil, 256),
+    icons = Graphics.tech_icon("monster-husbandry.png"),
     prerequisites = { "military-science-pack", "chemical-science-pack" },
     count = Balance.research.count,
     time = Balance.research.time,

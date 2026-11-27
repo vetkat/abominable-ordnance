@@ -14,9 +14,9 @@ function Common.copy(value)
   return copy
 end
 
--- One icon layer. tint is optional, and size defaults to 64 px.
-function Common.icon(path, tint, size)
-  return { { icon = path, icon_size = size or 64, tint = tint } }
+-- One 64 px icon layer. tint is optional.
+function Common.icon(path, tint)
+  return { { icon = path, icon_size = 64, tint = tint } }
 end
 
 function Common.item(name, icons, subgroup, stack)

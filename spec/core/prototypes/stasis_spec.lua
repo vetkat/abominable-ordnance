@@ -46,8 +46,7 @@ local function other_kind()
     },
     research = {
       name = "zz-research",
-      icon = "zz-research.png",
-      icon_size = 128,
+      icons = { { icon = "zz-research.png", icon_size = 128 } },
       prerequisites = { "zz-prerequisite" },
       count = 11,
       time = 13,

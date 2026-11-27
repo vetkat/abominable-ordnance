@@ -109,7 +109,7 @@ end
 local function ordnance_loading(recipes)
   return Common.technology({
     name = Names.ORDNANCE_TECH,
-    icons = Common.icon(Graphics.tech_path("ordnance-loading.png"), nil, 256),
+    icons = Graphics.tech_icon("ordnance-loading.png"),
     prerequisites = { Names.TECH, "explosive-rocketry" },
     count = Balance.ordnance_research.count,
     time = Balance.ordnance_research.time,
@@ -144,10 +144,13 @@ local function incubation(sound, corpse)
   local item, recipe, machine = Common.machine_kit({
     name = Names.INCUBATOR,
     icon = Graphics.icon_path("incubator.png"),
-    size = 4,
+    size = Graphics.SIZE.incubator,
     corpse = corpse,
     categories = { Names.INCUBATION },
-    graphics = { graphics_set = Graphics.machine("incubator", 4), working_sound = sound },
+    graphics = {
+      graphics_set = Graphics.machine("incubator", Graphics.SIZE.incubator),
+      working_sound = sound,
+    },
     numbers = Balance.incubator,
     ingredients = {
       { type = "item", name = "steel-plate", amount = r.steel },
@@ -185,15 +188,15 @@ local function loading(projectile_looks)
     end
   end
   local r = Balance.chamber.recipe
-  local remnants = Graphics.remnants(4)
+  local remnants = Graphics.remnants(Graphics.SIZE["loading-chamber"])
   local item, recipe, machine = Common.machine_kit({
     name = Names.CHAMBER,
     icon = Graphics.icon_path("loading-chamber.png"),
-    size = 4,
+    size = Graphics.SIZE["loading-chamber"],
     corpse = remnants.name,
     categories = { Names.LOADING },
     graphics = {
-      graphics_set = Graphics.machine("loading-chamber", 4),
+      graphics_set = Graphics.machine("loading-chamber", Graphics.SIZE["loading-chamber"]),
       working_sound = Graphics.chamber_sound(),
     },
     numbers = Balance.chamber,

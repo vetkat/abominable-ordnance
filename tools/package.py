@@ -23,8 +23,7 @@ ROOT = pathlib.Path(__file__).resolve().parents[1]
 # The art licences need the credits and their text in every copy of the
 # art, so they are required too.
 LICENCES = ("LICENSE", "THIRD_PARTY.md", "LICENSE-third-party-MIT.txt")
-REQUIRED = ("info.json", "LICENSE", "data.lua", "control.lua", "locale/",
-            "THIRD_PARTY.md", "LICENSE-third-party-MIT.txt")
+REQUIRED = ("info.json", "data.lua", "control.lua", "locale/", *LICENCES)
 OPTIONAL = ("thumbnail.png", "data-updates.lua", "data-final-fixes.lua",
             "settings.lua", "settings-updates.lua", "settings-final-fixes.lua",
             "core/", "shell/", "prototypes/", "graphics/", "sound/", "tests/ingame/")

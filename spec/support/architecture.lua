@@ -95,8 +95,9 @@ function M.random_problems(path, src)
   return {}
 end
 
--- Lists the .lua files under dir, sorted. A missing dir gives {}.
-function M.lua_files(dir)
+-- Lists the files under dir whose names match pattern, sorted. Dot files
+-- are left out. A missing dir gives {}.
+function M.files(dir, pattern)
   local files = {}
   if lfs.attributes(dir, "mode") ~= "directory" then
     return files
@@ -105,16 +106,21 @@ function M.lua_files(dir)
     local path = dir .. "/" .. name
     if name:sub(1, 1) ~= "." then
       if lfs.attributes(path, "mode") == "directory" then
-        for _, f in ipairs(M.lua_files(path)) do
+        for _, f in ipairs(M.files(path, pattern)) do
           files[#files + 1] = f
         end
-      elseif name:match("%.lua$") then
+      elseif name:match(pattern) then
         files[#files + 1] = path
       end
     end
   end
   table.sort(files)
   return files
+end
+
+-- Lists the .lua files under dir, sorted.
+function M.lua_files(dir)
+  return M.files(dir, "%.lua$")
 end
 
 return M

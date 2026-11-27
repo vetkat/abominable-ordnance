@@ -68,8 +68,7 @@ local function base_kind()
     },
     research = {
       name = Names.STASIS_TECH,
-      icon = Graphics.tech_path("stasis-ward.png"),
-      icon_size = 256,
+      icons = Graphics.tech_icon("stasis-ward.png"),
       prerequisites = { Names.ORDNANCE_TECH },
       count = Balance.stasis.research.count,
       time = Balance.stasis.research.time,
@@ -122,8 +121,7 @@ function Stasis.cryo_kind(pressure)
       name = Names.CRYO_TECH,
       -- The cryo ward has no 256 px art, so its research shows the item
       -- icon.
-      icon = Graphics.icon_path("cryo-ward.png"),
-      icon_size = 64,
+      icons = Common.icon(Graphics.icon_path("cryo-ward.png")),
       prerequisites = { Names.STASIS_TECH, "cryogenic-science-pack" },
       count = c.research.count,
       time = c.research.time,
@@ -208,7 +206,7 @@ end
 -- corner. A loaded larva has its payload badge in the bottom right.
 local function with_ward(icons, kind)
   local out = Common.copy(icons)
-  out[#out + 1] = { icon = kind.icon, icon_size = 64, scale = 0.25, shift = { -8, -8 } }
+  out[#out + 1] = Graphics.badge(kind.icon, { -8, -8 })
   return out
 end
 
@@ -339,7 +337,7 @@ local function kind_prototypes(kind, by_name)
   local research = kind.research
   out[#out + 1] = Common.technology({
     name = research.name,
-    icons = Common.icon(research.icon, nil, research.icon_size),
+    icons = Common.copy(research.icons),
     prerequisites = Common.copy(research.prerequisites),
     count = research.count,
     time = research.time,

@@ -81,12 +81,14 @@ local function icons(path)
   return Common.icon(path, LauncherPrototypes.TINT)
 end
 
-local LAUNCHER_ICONS = Common.icon(Graphics.icon_path("larva-launcher.png"))
+local function launcher_icons()
+  return Common.icon(Graphics.icon_path("larva-launcher.png"))
+end
 
 -- The hidden gun of one level: its range and its fire rate.
 local function gun(level, cannon)
   local b = Balance.launcher
-  local p = Common.item(Launcher.gun(level), Common.copy(LAUNCHER_ICONS), "gun", 1)
+  local p = Common.item(Launcher.gun(level), launcher_icons(), "gun", 1)
   p.type = "gun"
   p.hidden = true
   local a = Common.pick(cannon, CANNON_LOOKS)
@@ -105,10 +107,10 @@ end
 local function turret(level, looks, space_age)
   local b = Balance.launcher
   local p = Common.pick(looks, TURRET_LOOKS)
-  p.cannon_base_pictures = Graphics.launcher(3)
+  p.cannon_base_pictures = Graphics.launcher(Graphics.SIZE.launcher)
   p.type = "artillery-turret"
   p.name = Launcher.name(level)
-  p.icons = Common.copy(LAUNCHER_ICONS)
+  p.icons = launcher_icons()
   p.flags = { "placeable-neutral", "placeable-player", "player-creation" }
   p.minable = { mining_time = b.mining_time, result = Names.LAUNCHER }
   p.max_health = b.max_health
@@ -132,8 +134,7 @@ end
 local function launcher_kit()
   local b = Balance.launcher
   local r = b.recipe
-  local item =
-    Common.item(Names.LAUNCHER, Common.copy(LAUNCHER_ICONS), "defensive-structure", b.stack)
+  local item = Common.item(Names.LAUNCHER, launcher_icons(), "defensive-structure", b.stack)
   item.place_result = Launcher.name(0)
   local recipe = Common.recipe(Names.LAUNCHER, { "crafting" }, r.time, {
     { type = "item", name = "steel-plate", amount = r.steel },
@@ -182,7 +183,7 @@ end
 local function rockets_tech()
   return Common.technology({
     name = Names.ROCKETS_TECH,
-    icons = Common.icon(Graphics.tech_path("larva-rockets.png"), nil, 256),
+    icons = Graphics.tech_icon("larva-rockets.png"),
     prerequisites = { Names.ORDNANCE_TECH, "rocketry" },
     count = Balance.rockets_research.count,
     time = Balance.rockets_research.time,
@@ -197,7 +198,7 @@ local function upgrade(prefix, level, effects)
   local u = Balance.upgrade_research
   local tech = Common.technology({
     name = prefix .. level,
-    icons = Common.copy(LAUNCHER_ICONS),
+    icons = launcher_icons(),
     prerequisites = { level == 1 and Names.ROCKETS_TECH or prefix .. (level - 1) },
     count = u.counts[level],
     time = u.time,

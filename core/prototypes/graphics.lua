@@ -2,7 +2,6 @@
 -- The values are for the size the artist drew each building at. The
 -- builders fit them to the footprint with one factor, size / drawn. This
 -- module reads no game globals: only its parameters.
-local Common = require("core.prototypes.common")
 local Names = require("core.names")
 
 local Graphics = {}
@@ -10,12 +9,27 @@ local Graphics = {}
 local MOD = "__abominable-ordnance__/"
 local ENTITY = MOD .. "graphics/entity/"
 
+-- The footprint in tiles of each building. The prototypes and their art
+-- both read it, so the two cannot drift apart.
+Graphics.SIZE = { ["breeding-pod"] = 5, incubator = 4, ["loading-chamber"] = 4, launcher = 3 }
+
 function Graphics.icon_path(file)
   return MOD .. "graphics/icons/" .. file
 end
 
 function Graphics.tech_path(file)
   return MOD .. "graphics/technology/" .. file
+end
+
+-- The icons of a technology: its 256 px art.
+function Graphics.tech_icon(file)
+  return { { icon = Graphics.tech_path(file), icon_size = 256 } }
+end
+
+-- A small icon in a corner of another icon. shift is { 8, 8 } for the
+-- bottom right and { -8, -8 } for the top left.
+function Graphics.badge(icon, shift)
+  return { icon = icon, icon_size = 64, scale = 0.25, shift = shift }
 end
 
 -- One sheet at its drawn size. frames is the frame count, line the line
@@ -193,7 +207,7 @@ function Graphics.remnants(size)
         height = 512,
         frame_count = 1,
         direction_count = 1,
-        scale = 0.5 * size / 6,
+        scale = 0.5 * size / MACHINES["loading-chamber"].drawn,
       },
     },
   }
@@ -202,15 +216,15 @@ end
 -- The loaded larva: the rocket, its two bands and the larva in the
 -- species' colour, and the payload badge in the bottom right corner.
 function Graphics.loaded_larva(species, payload)
-  local function tinted(file)
-    return Common.icon(Graphics.icon_path(file), species.tint)[1]
+  local function icon(file, tint)
+    return { icon = Graphics.icon_path(file), icon_size = 64, tint = tint }
   end
   return {
-    Common.icon(Graphics.icon_path("larva-rocket-base.png"))[1],
-    tinted("larva-rocket-band-rear.png"),
-    tinted("larva-rocket-band-front.png"),
-    tinted("larva-rocket-larva.png"),
-    { icon = payload.icon, icon_size = 64, scale = 0.25, shift = { 8, 8 } },
+    icon("larva-rocket-base.png"),
+    icon("larva-rocket-band-rear.png", species.tint),
+    icon("larva-rocket-band-front.png", species.tint),
+    icon("larva-rocket-larva.png", species.tint),
+    Graphics.badge(payload.icon, { 8, 8 }),
   }
 end
 
