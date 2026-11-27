@@ -13,6 +13,9 @@ can go feral. The stasis and cryo wards slow the spoil timer. The mod runs
 in Factorio 2.1, with and without Space Age. See the [roadmap](ROADMAP.md)
 for later versions.
 
+Until version 3.0.0, an update can break your saves. A new version can
+change buildings, items and recipes without a migration for old saves.
+
 ## Install
 
 The mod is not on the mod portal yet. Download the zip from the GitHub

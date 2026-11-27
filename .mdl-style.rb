@@ -5,3 +5,5 @@ rule 'MD013', :tables => false, :ignore_code_blocks => true
 rule 'MD029', :style => :ordered
 # Go code uses tabs (gofmt), so allow tabs inside code blocks.
 rule 'MD010', :ignore_code_blocks => true
+# Keep a Changelog repeats "Added" and "Fixed" under each release.
+rule 'MD024', :allow_different_nesting => true

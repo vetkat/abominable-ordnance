@@ -4,7 +4,7 @@
   "title": "Abominable Ordnance",
   "author": "vetkat",
   "factorio_version": "2.1",
-  "description": "Breed monsters, load them with ordnance and fire them at your enemies.",
+  "description": "Breed monsters, load them with ordnance and fire them at your enemies. Until version 3.0.0, an update can break your saves.",
   "dependencies": ["base >= 2.1", "? space-age"],
   "spoiling_required": true
 }
