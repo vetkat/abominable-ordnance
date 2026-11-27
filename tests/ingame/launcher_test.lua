@@ -391,6 +391,22 @@ test("a vanilla flare fires vanilla artillery and not a larva launcher", functio
   end)
 end)
 
+-- With no vanilla artillery to use up the flare first, the larva
+-- launcher must still ignore a vanilla flare (play test, 2026-11-27).
+test("a vanilla flare alone does not fire a larva launcher", function()
+  local larva, vanilla, lit = flare_pair(1220, "artillery-flare")
+  vanilla.destroy()
+  after_ticks(15 * 60, function()
+    local larva_fired = Helpers.ammo(larva) == 0
+    for _, entity in pairs({ larva, lit }) do
+      if entity.valid then
+        entity.destroy()
+      end
+    end
+    assert(not larva_fired, "the larva launcher fired at a vanilla flare")
+  end)
+end)
+
 test("a rocket that spoils in the launcher hatches its monster beside it", function()
   local position = { 1300, 760 }
   Helpers.arena(surface(), position, 96)
