@@ -3,24 +3,17 @@
 -- parameters and other core modules.
 local Balance = require("core.balance")
 local Common = require("core.prototypes.common")
+local Graphics = require("core.prototypes.graphics")
 local Names = require("core.names")
 local Payloads = require("core.payloads")
 local Species = require("core.species")
 
 local Ordnance = {}
 
-Ordnance.INCUBATOR_TINT = { r = 0.7, g = 0.85, b = 0.6, a = 1 }
-Ordnance.CHAMBER_TINT = { r = 0.85, g = 0.6, b = 0.5, a = 1 }
-Ordnance.ROCKET_TINT = { r = 0.8, g = 0.55, b = 0.4, a = 1 }
-
 -- The fields of the vanilla artillery projectile that a larva rocket
 -- copies: how it looks in flight and on the map.
 local PROJECTILE_LOOKS =
   { "picture", "shadow", "chart_picture", "map_color", "height_from_ground", "rotatable" }
-
-local function larva_icon(species)
-  return Common.icon("__base__/graphics/icons/medium-" .. species.name .. ".png", species.tint)
-end
 
 -- An item that spoils into one script effect per item. numbers has stack
 -- and spoil_ticks.
@@ -44,19 +37,12 @@ local function fresh_recipe(name, category, time, ingredients, result)
   )
 end
 
--- A larva icon with the payload icon in its corner.
-local function loaded_icon(species, payload)
-  local icons = larva_icon(species)
-  icons[#icons + 1] = { icon = payload.icon, icon_size = 64, scale = 0.25, shift = { 8, 8 } }
-  return icons
-end
-
 -- A larva rocket: the loaded larva as ammo for the larva launcher. It
 -- still spoils into its loaded monster.
 local function rocket(species, payload)
   local p = spoiling(
     Payloads.loaded_name(species, payload),
-    loaded_icon(species, payload),
+    Graphics.loaded_larva(species, payload),
     Balance.loaded,
     Payloads.effect_id(species, payload)
   )
@@ -108,7 +94,7 @@ local function casing()
   local c = Balance.casing
   local item = Common.item(
     Names.CASING,
-    Common.icon("__base__/graphics/icons/rocket.png", Ordnance.ROCKET_TINT),
+    Common.icon(Graphics.icon_path("larva-rocket-base.png")),
     "intermediate-product",
     c.stack
   )
@@ -123,7 +109,7 @@ end
 local function ordnance_loading(recipes)
   return Common.technology({
     name = Names.ORDNANCE_TECH,
-    icons = Common.icon("__base__/graphics/icons/explosive-rocket.png", Ordnance.CHAMBER_TINT),
+    icons = Common.icon(Graphics.tech_path("ordnance-loading.png"), nil, 256),
     prerequisites = { Names.TECH, "explosive-rocketry" },
     count = Balance.ordnance_research.count,
     time = Balance.ordnance_research.time,
@@ -137,13 +123,15 @@ local function ordnance_loading(recipes)
   })
 end
 
--- Larvae, the incubator and their recipes. Returns the prototypes and
+-- Larvae, the incubator and their recipes. sound and corpse come from
+-- vanilla prototypes, and either can be nil. Returns the prototypes and
 -- the recipes.
-local function incubation(graphics)
+local function incubation(sound, corpse)
   local out = { { type = "recipe-category", name = Names.INCUBATION } }
   local recipes = {}
   for _, species in ipairs(Species.ALL) do
-    out[#out + 1] = spoiling(species.larva, larva_icon(species), Balance.larva, species.effect_id)
+    local icons = Common.icon(Graphics.icon_path("larva-" .. species.name .. ".png"))
+    out[#out + 1] = spoiling(species.larva, icons, Balance.larva, species.effect_id)
     recipes[#recipes + 1] = fresh_recipe(
       "ao-incubate-" .. species.name,
       Names.INCUBATION,
@@ -155,11 +143,11 @@ local function incubation(graphics)
   local r = Balance.incubator.recipe
   local item, recipe, machine = Common.machine_kit({
     name = Names.INCUBATOR,
-    icon = "__base__/graphics/icons/centrifuge.png",
-    tint = Ordnance.INCUBATOR_TINT,
-    corpse = "medium-remnants",
+    icon = Graphics.icon_path("incubator.png"),
+    size = 4,
+    corpse = corpse,
     categories = { Names.INCUBATION },
-    graphics = graphics,
+    graphics = { graphics_set = Graphics.machine("incubator", 4), working_sound = sound },
     numbers = Balance.incubator,
     ingredients = {
       { type = "item", name = "steel-plate", amount = r.steel },
@@ -173,9 +161,10 @@ local function incubation(graphics)
   return out, recipes
 end
 
--- Larva rockets, their projectiles, the casing, the chamber, their
--- recipes and their technology. Returns the prototypes and the recipes.
-local function loading(graphics, projectile_looks)
+-- Larva rockets, their projectiles, the casing, the chamber with its
+-- remnants, their recipes and their technology. Returns the prototypes
+-- and the recipes.
+local function loading(projectile_looks)
   local out = {
     { type = "recipe-category", name = Names.LOADING },
     { type = "ammo-category", name = Names.AMMO },
@@ -196,13 +185,17 @@ local function loading(graphics, projectile_looks)
     end
   end
   local r = Balance.chamber.recipe
+  local remnants = Graphics.remnants(4)
   local item, recipe, machine = Common.machine_kit({
     name = Names.CHAMBER,
-    icon = "__base__/graphics/icons/assembling-machine-3.png",
-    tint = Ordnance.CHAMBER_TINT,
-    corpse = "medium-remnants",
+    icon = Graphics.icon_path("loading-chamber.png"),
+    size = 4,
+    corpse = remnants.name,
     categories = { Names.LOADING },
-    graphics = graphics,
+    graphics = {
+      graphics_set = Graphics.machine("loading-chamber", 4),
+      working_sound = Graphics.chamber_sound(),
+    },
     numbers = Balance.chamber,
     ingredients = {
       { type = "item", name = "steel-plate", amount = r.steel },
@@ -213,6 +206,7 @@ local function loading(graphics, projectile_looks)
   recipes[#recipes + 1] = recipe
   out[#out + 1] = item
   out[#out + 1] = machine
+  out[#out + 1] = remnants
   out[#out + 1] = ordnance_loading(recipes)
   return out, recipes
 end
@@ -375,13 +369,14 @@ function Ordnance.lookalikes(opts)
 end
 
 -- Returns the prototypes, and the names of the recipes that Monster
--- husbandry unlocks. The opts hold the graphics_set and working_sound
--- to copy for the incubator and the chamber. They also hold the vanilla
--- artillery projectile, whose looks the larva rockets copy.
+-- husbandry unlocks. The incubator's sound (opts.incubator_sound) and the
+-- corpse (opts.corpse) come from vanilla prototypes. Either can be nil.
+-- The larva rockets copy the looks of the vanilla artillery projectile
+-- in opts.projectile.
 function Ordnance.prototypes(opts)
   local out = {}
-  local incubation_protos, husbandry = incubation(opts.incubator)
-  local loading_protos, loading_recipes = loading(opts.chamber, opts.projectile)
+  local incubation_protos, husbandry = incubation(opts.incubator_sound, opts.corpse)
+  local loading_protos, loading_recipes = loading(opts.projectile)
   for _, list in ipairs({
     incubation_protos,
     husbandry,

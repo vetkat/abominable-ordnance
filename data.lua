@@ -10,15 +10,6 @@ local space_age = mods["space-age"] ~= nil
 
 local Common = require("core.prototypes.common")
 
--- Every machine borrows the looks of a vanilla machine. Another mod can
--- remove it, so the assembler is the fallback.
-local function looks(name)
-  return assert(
-    Common.looks(data.raw["assembling-machine"], name, "assembling-machine-2"),
-    "Abominable Ordnance needs the " .. name .. " or the assembling machine 2"
-  )
-end
-
 -- The pod and the incubator play the sound of a vanilla machine. Another
 -- mod can remove it, and then the machine has no sound.
 local function sound_of(name)
@@ -38,8 +29,8 @@ local function vanilla(kind, name)
 end
 
 local ordnance, husbandry = Ordnance.prototypes({
-  incubator = looks("centrifuge"),
-  chamber = looks("assembling-machine-3"),
+  incubator_sound = sound_of("centrifuge"),
+  corpse = corpse,
   projectile = vanilla("artillery-projectile", "artillery-projectile"),
 })
 

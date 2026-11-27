@@ -133,23 +133,6 @@ describe("the shared prototype helpers", function()
     assert.are.same({ s = 1 }, m.working_sound)
   end)
 
-  it("copy a machine's looks", function()
-    local machines = { a = { graphics_set = { g = 1 }, working_sound = { s = 1 }, x = 1 } }
-    assert.are.same(
-      { graphics_set = { g = 1 }, working_sound = { s = 1 } },
-      Common.looks(machines, "a", "b")
-    )
-  end)
-
-  it("fall back when another mod removed the machine", function()
-    local machines = { b = { graphics_set = { g = 2 } } }
-    assert.are.same({ graphics_set = { g = 2 } }, Common.looks(machines, "a", "b"))
-  end)
-
-  it("give nil when both machines are gone", function()
-    assert.is_nil(Common.looks({}, "a", "b"))
-  end)
-
   it("pick copies only the named fields, and leaves out missing ones", function()
     local source = { a = 1, b = { 2 }, c = 3 }
     local copy = Common.pick(source, { "a", "b", "d" })

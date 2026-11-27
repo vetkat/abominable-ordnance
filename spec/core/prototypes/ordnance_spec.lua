@@ -1,5 +1,9 @@
+local Graphics = require("core.prototypes.graphics")
 local Lifecycle = require("core.prototypes.lifecycle")
+local Names = require("core.names")
 local Ordnance = require("core.prototypes.ordnance")
+local Payloads = require("core.payloads")
+local Species = require("core.species")
 local Stubs = require("spec.support.stubs")
 
 local function build()
@@ -7,6 +11,81 @@ local function build()
 end
 
 describe("the ordnance prototypes", function()
+  local function icon(file)
+    return { { icon = Graphics.icon_path(file), icon_size = 64 } }
+  end
+
+  local function assert_no_tint(value)
+    if type(value) == "table" then
+      assert.is_nil(value.tint)
+      for _, v in pairs(value) do
+        assert_no_tint(v)
+      end
+    end
+  end
+
+  it("give the incubator and the chamber their art at 4x4", function()
+    local all = build()
+    local incubator = all["assembling-machine/" .. Names.INCUBATOR]
+    local chamber = all["assembling-machine/" .. Names.CHAMBER]
+    assert.are.same(Graphics.machine("incubator", 4), incubator.graphics_set)
+    assert.are.same(Graphics.machine("loading-chamber", 4), chamber.graphics_set)
+    for _, m in ipairs({ incubator, chamber }) do
+      assert.are.same({ { -2, -2 }, { 2, 2 } }, m.selection_box)
+      assert_no_tint(m.graphics_set)
+    end
+    assert.are.same(icon("incubator.png"), all["item/" .. Names.INCUBATOR].icons)
+    assert.are.same(icon("loading-chamber.png"), all["item/" .. Names.CHAMBER].icons)
+  end)
+
+  it("give the incubator the vanilla sound and corpse, which can be nil", function()
+    local opts = Stubs.ordnance_opts()
+    local incubator =
+      Stubs.by_name((Ordnance.prototypes(opts)))["assembling-machine/" .. Names.INCUBATOR]
+    assert.are.same(opts.incubator_sound, incubator.working_sound)
+    assert.are.equal(opts.corpse, incubator.corpse)
+    opts.incubator_sound, opts.corpse = nil, nil
+    incubator = Stubs.by_name((Ordnance.prototypes(opts)))["assembling-machine/" .. Names.INCUBATOR]
+    assert.is_nil(incubator.working_sound)
+    assert.is_nil(incubator.corpse)
+  end)
+
+  it("give the chamber its own sound and remnants", function()
+    local all = build()
+    local chamber = all["assembling-machine/" .. Names.CHAMBER]
+    assert.are.same(Graphics.chamber_sound(), chamber.working_sound)
+    assert.are.equal("ao-loading-chamber-remnants", chamber.corpse)
+    assert.are.same(Graphics.remnants(4), all["corpse/ao-loading-chamber-remnants"])
+  end)
+
+  it("give each larva its own icon with no tint", function()
+    local all = build()
+    for _, species in ipairs(Species.ALL) do
+      assert.are.same(icon("larva-" .. species.name .. ".png"), all["item/" .. species.larva].icons)
+    end
+  end)
+
+  it("give each loaded larva the tinted rocket and its payload badge", function()
+    local all = build()
+    for _, species in ipairs(Species.ALL) do
+      for _, payload in ipairs(Payloads.ALL) do
+        local item = all["ammo/" .. Payloads.loaded_name(species, payload)]
+        assert.are.same(Graphics.loaded_larva(species, payload), item.icons)
+      end
+    end
+  end)
+
+  it("give the casing the empty rocket", function()
+    assert.are.same(icon("larva-rocket-base.png"), build()["item/" .. Names.CASING].icons)
+  end)
+
+  it("give Ordnance loading its 256 px icon", function()
+    assert.are.same(
+      { { icon = Graphics.tech_path("ordnance-loading.png"), icon_size = 256 } },
+      build()["technology/" .. Names.ORDNANCE_TECH].icons
+    )
+  end)
+
   it("make larvae that hatch one monster each, with the egg's effect", function()
     local larva = build()["item/ao-biter-larva"]
     assert.are.equal(20, larva.stack_size)
