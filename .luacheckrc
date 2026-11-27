@@ -12,7 +12,7 @@ exclude_files = {
 local factorio = {
   "data", "mods", "settings", "defines", "game", "script", "prototypes",
   "remote", "commands", "rendering", "log", "serpent", "table_size",
-  "helpers",
+  "helpers", "feature_flags",
 }
 
 -- storage is the mod's saved table, and Factorio adds table.deepcopy.

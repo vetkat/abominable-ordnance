@@ -7,6 +7,9 @@ local Ordnance = require("core.prototypes.ordnance")
 local Stasis = require("core.prototypes.stasis")
 
 local space_age = mods["space-age"] ~= nil
+-- Space Age turns on space travel. The rule that keeps buildings off
+-- Aquilo and platforms needs it.
+local space_travel = feature_flags["space_travel"] == true
 
 local Common = require("core.prototypes.common")
 
@@ -32,6 +35,7 @@ end
 
 local ordnance, husbandry = Ordnance.prototypes({
   incubator_sound = sound_of("centrifuge"),
+  space_travel = space_travel,
   corpse = corpse,
   projectile = vanilla("artillery-projectile", "artillery-projectile"),
 })
@@ -42,6 +46,7 @@ local lift_weight = vanilla("utility-constants", "default").default_rocket_lift_
 local lifecycle = Stasis.weighted(
   Lifecycle.prototypes({
     space_age = space_age,
+    space_travel = space_travel,
     pod_sound = sound_of(space_age and "biochamber" or "chemical-plant"),
     corpse = corpse,
     extra_unlocks = husbandry,
@@ -86,6 +91,6 @@ data:extend(LauncherPrototypes.prototypes({
   flare = vanilla("artillery-flare", "artillery-flare"),
   remote = vanilla("capsule", "artillery-targeting-remote"),
   cannon = vanilla("gun", "artillery-wagon-cannon").attack_parameters,
-  space_age = space_age,
+  space_travel = space_travel,
   levels = Launcher.levels(),
 }))

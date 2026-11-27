@@ -54,6 +54,10 @@ the version is 0.9.0.
   technologies
 - [x] The vanilla payload icons as badges on loaded larvae
 - [ ] Icons for the larva targeting remote and the larva flare
+- [ ] Icons for monster chow and spitter chow
+- [ ] Own rubble for the breeding pod and the incubator
+- [x] The mod's buildings stay off Aquilo and space platforms, so they
+  need no frozen art
 - [ ] A play test of the graphics, with and without Space Age
 - [ ] First upload to the Factorio mod portal
 

@@ -87,3 +87,24 @@ test("the machines have their new footprints", function()
   end
   assert(prototypes.entity["ao-loading-chamber-remnants"], "the chamber has no remnants")
 end)
+
+test("the mod's buildings stay off Aquilo and space platforms", function()
+  local space_travel = script.feature_flags["space_travel"]
+  for _, name in ipairs({ Names.POD, Names.INCUBATOR, Names.CHAMBER, Names.LAUNCHER }) do
+    local min
+    for _, c in pairs(prototypes.entity[name].surface_conditions or {}) do
+      if c.property == "pressure" then
+        min = c.min
+      end
+    end
+    if space_travel then
+      assert(min == 400, name .. " lacks the pressure rule")
+    else
+      assert(min == nil, name .. " has a pressure rule without space travel")
+    end
+  end
+  if game.planets["aquilo"] then
+    local pressure = game.planets["aquilo"].prototype.surface_properties["pressure"]
+    assert(pressure < 400, "Aquilo has pressure " .. pressure)
+  end
+end)

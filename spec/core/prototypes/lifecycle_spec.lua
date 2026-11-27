@@ -36,6 +36,14 @@ describe("the lifecycle prototypes", function()
     assert.is_nil(pod.corpse)
   end)
 
+  it("keep the pod off Aquilo only with space travel", function()
+    local opts = Stubs.lifecycle_opts()
+    opts.space_travel = true
+    local pod = Stubs.by_name(Lifecycle.prototypes(opts))["assembling-machine/ao-breeding-pod"]
+    assert.are.same({ { property = "pressure", min = 400 } }, pod.surface_conditions)
+    assert.is_nil(build(false)["assembling-machine/ao-breeding-pod"].surface_conditions)
+  end)
+
   it("give each egg its own icon with no tint", function()
     local all = build(false)
     for _, species in ipairs(Species.ALL) do
