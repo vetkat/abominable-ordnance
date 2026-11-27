@@ -240,8 +240,9 @@ the run. `tools/pr_status.py` reads the result. A cancelled run next to
 a green or running one does not count as red.
 
 A PR opened with `github.token` starts no workflows, so the job uses a
-token from a GitHub App. The App ID is the repository variable
-`AO_BOT_ID`, and its private key is the secret `AO_BOT_KEY`. The App has
+token from a GitHub App. The Client ID of the App is the repository
+variable `AO_BOT_CLIENT_ID`, and its private key is the secret
+`AO_BOT_KEY`. The App has
 read and write access to contents and pull requests in this repository
 only. The job makes the token only when it has a new version, and the
 checkout does not store it.
