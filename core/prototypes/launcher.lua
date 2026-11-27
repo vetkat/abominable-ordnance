@@ -209,6 +209,18 @@ local function upgrade(prefix, level, effects)
   return tech
 end
 
+-- The ammo category to give the vanilla artillery flare, or nil to leave
+-- it as it is. A flare without a category calls every artillery turret,
+-- the larva launcher too. So the vanilla flare gets the artillery shell
+-- category, unless another mod already set one. has_shell is true when
+-- that category exists.
+function LauncherPrototypes.vanilla_flare_category(vanilla, has_shell)
+  if vanilla and has_shell and not vanilla.shot_category then
+    return "artillery-shell"
+  end
+  return nil
+end
+
 -- Returns the prototypes. The launcher copies the looks of vanilla
 -- artillery. These options hold the vanilla prototypes:
 --   turret: the artillery turret.

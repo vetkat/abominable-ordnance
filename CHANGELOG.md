@@ -123,6 +123,9 @@ mod uses [semantic versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- The vanilla artillery targeting remote no longer fires the larva
+  launcher. The vanilla artillery flare now calls only turrets with
+  artillery shells, unless another mod gave it a category.
 - A feral monster attacked trees and rocks. The feral force is now at peace
   with the neutral force, as the feral spec says.
 - In Space Age, a warded spitter egg and a warded spitter larva weighed less
