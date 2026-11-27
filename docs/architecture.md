@@ -70,8 +70,9 @@ end
 `data.lua` is the shell of the data stage. It reads `mods` and
 `data.raw`, passes plain values to the pure builders in
 `core/prototypes/`, and calls `data:extend` with the result. For example,
-it passes the centrifuge's graphics to `Ordnance.prototypes`, which
-returns the incubator.
+it passes the centrifuge's sound to `Ordnance.prototypes`, which returns
+the incubator. The mod's own art comes from `core/prototypes/graphics.lua`,
+which holds the sheet values and builds the looks, sounds and icon paths.
 
 `data-final-fixes.lua` is a second shell. It builds the look-alikes with
 `Ordnance.lookalikes` from the vanilla effects as they stand after every

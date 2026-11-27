@@ -49,14 +49,15 @@ the version is 0.9.0.
 
 ## 1.1.0: graphics for design version 1
 
-- [ ] Graphics from openly licensed mods for the breeding pod,
+- [x] Graphics from openly licensed mods for the breeding pod,
   incubator, loading chamber and larva launcher ([spec][v1-graphics])
-- [ ] Own icons for eggs, larvae, loaded larvae, wards, larva rockets and
+- [x] Own icons for eggs, larvae, loaded larvae, wards, larva rockets and
   the four technologies. The mod tints the larva rocket icon per species
   ([spec][v1-graphics])
-- [ ] Icons for the larva rocket casing, the targeting remote and flare,
-  and the launcher upgrade technologies
-- [ ] The vanilla payload icons as badges on loaded larvae
+- [x] Icons for the larva rocket casing and the launcher upgrade
+  technologies
+- [x] The vanilla payload icons as badges on loaded larvae
+- [ ] Icons for the larva targeting remote and the larva flare
 
 Loaded monsters stay tinted vanilla units until version 3.
 
