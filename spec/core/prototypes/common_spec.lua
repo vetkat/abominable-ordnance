@@ -60,7 +60,62 @@ describe("the shared prototype helpers", function()
     )
   end)
 
-  it("make a 3x3 electric machine with no modules", function()
+  it("sizes the boxes from the footprint", function()
+    local want = {
+      [3] = { 1.2, 1.5 },
+      [4] = { 1.7, 2.0 },
+      [5] = { 2.2, 2.5 },
+    }
+    for size, boxes in pairs(want) do
+      local m = Common.machine({
+        name = "ao-m",
+        icons = {},
+        categories = { "c" },
+        graphics = { graphics_set = {} },
+        size = size,
+        numbers = numbers(),
+      })
+      assert.are.near(boxes[1], m.collision_box[2][1], 1e-9)
+      assert.are.near(-boxes[1], m.collision_box[1][2], 1e-9)
+      assert.are.near(boxes[2], m.selection_box[2][2], 1e-9)
+      assert.are.near(-boxes[2], m.selection_box[1][1], 1e-9)
+      assert.are.equal(size, m.tile_width)
+      assert.are.equal(size, m.tile_height)
+    end
+  end)
+
+  it("uses the graphics as given without a tint", function()
+    local m = Common.machine({
+      name = "ao-m",
+      icons = {},
+      categories = { "c" },
+      graphics = { graphics_set = { animation = { layers = { { filename = "a.png" } } } } },
+      numbers = numbers(),
+    })
+    assert.is_nil(m.graphics_set.animation.layers[1].tint)
+    assert.are.equal(3, m.tile_width)
+    assert.are.equal("medium-remnants", m.corpse)
+  end)
+
+  it("takes the corpse from the spec", function()
+    local m = Common.machine({
+      name = "ao-m",
+      icons = {},
+      categories = { "c" },
+      graphics = { graphics_set = {} },
+      corpse = "big-remnants",
+      numbers = numbers(),
+    })
+    assert.are.equal("big-remnants", m.corpse)
+  end)
+
+  it("makes an icon without tint and at 256 px", function()
+    local icons = Common.icon("t.png", nil, 256)
+    assert.are.same({ { icon = "t.png", icon_size = 256 } }, icons)
+    assert.is_nil(icons[1].tint)
+  end)
+
+  it("make an electric machine with no modules", function()
     local m = Common.machine({
       name = "ao-m",
       icons = {},

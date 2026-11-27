@@ -31,8 +31,9 @@ function Common.tinted(value, tint)
   return copy
 end
 
-function Common.icon(path, tint)
-  return { { icon = path, icon_size = 64, tint = tint } }
+-- One icon layer. tint is optional, and size defaults to 64 px.
+function Common.icon(path, tint, size)
+  return { { icon = path, icon_size = size or 64, tint = tint } }
 end
 
 function Common.item(name, icons, subgroup, stack)
@@ -79,12 +80,20 @@ function Common.spoil_trigger(effect_id, per_trigger)
   }
 end
 
--- A 3x3 electric machine with no modules. spec has name, icons,
--- categories, graphics ({ graphics_set, working_sound }), tint and
--- numbers (crafting_speed, energy_usage, pollution, max_health,
--- mining_time).
+-- An electric machine with no modules. spec has name, icons, categories,
+-- graphics ({ graphics_set, working_sound }) and numbers. The numbers are
+-- crafting_speed, energy_usage, pollution, max_health and mining_time.
+-- size is the footprint in tiles (default 3), and corpse names the
+-- remnants (default medium-remnants). With a tint, the graphics get it.
+-- Without one, the machine uses them as given.
 function Common.machine(spec)
   local n = spec.numbers
+  local size = spec.size or 3
+  local c, s = size / 2 - 0.3, size / 2
+  local graphics_set = spec.graphics.graphics_set
+  if spec.tint then
+    graphics_set = Common.tinted(graphics_set, spec.tint)
+  end
   return {
     type = "assembling-machine",
     name = spec.name,
@@ -92,9 +101,11 @@ function Common.machine(spec)
     flags = { "placeable-neutral", "placeable-player", "player-creation" },
     minable = { mining_time = n.mining_time, result = spec.name },
     max_health = n.max_health,
-    corpse = "medium-remnants",
-    collision_box = { { -1.2, -1.2 }, { 1.2, 1.2 } },
-    selection_box = { { -1.5, -1.5 }, { 1.5, 1.5 } },
+    corpse = spec.corpse or "medium-remnants",
+    collision_box = { { -c, -c }, { c, c } },
+    selection_box = { { -s, -s }, { s, s } },
+    tile_width = size,
+    tile_height = size,
     crafting_categories = spec.categories,
     crafting_speed = n.crafting_speed,
     energy_source = {
@@ -105,7 +116,7 @@ function Common.machine(spec)
     energy_usage = n.energy_usage,
     module_slots = 0,
     allowed_effects = {},
-    graphics_set = Common.tinted(spec.graphics.graphics_set, spec.tint),
+    graphics_set = graphics_set,
     working_sound = spec.graphics.working_sound,
   }
 end
@@ -137,6 +148,8 @@ function Common.machine_kit(spec)
     categories = spec.categories,
     graphics = spec.graphics,
     tint = spec.tint,
+    size = spec.size,
+    corpse = spec.corpse,
     numbers = n,
   })
   return Common.placeable(spec.name, icons, n.stack), recipe, machine
