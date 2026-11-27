@@ -287,8 +287,13 @@ This `release.yml` differs from Hattorio's in four ways:
 ### Version rules
 
 MAJOR breaks saves or removes prototypes. MINOR adds features. PATCH fixes
-bugs. This project left the version at 0.1.0, unreleased, until
-release 1.0.0 on 2026-11-18. Design version N ships as release N.0.0.
+bugs. Design version N ships as release N.0.0.
+
+This project left the version at 0.1.0, unreleased, until
+release 1.0.0 on 2026-11-18. On 2026-11-27 the maintainer withdrew that
+release, because each major release now ships with its own graphics.
+The version is 0.9.0, unreleased, until 1.0.0 ships again with the
+graphics.
 
 `check_version.py` has two modes:
 
