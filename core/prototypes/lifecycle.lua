@@ -62,7 +62,7 @@ end
 
 -- The pod's item, recipe and machine. sound and corpse come from vanilla
 -- prototypes, and either can be nil.
-local function pod(sound, corpse)
+local function pod(sound, corpse, space_travel)
   local r = Balance.pod.recipe
   return Common.machine_kit({
     name = Names.POD,
@@ -73,6 +73,7 @@ local function pod(sound, corpse)
       working_sound = sound,
     },
     size = Graphics.SIZE["breeding-pod"],
+    space_travel = space_travel,
     corpse = corpse,
     numbers = Balance.pod,
     ingredients = {
@@ -92,7 +93,8 @@ local function adopt(species)
 end
 
 -- opts.pod_sound is the pod's working sound, and opts.corpse names its
--- remnants. Either can be nil.
+-- remnants. Either can be nil. opts.space_travel is true when the game
+-- has space travel.
 -- opts.extra_unlocks names more recipes for Monster husbandry.
 function Lifecycle.prototypes(opts)
   local out = { { type = "recipe-category", name = Names.CATEGORY } }
@@ -112,7 +114,7 @@ function Lifecycle.prototypes(opts)
       recipes[#recipes + 1] = adopt(species)
     end
   end
-  local pod_item, pod_recipe, pod_machine = pod(opts.pod_sound, opts.corpse)
+  local pod_item, pod_recipe, pod_machine = pod(opts.pod_sound, opts.corpse, opts.space_travel)
   out[#out + 1] = pod_item
   out[#out + 1] = pod_machine
   recipes[#recipes + 1] = pod_recipe

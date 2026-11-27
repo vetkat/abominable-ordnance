@@ -126,7 +126,7 @@ end
 -- Larvae, the incubator and their recipes. sound and corpse come from
 -- vanilla prototypes, and either can be nil. Returns the prototypes and
 -- the recipes.
-local function incubation(sound, corpse)
+local function incubation(sound, corpse, space_travel)
   local out = { { type = "recipe-category", name = Names.INCUBATION } }
   local recipes = {}
   for _, species in ipairs(Species.ALL) do
@@ -145,6 +145,7 @@ local function incubation(sound, corpse)
     name = Names.INCUBATOR,
     icon = Graphics.icon_path("incubator.png"),
     size = Graphics.SIZE.incubator,
+    space_travel = space_travel,
     corpse = corpse,
     categories = { Names.INCUBATION },
     graphics = {
@@ -167,7 +168,7 @@ end
 -- Larva rockets, their projectiles, the casing, the chamber with its
 -- remnants, their recipes and their technology. Returns the prototypes
 -- and the recipes.
-local function loading(projectile_looks)
+local function loading(projectile_looks, space_travel)
   local out = {
     { type = "recipe-category", name = Names.LOADING },
     { type = "ammo-category", name = Names.AMMO },
@@ -193,6 +194,7 @@ local function loading(projectile_looks)
     name = Names.CHAMBER,
     icon = Graphics.icon_path("loading-chamber.png"),
     size = Graphics.SIZE["loading-chamber"],
+    space_travel = space_travel,
     corpse = remnants.name,
     categories = { Names.LOADING },
     graphics = {
@@ -375,11 +377,13 @@ end
 -- husbandry unlocks. The incubator's sound (opts.incubator_sound) and the
 -- corpse (opts.corpse) come from vanilla prototypes. Either can be nil.
 -- The larva rockets copy the looks of the vanilla artillery projectile
--- in opts.projectile.
+-- in opts.projectile. opts.space_travel is true when the game has space
+-- travel.
 function Ordnance.prototypes(opts)
   local out = {}
-  local incubation_protos, husbandry = incubation(opts.incubator_sound, opts.corpse)
-  local loading_protos, loading_recipes = loading(opts.projectile)
+  local incubation_protos, husbandry =
+    incubation(opts.incubator_sound, opts.corpse, opts.space_travel)
+  local loading_protos, loading_recipes = loading(opts.projectile, opts.space_travel)
   for _, list in ipairs({
     incubation_protos,
     husbandry,

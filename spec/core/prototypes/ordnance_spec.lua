@@ -50,6 +50,19 @@ describe("the ordnance prototypes", function()
     assert.is_nil(incubator.corpse)
   end)
 
+  it("keep the incubator and the chamber off Aquilo only with space travel", function()
+    local opts = Stubs.ordnance_opts()
+    opts.space_travel = true
+    local all = Stubs.by_name((Ordnance.prototypes(opts)))
+    for _, name in ipairs({ Names.INCUBATOR, Names.CHAMBER }) do
+      assert.are.same(
+        { { property = "pressure", min = 400 } },
+        all["assembling-machine/" .. name].surface_conditions
+      )
+      assert.is_nil(build()["assembling-machine/" .. name].surface_conditions)
+    end
+  end)
+
   it("give the chamber its own sound and remnants", function()
     local all = build()
     local chamber = all["assembling-machine/" .. Names.CHAMBER]

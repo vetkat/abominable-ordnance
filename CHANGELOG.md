@@ -117,9 +117,15 @@ mod uses [semantic versioning](https://semver.org/spec/v2.0.0.html).
   neighbours.
 - The ward icon in the corner of a warded item moves to the top left, so
   it no longer covers the payload icon.
+- With Space Age, the breeding pod, incubator, loading chamber and larva
+  launcher can no longer stand on Aquilo or on a space platform. The
+  launcher no longer needs heat.
 
 ### Fixed
 
+- The vanilla artillery targeting remote no longer fires the larva
+  launcher. The vanilla artillery flare now calls only turrets with
+  artillery shells, unless another mod gave it a category.
 - A feral monster attacked trees and rocks. The feral force is now at peace
   with the neutral force, as the feral spec says.
 - In Space Age, a warded spitter egg and a warded spitter larva weighed less

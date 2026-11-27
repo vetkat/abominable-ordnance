@@ -104,7 +104,7 @@ end
 -- The turret of one level. Levels above 0 are hidden, and the launcher
 -- item builds their ghosts. No level is a fast replace or an upgrade of
 -- another: the script swaps them.
-local function turret(level, looks, space_age)
+local function turret(level, looks, space_travel)
   local b = Balance.launcher
   local p = Common.pick(looks, TURRET_LOOKS)
   p.cannon_base_pictures = Graphics.launcher(Graphics.SIZE.launcher)
@@ -119,10 +119,9 @@ local function turret(level, looks, space_age)
   p.ammo_stack_limit = b.ammo
   p.automated_ammo_count = b.ammo
   p.manual_range_modifier = b.manual_range_modifier
-  if space_age then
-    -- Space Age gives the vanilla turret this in a later stage, so the
-    -- copy would miss it.
-    p.heating_energy = b.heating_energy
+  -- The launcher may not stand on Aquilo, so it never needs heat.
+  if space_travel then
+    p.surface_conditions = Common.copy(Common.SURFACE_CONDITIONS)
   end
   if level > 0 then
     p.hidden = true
@@ -210,6 +209,18 @@ local function upgrade(prefix, level, effects)
   return tech
 end
 
+-- The ammo category to give the vanilla artillery flare, or nil to leave
+-- it as it is. A flare without a category calls every artillery turret,
+-- the larva launcher too. So the vanilla flare gets the artillery shell
+-- category, unless another mod already set one. has_shell is true when
+-- that category exists.
+function LauncherPrototypes.vanilla_flare_category(vanilla, has_shell)
+  if vanilla and has_shell and not vanilla.shot_category then
+    return "artillery-shell"
+  end
+  return nil
+end
+
 -- Returns the prototypes. The launcher copies the looks of vanilla
 -- artillery. These options hold the vanilla prototypes:
 --   turret: the artillery turret.
@@ -217,12 +228,12 @@ end
 --   remote: the artillery targeting remote.
 --   cannon: the attack of the artillery wagon cannon.
 -- The option levels lists the launcher levels to build. The option
--- space_age is true when Space Age is active.
+-- space_travel is true when the game has space travel.
 function LauncherPrototypes.prototypes(opts)
   local out = {}
   for _, level in ipairs(opts.levels) do
     out[#out + 1] = gun(level, opts.cannon)
-    out[#out + 1] = turret(level, opts.turret, opts.space_age)
+    out[#out + 1] = turret(level, opts.turret, opts.space_travel)
   end
   local item, recipe = launcher_kit()
   local kit, kit_recipe = remote_kit(opts.remote)
