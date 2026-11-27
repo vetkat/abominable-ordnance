@@ -1,9 +1,12 @@
 local Balance = require("core.balance")
 local Common = require("core.prototypes.common")
+local Graphics = require("core.prototypes.graphics")
 local Lifecycle = require("core.prototypes.lifecycle")
 local Ordnance = require("core.prototypes.ordnance")
+local Payloads = require("core.payloads")
 local Names = require("core.names")
 local Stasis = require("core.prototypes.stasis")
+local Species = require("core.species")
 local Stubs = require("spec.support.stubs")
 
 local LIFT = 1000000
@@ -33,7 +36,7 @@ local function other_kind()
     warded = "zz-warded-",
     pack = "zz-pack-",
     unpack = "zz-unpack-",
-    tint = { r = 0.1, g = 0.2, b = 0.3, a = 1 },
+    icon = "zz-ward.png",
     stack = 5,
     recipe = {
       categories = { "zz-category" },
@@ -43,6 +46,7 @@ local function other_kind()
     },
     research = {
       name = "zz-research",
+      icons = { { icon = "zz-research.png", icon_size = 128 } },
       prerequisites = { "zz-prerequisite" },
       count = 11,
       time = 13,
@@ -338,9 +342,12 @@ describe("the stasis ward", function()
       out = Stubs.by_name(Stasis.prototypes(list, { Stasis.BASE, kind }))
     end)
 
-    local function assert_kind_tint(icons)
+    local function assert_kind_badge(icons)
       local last = icons[#icons]
-      assert.are.same(kind.tint, last.tint)
+      assert.are.equal(kind.icon, last.icon)
+      assert.are.equal(0.25, last.scale)
+      assert.are.same({ -8, -8 }, last.shift)
+      assert.is_nil(last.tint)
     end
 
     it("takes the ward item and recipe from the kind", function()
@@ -349,7 +356,7 @@ describe("the stasis ward", function()
       assert.truthy(item)
       assert.truthy(recipe)
       assert.are.equal(kind.stack, item.stack_size)
-      assert.are.same(kind.tint, item.icons[1].tint)
+      assert.are.same({ { icon = kind.icon, icon_size = 64 } }, item.icons)
       assert.are.same(kind.recipe.categories, recipe.categories)
       assert.are.equal(kind.recipe.time, recipe.energy_required)
       assert.are.same(kind.recipe.ingredients, recipe.ingredients)
@@ -398,12 +405,39 @@ describe("the stasis ward", function()
       end
     end)
 
-    it("tints every icon of the kind", function()
+    it("uses the kind's icon everywhere", function()
       for _, name in ipairs(Stasis.lifecycle_names()) do
-        assert_kind_tint(out["item/" .. Stasis.warded_name(kind, name)].icons)
-        assert_kind_tint(out["recipe/" .. Stasis.unpack_recipe(kind, name)].icons)
+        assert_kind_badge(out["item/" .. Stasis.warded_name(kind, name)].icons)
+        assert_kind_badge(out["recipe/" .. Stasis.unpack_recipe(kind, name)].icons)
       end
-      assert.are.same(kind.tint, out["technology/" .. kind.research.name].icons[1].tint)
+      assert.are.same(
+        { { icon = "zz-research.png", icon_size = 128 } },
+        out["technology/" .. kind.research.name].icons
+      )
+    end)
+
+    it("shows the payload badge and the ward badge apart on a loaded larva", function()
+      for _, k in ipairs({ Stasis.BASE, kind }) do
+        for _, payload in ipairs(Payloads.ALL) do
+          local loaded = Payloads.loaded_name(Species.ALL[1], payload)
+          for _, key in ipairs({
+            "item/" .. Stasis.warded_name(k, loaded),
+            "recipe/" .. Stasis.unpack_recipe(k, loaded),
+          }) do
+            local icons = out[key].icons
+            local badge, ward = icons[#icons - 1], icons[#icons]
+            assert.are.equal(payload.icon, badge.icon, key)
+            assert.are.same({ 8, 8 }, badge.shift, key)
+            assert.are.equal(k.icon, ward.icon, key)
+            assert.are.same({ -8, -8 }, ward.shift, key)
+            for _, layer in ipairs({ badge, ward }) do
+              assert.are.equal(0.25, layer.scale, key)
+              assert.is_nil(layer.tint, key)
+            end
+          end
+        end
+      end
+      assert.are.equal(Graphics.icon_path("stasis-ward.png"), Stasis.BASE.icon)
     end)
 
     it("takes the research from the kind", function()

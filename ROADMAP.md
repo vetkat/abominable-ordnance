@@ -45,7 +45,19 @@ the version is 0.9.0.
 - [x] The first four research techs ([design][research-tree])
 - [x] Runs on vanilla Factorio 2.1 and with Space Age
   ([design][version-1-feature-list])
+- [x] Graphics from openly licensed mods for the breeding pod,
+  incubator, loading chamber and larva launcher ([spec][v1-graphics])
+- [x] Own icons for eggs, larvae, loaded larvae, wards, larva rockets and
+  the four technologies. The mod tints the larva rocket icon per species
+  ([spec][v1-graphics])
+- [x] Icons for the larva rocket casing and the launcher upgrade
+  technologies
+- [x] The vanilla payload icons as badges on loaded larvae
+- [ ] Icons for the larva targeting remote and the larva flare
+- [ ] A play test of the graphics, with and without Space Age
 - [ ] First upload to the Factorio mod portal
+
+Loaded monsters stay tinted vanilla units until version 3.
 
 ## 2.0.0: design version 2
 
@@ -58,6 +70,8 @@ the version is 0.9.0.
   hybrids ([design][crossbreeding])
 - [ ] Facehuggers on enemies
   ([design][facehuggers])
+- [ ] Graphics for the new buildings, items and technologies of design
+  version 2
 
 ## 3.0.0: design version 3
 
@@ -68,11 +82,13 @@ the version is 0.9.0.
   ([design][feral-behaviour-and-risks])
 - [ ] Facehuggers on players ([design][facehuggers])
 - [ ] PvP setting for multiplayer ([design][concept])
-- [ ] Custom graphics for every building and item of the mod, with
-  tooling to make the sprites
+- [ ] Custom graphics for every building, item and monster that does not
+  have them yet, loaded monsters included, with tooling to make the
+  sprites. The scripts in `art/` get tests then.
 
-From version 3 on, every new building, item and monster gets its own
-custom graphics. No new asset uses a tinted vanilla copy.
+Each major release ships with graphics for its new content. We make
+them just before the release. Art from other mods is fine, edited or
+not, when its licence allows it. `THIRD_PARTY.md` credits it.
 
 Until version 3, the mod does not keep old saves working, on GitHub or
 on the mod portal. A change needs no migration unless a load would crash without
@@ -89,3 +105,4 @@ it. The mod description warns players about this.
 [crossbreeding]: docs/design.md#crossbreeding
 [facehuggers]: docs/design.md#facehuggers
 [concept]: docs/design.md#concept
+[v1-graphics]: docs/superpowers/specs/2026-11-26-v1-graphics-design.md

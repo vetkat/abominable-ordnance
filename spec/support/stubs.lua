@@ -1,28 +1,18 @@
 -- Stub options for the prototype builders in the unit tests.
 local Stubs = {}
 
-local function graphics()
-  return {
-    graphics_set = {
-      animation = {
-        layers = {
-          { filename = "body.png" },
-          { filename = "shadow.png", draw_as_shadow = true },
-        },
-      },
-    },
-    working_sound = { sound = { filename = "hum.ogg" } },
-  }
-end
-
 function Stubs.lifecycle_opts(space_age)
-  return { space_age = space_age or false, pod = graphics() }
+  return {
+    space_age = space_age or false,
+    pod_sound = { sound = { filename = "hum.ogg" } },
+    corpse = "medium-remnants",
+  }
 end
 
 function Stubs.ordnance_opts()
   return {
-    incubator = graphics(),
-    chamber = graphics(),
+    incubator_sound = { sound = { filename = "hum.ogg" } },
+    corpse = "medium-remnants",
     projectile = {
       picture = { filename = "shell.png" },
       shadow = { filename = "shell-shadow.png", draw_as_shadow = true },
@@ -110,7 +100,11 @@ function Stubs.launcher_opts(levels)
       base_picture = { layers = { { filename = "base.png" } } },
       cannon_barrel_pictures = { layers = { { filename = "barrel.png" } } },
       cannon_base_pictures = { layers = { { filename = "cannon.png" } } },
-      cannon_base_shift = { 0, 0, 0 },
+      cannon_base_shift = { 0.25, -0.5, 1.75 },
+      base_picture_render_layer = "lower-object",
+      cannon_barrel_recoil_shiftings = { { x = 0, y = 0, z = 0 } },
+      cannon_barrel_recoil_shiftings_load_correction_matrix = { { x = 0, y = 0, z = 0 } },
+      cannon_barrel_light_direction = { 0, 0, 1 },
       turret_rotation_speed = 0.001,
       collision_box = { { -1.2, -1.2 }, { 1.2, 1.2 } },
       selection_box = { { -1.5, -1.5 }, { 1.5, 1.5 } },

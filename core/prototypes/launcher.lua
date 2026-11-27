@@ -4,11 +4,13 @@
 -- and other core modules.
 local Balance = require("core.balance")
 local Common = require("core.prototypes.common")
+local Graphics = require("core.prototypes.graphics")
 local Launcher = require("core.launcher")
 local Names = require("core.names")
 
 local LauncherPrototypes = {}
 
+-- The tint of the remote and flare icons, which have no art of their own.
 LauncherPrototypes.TINT = { r = 0.8, g = 0.6, b = 0.45, a = 1 }
 
 local PACKS = {
@@ -18,15 +20,11 @@ local PACKS = {
   "chemical-science-pack",
 }
 
--- The vanilla turret fields the launcher copies. The pictures get the
--- tint, the rest stays as it is.
-local PICTURES = { "base_picture", "cannon_barrel_pictures", "cannon_base_pictures" }
+-- The vanilla turret fields the launcher copies. The launcher has its
+-- own picture, which shows the base and the rocket pods in one sprite, so
+-- it copies no base or barrel field.
 local TURRET_LOOKS = {
-  "base_picture_render_layer",
   "cannon_base_shift",
-  "cannon_barrel_recoil_shiftings",
-  "cannon_barrel_recoil_shiftings_load_correction_matrix",
-  "cannon_barrel_light_direction",
   "cannon_parking_frame_count",
   "cannon_parking_speed",
   "rotating_sound",
@@ -83,12 +81,14 @@ local function icons(path)
   return Common.icon(path, LauncherPrototypes.TINT)
 end
 
-local LAUNCHER_ICON = "__base__/graphics/icons/artillery-turret.png"
+local function launcher_icons()
+  return Common.icon(Graphics.icon_path("larva-launcher.png"))
+end
 
 -- The hidden gun of one level: its range and its fire rate.
 local function gun(level, cannon)
   local b = Balance.launcher
-  local p = Common.item(Launcher.gun(level), icons(LAUNCHER_ICON), "gun", 1)
+  local p = Common.item(Launcher.gun(level), launcher_icons(), "gun", 1)
   p.type = "gun"
   p.hidden = true
   local a = Common.pick(cannon, CANNON_LOOKS)
@@ -107,12 +107,10 @@ end
 local function turret(level, looks, space_age)
   local b = Balance.launcher
   local p = Common.pick(looks, TURRET_LOOKS)
-  for _, field in ipairs(PICTURES) do
-    p[field] = Common.tinted(looks[field], LauncherPrototypes.TINT)
-  end
+  p.cannon_base_pictures = Graphics.launcher(Graphics.SIZE.launcher)
   p.type = "artillery-turret"
   p.name = Launcher.name(level)
-  p.icons = icons(LAUNCHER_ICON)
+  p.icons = launcher_icons()
   p.flags = { "placeable-neutral", "placeable-player", "player-creation" }
   p.minable = { mining_time = b.mining_time, result = Names.LAUNCHER }
   p.max_health = b.max_health
@@ -136,7 +134,7 @@ end
 local function launcher_kit()
   local b = Balance.launcher
   local r = b.recipe
-  local item = Common.item(Names.LAUNCHER, icons(LAUNCHER_ICON), "defensive-structure", b.stack)
+  local item = Common.item(Names.LAUNCHER, launcher_icons(), "defensive-structure", b.stack)
   item.place_result = Launcher.name(0)
   local recipe = Common.recipe(Names.LAUNCHER, { "crafting" }, r.time, {
     { type = "item", name = "steel-plate", amount = r.steel },
@@ -185,7 +183,7 @@ end
 local function rockets_tech()
   return Common.technology({
     name = Names.ROCKETS_TECH,
-    icons = icons(LAUNCHER_ICON),
+    icons = Graphics.tech_icon("larva-rockets.png"),
     prerequisites = { Names.ORDNANCE_TECH, "rocketry" },
     count = Balance.rockets_research.count,
     time = Balance.rockets_research.time,
@@ -200,7 +198,7 @@ local function upgrade(prefix, level, effects)
   local u = Balance.upgrade_research
   local tech = Common.technology({
     name = prefix .. level,
-    icons = icons(LAUNCHER_ICON),
+    icons = launcher_icons(),
     prerequisites = { level == 1 and Names.ROCKETS_TECH or prefix .. (level - 1) },
     count = u.counts[level],
     time = u.time,

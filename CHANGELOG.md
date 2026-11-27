@@ -8,6 +8,13 @@ mod uses [semantic versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- Own graphics for the breeding pod, incubator, loading chamber and
+  larva launcher, from openly licensed mods. `THIRD_PARTY.md` credits
+  them.
+- Own icons for the eggs, larvae, loaded larvae, wards and larva rocket
+  casing, and for five technologies. A loaded larva shows a rocket in the
+  colour of its species, with its payload in the corner.
+- The loading chamber has its own sound.
 - An empty mod that loads in Factorio 2.1, with and without Space Age.
 - In-game smoke tests that run in the headless server.
 - Biter and spitter eggs, monster chow, spitter chow and the breeding
@@ -105,6 +112,11 @@ mod uses [semantic versioning](https://semver.org/spec/v2.0.0.html).
 - An acid monster from an old save now leaves the new puddles too.
 - The mod description warns that an update can break saves until
   version 3.0.0.
+- The breeding pod is now 5×5, and the incubator and the loading chamber
+  are 4×4. In old saves and blueprints, these machines can overlap their
+  neighbours.
+- The ward icon in the corner of a warded item moves to the top left, so
+  it no longer covers the payload icon.
 
 ### Fixed
 

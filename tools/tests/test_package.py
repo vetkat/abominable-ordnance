@@ -21,11 +21,28 @@ def test_mod_code_is_shipped_code_without_tests_and_licence():
     assert not package.is_mod_code("README.md")
 
 
+ART_LICENCES = ["THIRD_PARTY.md", "LICENSE-third-party-MIT.txt"]
+
+
 def test_missing_required():
-    assert package.missing_required(["info.json", "LICENSE", "data.lua",
-                                     "control.lua", "locale/en/locale.cfg"]) == []
+    assert package.missing_required(["info.json", "LICENSE", "data.lua", "control.lua",
+                                     "locale/en/locale.cfg", *ART_LICENCES]) == []
     assert package.missing_required(["info.json"]) == [
-        "LICENSE", "data.lua", "control.lua", "locale/"]
+        "data.lua", "control.lua", "locale/", "LICENSE", *ART_LICENCES]
+
+
+def test_the_art_licences_ship_and_are_required():
+    for path in ART_LICENCES:
+        assert package.is_shipped(path), path
+        assert not package.is_mod_code(path), path
+        assert path in package.REQUIRED
+
+
+def test_sounds_ship_and_art_sources_do_not():
+    assert package.is_shipped("sound/a.ogg")
+    assert package.is_shipped("graphics/icons/a.png")
+    assert not package.is_shipped("art/a.png")
+    assert not package.is_shipped("art/waiting/icons/a.png")
 
 
 def test_plan_adds_the_changelog_and_the_folder_prefix():
@@ -48,7 +65,7 @@ def make_tree(root, files):
 
 def test_build_writes_a_zip_with_changelog_txt(tmp_path):
     files = ["info.json", "LICENSE", "data.lua", "control.lua",
-             "locale/en/locale.cfg", "README.md", "CHANGELOG.md"]
+             "locale/en/locale.cfg", "README.md", "CHANGELOG.md", *ART_LICENCES]
     make_tree(tmp_path, files)
     out, problems = package.build(tmp_path, files, tmp_path / "build")
     assert problems == []

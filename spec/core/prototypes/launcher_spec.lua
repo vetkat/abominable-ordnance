@@ -1,6 +1,8 @@
 local Balance = require("core.balance")
+local Graphics = require("core.prototypes.graphics")
 local Launcher = require("core.launcher")
 local LauncherPrototypes = require("core.prototypes.launcher")
+local Names = require("core.names")
 local Stubs = require("spec.support.stubs")
 
 local function build(levels, space_age)
@@ -24,13 +26,58 @@ describe("the launcher prototypes", function()
     assert.is_nil(t.hidden)
   end)
 
-  it("tint a copy of the vanilla looks", function()
-    local opts = Stubs.launcher_opts()
-    local t =
-      Stubs.by_name(LauncherPrototypes.prototypes(opts))["artillery-turret/ao-larva-launcher"]
-    assert.truthy(t.base_picture.layers[1].tint)
-    assert.is_nil(opts.turret.base_picture.layers[1].tint)
-    assert.are.equal(0.001, t.turret_rotation_speed)
+  it("show the launcher art at 3x3 with no tint", function()
+    local all = build({ 0, 1 })
+    for _, name in ipairs({ "ao-larva-launcher", "ao-larva-launcher-1" }) do
+      local t = all["artillery-turret/" .. name]
+      assert.are.same(Graphics.launcher(3), t.cannon_base_pictures, name)
+      for _, layer in ipairs(t.cannon_base_pictures.layers) do
+        assert.is_nil(layer.tint)
+      end
+      assert.are.same({ 0.25, -0.5, 1.75 }, t.cannon_base_shift)
+      assert.are.equal(0.001, t.turret_rotation_speed)
+    end
+  end)
+
+  it("drop the vanilla base, barrel and their fields", function()
+    local t = build()["artillery-turret/ao-larva-launcher"]
+    for _, field in ipairs({
+      "base_picture",
+      "base_picture_render_layer",
+      "cannon_barrel_pictures",
+      "cannon_barrel_recoil_shiftings",
+      "cannon_barrel_recoil_shiftings_load_correction_matrix",
+      "cannon_barrel_light_direction",
+    }) do
+      assert.is_nil(t[field], field)
+    end
+  end)
+
+  it("give the launcher, its guns and its upgrades the launcher icon", function()
+    local all = build({ 0, 1 })
+    local want = { { icon = Graphics.icon_path("larva-launcher.png"), icon_size = 64 } }
+    for _, key in ipairs({
+      "item/ao-larva-launcher",
+      "artillery-turret/ao-larva-launcher",
+      "gun/ao-larva-launcher-gun-0",
+      "technology/ao-larva-launcher-speed-1",
+      "technology/ao-larva-launcher-range-1",
+    }) do
+      assert.are.same(want, all[key].icons, key)
+    end
+    assert.are.same(
+      { { icon = Graphics.tech_path("larva-rockets.png"), icon_size = 256 } },
+      all["technology/ao-larva-rockets"].icons
+    )
+  end)
+
+  it("keep the tinted vanilla icons of the remote and the flare", function()
+    local all = build()
+    for _, key in ipairs({ "capsule/" .. Names.REMOTE, "artillery-flare/" .. Names.FLARE }) do
+      local icon = all[key].icons[1]
+      assert.are.equal("__base__/graphics/icons/artillery-targeting-remote.png", icon.icon, key)
+      assert.are.same(LauncherPrototypes.TINT, icon.tint, key)
+    end
   end)
 
   it("copy the circuit connector and the cheap extras of the vanilla turret", function()

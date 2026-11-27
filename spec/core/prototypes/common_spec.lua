@@ -11,19 +11,6 @@ local function numbers()
 end
 
 describe("the shared prototype helpers", function()
-  it("tint a copy of the graphics, but not shadows", function()
-    local g = {
-      layers = {
-        { filename = "a.png" },
-        { filename = "s.png", draw_as_shadow = true },
-      },
-    }
-    local t = Common.tinted(g, { r = 1 })
-    assert.are.same({ r = 1 }, t.layers[1].tint)
-    assert.is_nil(t.layers[2].tint)
-    assert.is_nil(g.layers[1].tint)
-  end)
-
   it("copy a table all the way down", function()
     local t = { a = { b = { 1, 2 } }, c = "x" }
     local c = Common.copy(t)
@@ -60,39 +47,103 @@ describe("the shared prototype helpers", function()
     )
   end)
 
-  it("make a 3x3 electric machine with no modules", function()
+  it("sizes the boxes from the footprint", function()
+    local want = {
+      [3] = { 1.2, 1.5 },
+      [4] = { 1.7, 2.0 },
+      [5] = { 2.2, 2.5 },
+    }
+    for size, boxes in pairs(want) do
+      local m = Common.machine({
+        name = "ao-m",
+        icons = {},
+        categories = { "c" },
+        graphics = { graphics_set = {} },
+        size = size,
+        numbers = numbers(),
+      })
+      assert.are.near(boxes[1], m.collision_box[2][1], 1e-9)
+      assert.are.near(-boxes[1], m.collision_box[1][2], 1e-9)
+      assert.are.near(boxes[2], m.selection_box[2][2], 1e-9)
+      assert.are.near(-boxes[2], m.selection_box[1][1], 1e-9)
+      assert.are.equal(size, m.tile_width)
+      assert.are.equal(size, m.tile_height)
+    end
+  end)
+
+  it("uses the graphics as given without a tint", function()
+    local m = Common.machine({
+      name = "ao-m",
+      icons = {},
+      categories = { "c" },
+      graphics = { graphics_set = { animation = { layers = { { filename = "a.png" } } } } },
+      numbers = numbers(),
+    })
+    assert.is_nil(m.graphics_set.animation.layers[1].tint)
+    assert.are.equal(3, m.tile_width)
+    assert.is_nil(m.corpse)
+  end)
+
+  it("finds a vanilla machine's sound, or nil when a mod removed it", function()
+    local hum = { sound = { filename = "hum.ogg" } }
+    local raw = { ["assembling-machine"] = { centrifuge = { working_sound = hum } } }
+    assert.are.equal(hum, Common.vanilla_sound(raw, "centrifuge"))
+    assert.is_nil(Common.vanilla_sound(raw, "chemical-plant"))
+    assert.is_nil(Common.vanilla_sound({}, "centrifuge"))
+  end)
+
+  it("names a vanilla corpse only when it exists", function()
+    local raw = { corpse = { ["big-remnants"] = { type = "corpse" } } }
+    assert.are.equal("big-remnants", Common.vanilla_corpse(raw, "big-remnants"))
+    assert.is_nil(Common.vanilla_corpse(raw, "huge-remnants"))
+    assert.is_nil(Common.vanilla_corpse({}, "big-remnants"))
+  end)
+
+  it("keeps its own copy of the sound", function()
+    local sound = { sound = { filename = "hum.ogg", volume = 0.5 } }
+    local m = Common.machine({
+      name = "ao-m",
+      icons = {},
+      categories = { "c" },
+      graphics = { graphics_set = {}, working_sound = sound },
+      numbers = numbers(),
+    })
+    assert.are.same(sound, m.working_sound)
+    assert.are_not.equal(sound, m.working_sound)
+    assert.are_not.equal(sound.sound, m.working_sound.sound)
+  end)
+
+  it("takes the corpse from the spec", function()
+    local m = Common.machine({
+      name = "ao-m",
+      icons = {},
+      categories = { "c" },
+      graphics = { graphics_set = {} },
+      corpse = "big-remnants",
+      numbers = numbers(),
+    })
+    assert.are.equal("big-remnants", m.corpse)
+  end)
+
+  it("makes an icon without tint", function()
+    assert.are.same({ { icon = "t.png", icon_size = 64 } }, Common.icon("t.png"))
+  end)
+
+  it("make an electric machine with no modules", function()
     local m = Common.machine({
       name = "ao-m",
       icons = {},
       categories = { "c" },
       graphics = { graphics_set = { filename = "m.png" }, working_sound = { s = 1 } },
-      tint = { r = 1 },
       numbers = numbers(),
     })
     assert.are.equal("assembling-machine", m.type)
     assert.are.equal(0, m.module_slots)
     assert.are.same({}, m.allowed_effects)
     assert.are.same({ "c" }, m.crafting_categories)
-    assert.are.same({ r = 1 }, m.graphics_set.tint)
+    assert.are.same({ filename = "m.png" }, m.graphics_set)
     assert.are.same({ mining_time = 0.5, result = "ao-m" }, m.minable)
     assert.are.same({ s = 1 }, m.working_sound)
-  end)
-
-  it("copy a machine's looks", function()
-    local machines = { a = { graphics_set = { g = 1 }, working_sound = { s = 1 }, x = 1 } }
-    assert.are.same(
-      { graphics_set = { g = 1 }, working_sound = { s = 1 } },
-      Common.looks(machines, "a", "b")
-    )
-  end)
-
-  it("fall back when another mod removed the machine", function()
-    local machines = { b = { graphics_set = { g = 2 } } }
-    assert.are.same({ graphics_set = { g = 2 } }, Common.looks(machines, "a", "b"))
-  end)
-
-  it("give nil when both machines are gone", function()
-    assert.is_nil(Common.looks({}, "a", "b"))
   end)
 
   it("pick copies only the named fields, and leaves out missing ones", function()

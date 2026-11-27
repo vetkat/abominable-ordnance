@@ -3,12 +3,12 @@
 -- parameters and other core modules.
 local Balance = require("core.balance")
 local Common = require("core.prototypes.common")
+local Graphics = require("core.prototypes.graphics")
 local Names = require("core.names")
 local Species = require("core.species")
 
 local Lifecycle = {}
 
-Lifecycle.POD_TINT = { r = 0.85, g = 0.55, b = 0.75, a = 1 }
 local FEEDS = {
   { name = Names.MONSTER_CHOW, tint = { r = 0.8, g = 0.4, b = 0.3, a = 1 } },
   { name = Names.SPITTER_CHOW, tint = { r = 0.6, g = 0.9, b = 0.3, a = 1 } },
@@ -17,7 +17,7 @@ local FEEDS = {
 local function egg(species)
   local p = Common.item(
     species.egg,
-    Common.icon("__base__/graphics/icons/small-" .. species.name .. ".png", species.tint),
+    Common.icon(Graphics.icon_path("egg-" .. species.name .. ".png")),
     "intermediate-product",
     Balance.egg_stack
   )
@@ -60,15 +60,20 @@ local function feed_recipes()
   }
 end
 
--- The pod's item, recipe and machine.
-local function pod(graphics)
+-- The pod's item, recipe and machine. sound and corpse come from vanilla
+-- prototypes, and either can be nil.
+local function pod(sound, corpse)
   local r = Balance.pod.recipe
   return Common.machine_kit({
     name = Names.POD,
-    icon = "__base__/graphics/icons/chemical-plant.png",
-    tint = Lifecycle.POD_TINT,
+    icon = Graphics.icon_path("breeding-pod.png"),
     categories = { Names.CATEGORY },
-    graphics = graphics,
+    graphics = {
+      graphics_set = Graphics.machine("breeding-pod", Graphics.SIZE["breeding-pod"]),
+      working_sound = sound,
+    },
+    size = Graphics.SIZE["breeding-pod"],
+    corpse = corpse,
     numbers = Balance.pod,
     ingredients = {
       { type = "item", name = "iron-plate", amount = r.iron },
@@ -86,7 +91,8 @@ local function adopt(species)
   }, { { type = "item", name = species.egg, amount = 1 } }))
 end
 
--- opts.pod holds the graphics_set and working_sound to copy.
+-- opts.pod_sound is the pod's working sound, and opts.corpse names its
+-- remnants. Either can be nil.
 -- opts.extra_unlocks names more recipes for Monster husbandry.
 function Lifecycle.prototypes(opts)
   local out = { { type = "recipe-category", name = Names.CATEGORY } }
@@ -106,7 +112,7 @@ function Lifecycle.prototypes(opts)
       recipes[#recipes + 1] = adopt(species)
     end
   end
-  local pod_item, pod_recipe, pod_machine = pod(opts.pod)
+  local pod_item, pod_recipe, pod_machine = pod(opts.pod_sound, opts.corpse)
   out[#out + 1] = pod_item
   out[#out + 1] = pod_machine
   recipes[#recipes + 1] = pod_recipe
@@ -119,7 +125,7 @@ function Lifecycle.prototypes(opts)
   end
   out[#out + 1] = Common.technology({
     name = Names.TECH,
-    icons = Common.icon("__base__/graphics/icons/small-biter.png", Lifecycle.POD_TINT),
+    icons = Graphics.tech_icon("monster-husbandry.png"),
     prerequisites = { "military-science-pack", "chemical-science-pack" },
     count = Balance.research.count,
     time = Balance.research.time,

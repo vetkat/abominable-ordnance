@@ -1,0 +1,134 @@
+{
+ "pod": {
+  "anim": {
+   "file": "pod-anim.webp",
+   "fw": 300,
+   "fh": 300,
+   "cols": 8,
+   "count": 60,
+   "src_w": 500,
+   "src_h": 500
+  },
+  "emis": {
+   "file": "pod-emis.webp",
+   "fw": 300,
+   "fh": 300,
+   "cols": 8,
+   "count": 60,
+   "src_w": 500,
+   "src_h": 500
+  },
+  "shadow": {
+   "file": "pod-shadow.webp",
+   "fw": 480,
+   "fh": 420,
+   "cols": 1,
+   "count": 1,
+   "src_w": 800,
+   "src_h": 700
+  }
+ },
+ "inc": {
+  "anim": {
+   "file": "inc-anim.webp",
+   "fw": 165,
+   "fh": 188,
+   "cols": 8,
+   "count": 60,
+   "src_w": 275,
+   "src_h": 313
+  },
+  "emis": {
+   "file": "inc-emis.webp",
+   "fw": 168,
+   "fh": 192,
+   "cols": 9,
+   "count": 60,
+   "src_w": 280,
+   "src_h": 320
+  },
+  "shadow": {
+   "file": "inc-shadow.webp",
+   "fw": 223,
+   "fh": 168,
+   "cols": 1,
+   "count": 1,
+   "src_w": 372,
+   "src_h": 280
+  }
+ },
+ "cham": {
+  "anim": {
+   "file": "cham-base.webp",
+   "fw": 307,
+   "fh": 307,
+   "cols": 1,
+   "count": 1,
+   "src_w": 512,
+   "src_h": 512
+  },
+  "shadow": {
+   "file": "cham-shadow.webp",
+   "fw": 307,
+   "fh": 307,
+   "cols": 1,
+   "count": 1,
+   "src_w": 512,
+   "src_h": 512
+  },
+  "glow": {
+   "file": "cham-glow.webp",
+   "fw": 307,
+   "fh": 307,
+   "cols": 1,
+   "count": 1,
+   "src_w": 512,
+   "src_h": 512
+  },
+  "screen": {
+   "file": "cham-screen.webp",
+   "fw": 64,
+   "fh": 64,
+   "cols": 32,
+   "count": 255,
+   "src_w": 64,
+   "src_h": 64
+  },
+  "layer1": {
+   "file": "cham-layer1.webp",
+   "fw": 307,
+   "fh": 307,
+   "cols": 1,
+   "count": 1,
+   "src_w": 512,
+   "src_h": 512
+  },
+  "layer2": {
+   "file": "cham-layer2.webp",
+   "fw": 307,
+   "fh": 307,
+   "cols": 1,
+   "count": 1,
+   "src_w": 512,
+   "src_h": 512
+  },
+  "layer3": {
+   "file": "cham-layer3.webp",
+   "fw": 307,
+   "fh": 307,
+   "cols": 1,
+   "count": 1,
+   "src_w": 512,
+   "src_h": 512
+  },
+  "layer4": {
+   "file": "cham-layer4.webp",
+   "fw": 307,
+   "fh": 307,
+   "cols": 1,
+   "count": 1,
+   "src_w": 512,
+   "src_h": 512
+  }
+ }
+}

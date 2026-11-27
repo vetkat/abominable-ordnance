@@ -14,23 +14,7 @@ function Common.copy(value)
   return copy
 end
 
--- Returns a copy of a graphics table. Every sprite that is not a shadow,
--- a light or a glow gets the tint.
-function Common.tinted(value, tint)
-  if type(value) ~= "table" then
-    return value
-  end
-  local copy = {}
-  for k, v in pairs(value) do
-    copy[k] = Common.tinted(v, tint)
-  end
-  local sprite = copy.filename or copy.filenames or copy.stripes
-  if sprite and not (copy.draw_as_shadow or copy.draw_as_light or copy.draw_as_glow) then
-    copy.tint = tint
-  end
-  return copy
-end
-
+-- One 64 px icon layer. tint is optional.
 function Common.icon(path, tint)
   return { { icon = path, icon_size = 64, tint = tint } }
 end
@@ -79,12 +63,16 @@ function Common.spoil_trigger(effect_id, per_trigger)
   }
 end
 
--- A 3x3 electric machine with no modules. spec has name, icons,
--- categories, graphics ({ graphics_set, working_sound }), tint and
--- numbers (crafting_speed, energy_usage, pollution, max_health,
--- mining_time).
+-- An electric machine with no modules. spec has name, icons, categories,
+-- graphics ({ graphics_set, working_sound }) and numbers. The numbers are
+-- crafting_speed, energy_usage, pollution, max_health and mining_time.
+-- size is the footprint in tiles (default 3), and corpse names the
+-- remnants. Without a corpse, the machine leaves none. The machine uses
+-- the graphics as given.
 function Common.machine(spec)
   local n = spec.numbers
+  local size = spec.size or 3
+  local c, s = size / 2 - 0.3, size / 2
   return {
     type = "assembling-machine",
     name = spec.name,
@@ -92,9 +80,11 @@ function Common.machine(spec)
     flags = { "placeable-neutral", "placeable-player", "player-creation" },
     minable = { mining_time = n.mining_time, result = spec.name },
     max_health = n.max_health,
-    corpse = "medium-remnants",
-    collision_box = { { -1.2, -1.2 }, { 1.2, 1.2 } },
-    selection_box = { { -1.5, -1.5 }, { 1.5, 1.5 } },
+    corpse = spec.corpse,
+    collision_box = { { -c, -c }, { c, c } },
+    selection_box = { { -s, -s }, { s, s } },
+    tile_width = size,
+    tile_height = size,
     crafting_categories = spec.categories,
     crafting_speed = n.crafting_speed,
     energy_source = {
@@ -105,8 +95,9 @@ function Common.machine(spec)
     energy_usage = n.energy_usage,
     module_slots = 0,
     allowed_effects = {},
-    graphics_set = Common.tinted(spec.graphics.graphics_set, spec.tint),
-    working_sound = spec.graphics.working_sound,
+    graphics_set = spec.graphics.graphics_set,
+    -- A copy, so that a later change to the vanilla sound does not reach it.
+    working_sound = Common.copy(spec.graphics.working_sound),
   }
 end
 
@@ -123,7 +114,7 @@ end
 -- (recipe.time) and the item's stack size (stack).
 function Common.machine_kit(spec)
   local n = spec.numbers
-  local icons = Common.icon(spec.icon, spec.tint)
+  local icons = Common.icon(spec.icon)
   local recipe = Common.recipe(
     spec.name,
     { "crafting" },
@@ -136,7 +127,8 @@ function Common.machine_kit(spec)
     icons = icons,
     categories = spec.categories,
     graphics = spec.graphics,
-    tint = spec.tint,
+    size = spec.size,
+    corpse = spec.corpse,
     numbers = n,
   })
   return Common.placeable(spec.name, icons, n.stack), recipe, machine
@@ -164,6 +156,21 @@ function Common.technology(spec)
   }
 end
 
+-- The working sound of the vanilla assembling machine name in raw (the
+-- data.raw table), or nil when another mod removed it.
+function Common.vanilla_sound(raw, name)
+  return ((raw["assembling-machine"] or {})[name] or {}).working_sound
+end
+
+-- name, when raw holds that vanilla corpse, or nil when another mod
+-- removed it.
+function Common.vanilla_corpse(raw, name)
+  if (raw.corpse or {})[name] then
+    return name
+  end
+  return nil
+end
+
 -- The names of a list of recipes.
 function Common.names(recipes)
   local names = {}
@@ -171,17 +178,6 @@ function Common.names(recipes)
     names[i] = r.name
   end
   return names
-end
-
--- The graphics and sound of a machine in machines (the data.raw table of
--- its type), for a new machine to copy. Another mod can remove a machine,
--- so this falls back to a second name, and gives nil when neither exists.
-function Common.looks(machines, name, fallback)
-  local machine = machines[name] or machines[fallback]
-  if not machine then
-    return nil
-  end
-  return { graphics_set = machine.graphics_set, working_sound = machine.working_sound }
 end
 
 -- A deep copy of the named fields of t. A field that t lacks stays out.

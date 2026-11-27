@@ -20,10 +20,13 @@ from tools import changelog
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 
 # A folder entry ends with "/". The build fails without a REQUIRED entry.
-REQUIRED = ("info.json", "LICENSE", "data.lua", "control.lua", "locale/")
+# The art licences need the credits and their text in every copy of the
+# art, so they are required too.
+LICENCES = ("LICENSE", "THIRD_PARTY.md", "LICENSE-third-party-MIT.txt")
+REQUIRED = ("info.json", "data.lua", "control.lua", "locale/", *LICENCES)
 OPTIONAL = ("thumbnail.png", "data-updates.lua", "data-final-fixes.lua",
             "settings.lua", "settings-updates.lua", "settings-final-fixes.lua",
-            "core/", "shell/", "prototypes/", "graphics/", "tests/ingame/")
+            "core/", "shell/", "prototypes/", "graphics/", "sound/", "tests/ingame/")
 SHIP = REQUIRED + OPTIONAL
 
 
@@ -44,7 +47,7 @@ def is_shipped(path: str) -> bool:
 
 def is_mod_code(path: str) -> bool:
     """A change to this file needs an entry in CHANGELOG.md."""
-    return is_shipped(path) and path != "LICENSE" and not path.startswith("tests/")
+    return is_shipped(path) and path not in LICENCES and not path.startswith("tests/")
 
 
 def missing_required(files: list[str]) -> list[str]:
