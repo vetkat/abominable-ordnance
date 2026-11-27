@@ -2,9 +2,11 @@ MIT License
 
 This text applies to these files of Abominable Ordnance:
 
-- graphics/entity/loading-chamber/, graphics/icons/loading-chamber.png
-  and sound/loading-chamber/: Copyright (c) snouz
-- graphics/entity/larva-launcher/ and graphics/icons/larva-launcher.png:
+- graphics/entity/loading-chamber/, graphics/icons/loading-chamber.png,
+  sound/loading-chamber/ and the building in
+  graphics/technology/ordnance-loading.png: Copyright (c) snouz
+- graphics/entity/larva-launcher/, graphics/icons/larva-launcher.png and
+  the turret in graphics/technology/larva-rockets.png:
   Copyright (c) hlittlezero
 
 Permission is hereby granted, free of charge, to any person obtaining a
