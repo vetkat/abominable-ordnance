@@ -1,5 +1,6 @@
 local Balance = require("core.balance")
 local Common = require("core.prototypes.common")
+local Graphics = require("core.prototypes.graphics")
 local Lifecycle = require("core.prototypes.lifecycle")
 local Names = require("core.names")
 local Ordnance = require("core.prototypes.ordnance")
@@ -253,15 +254,19 @@ describe("the cryo ward", function()
     assert.are.equal("ao-cryo-unward-biter-egg", Stasis.unpack_recipe(Stasis.CRYO, "ao-biter-egg"))
   end)
 
-  it("tints the cryo icons apart from the base ward", function()
+  it("gives each ward its own icon with no tint", function()
     local all = build()
-    local base = all["item/ao-stasis-ward"].icons[1].tint
-    local cryo = all["item/ao-cryo-ward"].icons[1].tint
-    assert.are_not.same(base, cryo)
-    assert.are.same(cryo, Stasis.CRYO_TINT)
-    assert.are.same({ r = 0.3, g = 0.55, b = 1, a = 1 }, Stasis.CRYO_TINT)
+    local stasis, cryo = Graphics.icon_path("stasis-ward.png"), Graphics.icon_path("cryo-ward.png")
+    assert.are.same({ { icon = stasis, icon_size = 64 } }, all["item/ao-stasis-ward"].icons)
+    assert.are.same({ { icon = cryo, icon_size = 64 } }, all["item/ao-cryo-ward"].icons)
     local warded = all["item/ao-cryo-warded-biter-egg"].icons
-    assert.are.same(Stasis.CRYO_TINT, warded[#warded].tint)
+    assert.are.equal(cryo, warded[#warded].icon)
+    assert.is_nil(warded[#warded].tint)
+    assert.are.same(
+      { { icon = Graphics.tech_path("stasis-ward.png"), icon_size = 256 } },
+      all["technology/" .. Names.STASIS_TECH].icons
+    )
+    assert.are.same({ { icon = cryo, icon_size = 64 } }, all["technology/ao-cryo-ward"].icons)
   end)
 
   it("unlocks the cryo ward and its 20 recipes after Stasis ward and Aquilo science", function()

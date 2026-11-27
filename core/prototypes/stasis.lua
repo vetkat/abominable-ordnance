@@ -3,10 +3,11 @@
 -- and other core modules.
 --
 -- A ward kind is the plain data that tells one ward from another: its
--- names, its factor, its tint, its recipe and its research. The builder
+-- names, its factor, its icon, its recipe and its research. The builder
 -- reads a kind and never changes it.
 local Balance = require("core.balance")
 local Common = require("core.prototypes.common")
+local Graphics = require("core.prototypes.graphics")
 local Names = require("core.names")
 local Payloads = require("core.payloads")
 local Species = require("core.species")
@@ -14,10 +15,6 @@ local Species = require("core.species")
 local Stasis = {}
 
 Stasis.SUBGROUP = "ao-stasis"
-Stasis.WARD_ICON = "__base__/graphics/icons/plastic-bar.png"
-Stasis.WARD_TINT = { r = 0.55, g = 0.8, b = 1, a = 1 }
--- A colder blue than the base ward, so the two icons differ at a glance.
-Stasis.CRYO_TINT = { r = 0.3, g = 0.55, b = 1, a = 1 }
 
 local PACKS = {
   "automation-science-pack",
@@ -57,7 +54,7 @@ local function base_kind()
     warded = Names.WARDED,
     pack = Names.PACK,
     unpack = Names.UNPACK,
-    tint = Stasis.WARD_TINT,
+    icon = Graphics.icon_path("stasis-ward.png"),
     stack = w.stack,
     recipe = {
       categories = { "crafting" },
@@ -71,6 +68,8 @@ local function base_kind()
     },
     research = {
       name = Names.STASIS_TECH,
+      icon = Graphics.tech_path("stasis-ward.png"),
+      icon_size = 256,
       prerequisites = { Names.ORDNANCE_TECH },
       count = Balance.stasis.research.count,
       time = Balance.stasis.research.time,
@@ -103,7 +102,7 @@ function Stasis.cryo_kind(pressure)
     warded = Names.CRYO_WARDED,
     pack = Names.CRYO_PACK,
     unpack = Names.CRYO_UNPACK,
-    tint = Stasis.CRYO_TINT,
+    icon = Graphics.icon_path("cryo-ward.png"),
     stack = c.ward.stack,
     recipe = {
       categories = { "cryogenics" },
@@ -121,6 +120,10 @@ function Stasis.cryo_kind(pressure)
     },
     research = {
       name = Names.CRYO_TECH,
+      -- The cryo ward has no 256 px art, so its research shows the item
+      -- icon.
+      icon = Graphics.icon_path("cryo-ward.png"),
+      icon_size = 64,
       prerequisites = { Names.STASIS_TECH, "cryogenic-science-pack" },
       count = c.research.count,
       time = c.research.time,
@@ -201,20 +204,11 @@ function Stasis.unpack_recipe(kind, name)
   return kind.unpack .. suffix(name)
 end
 
-local function ward_icons(kind)
-  return Common.icon(Stasis.WARD_ICON, kind.tint)
-end
-
--- A copy of an item's icons with the kind's ward icon in the corner.
+-- A copy of an item's icons with the kind's ward icon in the top left
+-- corner. A loaded larva has its payload badge in the bottom right.
 local function with_ward(icons, kind)
   local out = Common.copy(icons)
-  out[#out + 1] = {
-    icon = Stasis.WARD_ICON,
-    icon_size = 64,
-    scale = 0.25,
-    shift = { 8, 8 },
-    tint = kind.tint,
-  }
+  out[#out + 1] = { icon = kind.icon, icon_size = 64, scale = 0.25, shift = { -8, -8 } }
   return out
 end
 
@@ -319,7 +313,7 @@ local function ward_kit(kind)
   for field, value in pairs(Common.pick(k, WARD_RECIPE_FIELDS)) do
     recipe[field] = value
   end
-  local ward_item = Common.item(kind.name, ward_icons(kind), Stasis.SUBGROUP, kind.stack)
+  local ward_item = Common.item(kind.name, Common.icon(kind.icon), Stasis.SUBGROUP, kind.stack)
   recipe.order = ward_item.order
   return ward_item, recipe
 end
@@ -345,7 +339,7 @@ local function kind_prototypes(kind, by_name)
   local research = kind.research
   out[#out + 1] = Common.technology({
     name = research.name,
-    icons = ward_icons(kind),
+    icons = Common.icon(research.icon, nil, research.icon_size),
     prerequisites = Common.copy(research.prerequisites),
     count = research.count,
     time = research.time,
