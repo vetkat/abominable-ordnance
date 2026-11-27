@@ -12,7 +12,7 @@ Species.ALL = {
     spawner = "biter-spawner",
     effect_id = "ao-hatch-biter",
     larva = "ao-biter-larva",
-    tint = { r = 0.9, g = 0.75, b = 0.5, a = 1 },
+    tint = { r = 1.00, g = 0.52, b = 0.10, a = 1 },
     -- With Space Age, the adopt recipe turns this vanilla item into the egg.
     adopts = "biter-egg",
     units = {
@@ -29,7 +29,7 @@ Species.ALL = {
     spawner = "spitter-spawner",
     effect_id = "ao-hatch-spitter",
     larva = "ao-spitter-larva",
-    tint = { r = 0.6, g = 0.9, b = 0.5, a = 1 },
+    tint = { r = 0.45, g = 0.85, b = 0.20, a = 1 },
     units = {
       { "small-spitter", { { 0.25, 0.0 }, { 0.5, 0.3 }, { 0.7, 0.0 } } },
       { "medium-spitter", { { 0.4, 0.0 }, { 0.7, 0.3 }, { 0.9, 0.1 } } },

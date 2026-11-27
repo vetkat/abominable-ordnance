@@ -19,6 +19,15 @@ local function looks(name)
   )
 end
 
+-- The pod and the incubator play the sound of a vanilla machine. Another
+-- mod can remove it, and then the machine has no sound.
+local function sound_of(name)
+  return ((data.raw["assembling-machine"] or {})[name] or {}).working_sound
+end
+
+-- The machines leave the vanilla big-remnants, if another mod kept it.
+local corpse = (data.raw.corpse or {})["big-remnants"] and "big-remnants" or nil
+
 -- The larva launcher copies vanilla artillery. Another mod can remove
 -- it, and the mod can't work without it.
 local function vanilla(kind, name)
@@ -40,7 +49,8 @@ local lift_weight = vanilla("utility-constants", "default").default_rocket_lift_
 local lifecycle = Stasis.weighted(
   Lifecycle.prototypes({
     space_age = space_age,
-    pod = looks(space_age and "biochamber" or "chemical-plant"),
+    pod_sound = sound_of(space_age and "biochamber" or "chemical-plant"),
+    corpse = corpse,
     extra_unlocks = husbandry,
   }),
   lift_weight

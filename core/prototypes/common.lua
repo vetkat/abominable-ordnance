@@ -84,7 +84,7 @@ end
 -- graphics ({ graphics_set, working_sound }) and numbers. The numbers are
 -- crafting_speed, energy_usage, pollution, max_health and mining_time.
 -- size is the footprint in tiles (default 3), and corpse names the
--- remnants (default medium-remnants). With a tint, the graphics get it.
+-- remnants. Without a corpse, the machine leaves none. With a tint, the graphics get it.
 -- Without one, the machine uses them as given.
 function Common.machine(spec)
   local n = spec.numbers
@@ -101,7 +101,7 @@ function Common.machine(spec)
     flags = { "placeable-neutral", "placeable-player", "player-creation" },
     minable = { mining_time = n.mining_time, result = spec.name },
     max_health = n.max_health,
-    corpse = spec.corpse or "medium-remnants",
+    corpse = spec.corpse,
     collision_box = { { -c, -c }, { c, c } },
     selection_box = { { -s, -s }, { s, s } },
     tile_width = size,

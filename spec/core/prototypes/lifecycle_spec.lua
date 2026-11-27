@@ -1,4 +1,7 @@
+local Graphics = require("core.prototypes.graphics")
 local Lifecycle = require("core.prototypes.lifecycle")
+local Names = require("core.names")
+local Species = require("core.species")
 local Stubs = require("spec.support.stubs")
 
 local function build(space_age)
@@ -11,14 +14,50 @@ describe("the lifecycle prototypes", function()
     assert.truthy(build(true)["recipe/ao-adopt-biter-egg"])
   end)
 
-  it("tint the pod's own copy of the graphics, but not shadows", function()
+  it("give the pod its own art at 5x5, with the vanilla sound and corpse", function()
     local opts = Stubs.lifecycle_opts()
+    local all = Stubs.by_name(Lifecycle.prototypes(opts))
+    local pod = all["assembling-machine/ao-breeding-pod"]
+    assert.are.same(Graphics.machine("breeding-pod", 5), pod.graphics_set)
+    assert.are.same({ { -2.5, -2.5 }, { 2.5, 2.5 } }, pod.selection_box)
+    assert.are.same(opts.pod_sound, pod.working_sound)
+    assert.are.equal(opts.corpse, pod.corpse)
+    assert.are.same(
+      { { icon = Graphics.icon_path("breeding-pod.png"), icon_size = 64 } },
+      all["item/ao-breeding-pod"].icons
+    )
+  end)
+
+  it("build the pod with no sound and no corpse", function()
+    local opts = Stubs.lifecycle_opts()
+    opts.pod_sound, opts.corpse = nil, nil
     local pod = Stubs.by_name(Lifecycle.prototypes(opts))["assembling-machine/ao-breeding-pod"]
-    local layers = pod.graphics_set.animation.layers
-    assert.are.same(Lifecycle.POD_TINT, layers[1].tint)
-    assert.is_nil(layers[2].tint)
-    assert.is_nil(opts.pod.graphics_set.animation.layers[1].tint)
-    assert.are.same(opts.pod.working_sound, pod.working_sound)
+    assert.is_nil(pod.working_sound)
+    assert.is_nil(pod.corpse)
+  end)
+
+  it("give each egg its own icon with no tint", function()
+    local all = build(false)
+    for _, species in ipairs(Species.ALL) do
+      assert.are.same(
+        { { icon = Graphics.icon_path("egg-" .. species.name .. ".png"), icon_size = 64 } },
+        all["item/" .. species.egg].icons
+      )
+    end
+  end)
+
+  it("give Monster husbandry its 256 px icon", function()
+    local tech = build(false)["technology/" .. Names.TECH]
+    assert.are.same(
+      { { icon = Graphics.tech_path("monster-husbandry.png"), icon_size = 256 } },
+      tech.icons
+    )
+  end)
+
+  it("keep the tinted vanilla coal for the chow", function()
+    local chow = build(false)["item/" .. Names.MONSTER_CHOW]
+    assert.are.equal("__base__/graphics/icons/coal.png", chow.icons[1].icon)
+    assert.truthy(chow.icons[1].tint)
   end)
 
   it("give the pod no module or beacon effects", function()

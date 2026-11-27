@@ -16,7 +16,11 @@ local function graphics()
 end
 
 function Stubs.lifecycle_opts(space_age)
-  return { space_age = space_age or false, pod = graphics() }
+  return {
+    space_age = space_age or false,
+    pod_sound = { sound = { filename = "hum.ogg" } },
+    corpse = "medium-remnants",
+  }
 end
 
 function Stubs.ordnance_opts()

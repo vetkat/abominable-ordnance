@@ -1,6 +1,11 @@
 local Species = require("core.species")
 
 describe("the species table", function()
+  it("gives the biter an orange tint and the spitter a green one", function()
+    assert.are.same({ r = 1.00, g = 0.52, b = 0.10, a = 1 }, Species.ALL[1].tint)
+    assert.are.same({ r = 0.45, g = 0.85, b = 0.20, a = 1 }, Species.ALL[2].tint)
+  end)
+
   it("lists the biter first, then the spitter", function()
     assert.are.equal("biter", Species.ALL[1].name)
     assert.are.equal("spitter", Species.ALL[2].name)

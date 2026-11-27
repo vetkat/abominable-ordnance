@@ -94,7 +94,7 @@ describe("the shared prototype helpers", function()
     })
     assert.is_nil(m.graphics_set.animation.layers[1].tint)
     assert.are.equal(3, m.tile_width)
-    assert.are.equal("medium-remnants", m.corpse)
+    assert.is_nil(m.corpse)
   end)
 
   it("takes the corpse from the spec", function()
