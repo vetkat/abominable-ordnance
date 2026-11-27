@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Abominable Ordnance Machines</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Titillium+Web:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+/* One visual world: Factorio's dark industrial UI. Preview first, controls under it, details stacked below; two columns only on wide screens. */
+:root {
+  --bg: #1b1a19;
+  --panel: #2e2d2c;
+  --inset: #232221;
+  --line: #45423f;
+  --text: #e6e1da;
+  --muted: #b3aca3;
+  --accent: #f5a524;
+  --accent-ink: #1b1a19;
+  --ok: #7cc36b;
+  --font-display: "Titillium Web", "Segoe UI", system-ui, sans-serif;
+  --font-body: "Titillium Web", "Segoe UI", system-ui, sans-serif;
+  --mono: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; background: var(--bg); color: var(--text); font-family: var(--font-body); font-size: 16px; line-height: 1.45; }
+a { color: var(--accent); }
+.wrap { max-width: 1180px; margin: 0 auto; padding: 16px; display: grid; gap: 16px; }
+header { display: grid; gap: 10px; }
+h1 { font-family: var(--font-display); font-weight: 700; font-size: clamp(22px, 5vw, 30px); line-height: 1.1; margin: 0; text-wrap: balance; letter-spacing: 0.01em; }
+h1 small { display: block; font-size: 15px; font-weight: 400; color: var(--muted); letter-spacing: 0; margin-top: 4px; }
+h2 { font-family: var(--font-display); font-size: 17px; font-weight: 700; margin: 0; text-transform: uppercase; letter-spacing: 0.06em; color: var(--accent); }
+.tabs { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 2px; }
+.tab { flex: 0 0 auto; display: grid; text-align: left; gap: 0; padding: 8px 14px; min-height: 48px; border: 1px solid var(--line); background: var(--panel); color: var(--text); font: inherit; border-radius: 4px; cursor: pointer; }
+.tab b { font-weight: 700; font-size: 16px; }
+.tab span { font-size: 13px; color: var(--muted); }
+.tab[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+.tab[aria-pressed="true"] span { color: #3b2a08; }
+.main { display: grid; gap: 16px; }
+@media (min-width: 900px) { .main { grid-template-columns: minmax(0, 1fr) 360px; align-items: start; } }
+.panel { background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 14px; display: grid; gap: 12px; min-width: 0; }
+.stage { position: relative; background: #141312; border-radius: 4px; overflow: hidden; }
+canvas { display: block; width: 100%; height: auto; touch-action: manipulation; }
+.badge { position: absolute; left: 10px; top: 10px; background: rgba(20,19,18,0.82); border: 1px solid var(--line); border-radius: 4px; padding: 3px 8px; font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.controls { display: grid; gap: 10px; }
+.row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.label { font-size: 13px; color: var(--muted); min-width: 72px; }
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 4px; overflow: hidden; }
+.seg button, .btn { font: inherit; font-size: 15px; min-height: 40px; min-width: 44px; padding: 6px 12px; background: var(--inset); color: var(--text); border: 0; cursor: pointer; }
+.seg button + button { border-left: 1px solid var(--line); }
+.seg button[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); font-weight: 700; }
+.btn { border: 1px solid var(--line); border-radius: 4px; }
+.btn.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); font-weight: 700; min-width: 88px; }
+button:focus-visible, input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.check { display: inline-flex; align-items: center; gap: 8px; min-height: 40px; padding: 0 4px; font-size: 15px; cursor: pointer; }
+.check input { width: 20px; height: 20px; accent-color: var(--accent); }
+.slider { display: flex; align-items: center; gap: 10px; flex: 1 1 220px; }
+.slider input { flex: 1; accent-color: var(--accent); min-height: 32px; }
+.num { font-variant-numeric: tabular-nums; font-size: 14px; color: var(--muted); min-width: 56px; text-align: right; }
+dl { display: grid; grid-template-columns: auto 1fr; gap: 6px 14px; margin: 0; font-size: 15px; }
+dt { color: var(--muted); }
+dd { margin: 0; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.chip { display: inline-block; padding: 1px 8px; border-radius: 99px; font-size: 13px; font-weight: 600; border: 1px solid currentColor; }
+.chip.ok { color: var(--ok); }
+.chip.warn { color: var(--accent); }
+p { margin: 0; max-width: 65ch; }
+.note { font-size: 14px; color: var(--muted); }
+pre { margin: 0; background: var(--inset); border: 1px solid var(--line); border-radius: 4px; padding: 12px; font-family: var(--mono); font-size: 12.5px; line-height: 1.5; overflow: auto; max-height: 460px; white-space: pre; }
+.codehead { display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; }
+.credits { display: grid; gap: 8px; font-size: 14px; color: var(--muted); }
+.credits b { color: var(--text); font-weight: 600; }
+@media (prefers-reduced-motion: reduce) { .tab, .btn { transition: none; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Abominable Ordnance machines<small>Sprite workbench: how each machine looks in game at the size it will ship</small></h1>
+    <div class="tabs" id="tabs" role="group" aria-label="Machine"></div>
+  </header>
+
+  <div class="main">
+    <section class="panel" aria-label="In-game preview">
+      <div class="stage">
+        <canvas id="view" width="900" height="900" aria-label="Animated in-game preview of the selected machine on a tile grid"></canvas>
+        <div class="badge" id="badge">Loading sprites…</div>
+      </div>
+      <div class="controls">
+        <div class="row">
+          <button class="btn primary" id="play" type="button">Pause</button>
+          <div class="slider"><label for="frame" class="label">Frame</label><input id="frame" type="range" min="0" max="59" step="1" value="0"><span class="num" id="frameNum">1 / 60</span></div>
+        </div>
+        <div class="row"><span class="label">Size</span><div class="seg" id="sizes" role="group" aria-label="Footprint size"></div></div>
+        <div class="row">
+          <span class="label">Light</span>
+          <div class="seg" role="group" aria-label="Time of day"><button type="button" id="day" aria-pressed="true">Day</button><button type="button" id="night" aria-pressed="false">Night</button></div>
+        </div>
+        <div class="row">
+          <span class="label">Zoom</span>
+          <div class="seg" role="group" aria-label="Zoom"><button type="button" data-zoom="9" aria-pressed="true">Area</button><button type="button" data-zoom="6.5" aria-pressed="false">Close</button></div>
+        </div>
+        <div class="row">
+          <label class="check"><input type="checkbox" id="grid" checked>Tile grid</label>
+          <label class="check"><input type="checkbox" id="outline" checked>Footprint outline</label>
+          <span id="turretWrap" class="row" hidden><span class="label">Turret</span><span class="seg" role="group" aria-label="Turret state"><button type="button" data-tmode="aim" aria-pressed="true">Aiming</button><button type="button" data-tmode="fold" aria-pressed="false">Unfolding</button></span></span>
+          <label class="check" id="creatureWrap" hidden><input type="checkbox" id="creature" checked>Creature growing in the pod</label>
+        </div>
+      </div>
+    </section>
+
+    <aside style="display:grid; gap:16px; min-width:0;">
+      <section class="panel" aria-labelledby="infoTitle">
+        <h2 id="infoTitle">Machine</h2>
+        <dl id="info"></dl>
+        <p class="note" id="infoNote"></p>
+      </section>
+      <section class="panel" aria-labelledby="creditTitle">
+        <h2 id="creditTitle">Art credits</h2>
+        <div class="credits" id="credits"></div>
+      </section>
+    </aside>
+  </div>
+
+  <section class="panel" aria-labelledby="luaTitle">
+    <div class="codehead"><h2 id="luaTitle">Graphics for the mod</h2><button class="btn" id="copy" type="button">Copy Lua</button></div>
+    <p class="note" id="luaNote"></p>
+    <pre id="lua"></pre>
+  </section>
+</div>
+
+<script>
+// Preview sheets are the original hr sheets with every frame shrunk to 60%; the Lua below uses the originals.
+const MACHINES = {
+  pod: {
+    label: 'Breeding pod', art: 'Pathogen lab', native: 7, sizes: [3, 4, 5], size: 5, speed: 0.15, dir: 'breeding-pod',
+    by: 'Hurricane046', licence: 'CC BY 4.0',
+    note: 'Fleshy vats, tubes and nutrient pools. The art is drawn for 7×7, so at 5×5 it is shown at 71% of its size.',
+    layers: [
+      { key: 'shadow', file: 'pod-shadow.webp', fw: 480, fh: 420, cols: 1, count: 1, w: 800, h: 700, shift: [0, -0.5], kind: 'shadow' },
+      { key: 'anim', file: 'pod-anim.webp', fw: 300, fh: 300, cols: 8, count: 60, w: 500, h: 500, shift: [0, -0.5], kind: 'normal' },
+      { key: 'emis', file: 'pod-emis.webp', fw: 300, fh: 300, cols: 8, count: 60, w: 500, h: 500, shift: [0, -0.5], kind: 'glow' },
+    ],
+    files: { animation: 'pathogen-lab-animation.png', emission: 'pathogen-lab-emission.png', shadow: 'pathogen-lab-shadow.png', frozen: 'pathogen-lab-frozen.png', icon: 'pathogen-lab-icon.png' },
+  },
+  inc: {
+    label: 'Incubator', art: 'Oxidizer', native: 4, sizes: [3, 4], size: 4, speed: 0.3, dir: 'incubator',
+    by: 'Hurricane046', licence: 'CC BY 4.0',
+    note: 'A bulbous tank with a viewing window, coils and pipes. Drawn for about 4×4, so it ships at full size.',
+    layers: [
+      { key: 'shadow', file: 'inc-shadow.webp', fw: 223, fh: 168, cols: 1, count: 1, w: 372, h: 280, shift: [51 / 64, 31 / 64], kind: 'shadow' },
+      { key: 'anim', file: 'inc-anim.webp', fw: 165, fh: 188, cols: 8, count: 60, w: 275, h: 313, shift: [2.5 / 64, 2.5 / 64], kind: 'normal' },
+      { key: 'emis', file: 'inc-emis.webp', fw: 168, fh: 192, cols: 9, count: 60, w: 280, h: 320, shift: [0, 0], kind: 'glow' },
+    ],
+    files: { animation: 'oxidizer-base.png', emission: 'oxidizer-emission.png', shadow: 'oxidizer-shadow.png', mask: 'oxidizer-mask.png' },
+  },
+  cham: {
+    label: 'Loading chamber', art: 'Simulation chamber', native: 6, sizes: [3, 4, 5], size: 4, speed: 1, dir: 'loading-chamber',
+    by: 'snouz (Panglia), with parts of Hurricane046’s art', licence: 'MIT, Hurricane parts CC BY 4.0',
+    note: 'The glass pod at the front holds a creature that grows in four stages while it works. Drawn for 6×6.',
+    layers: [
+      { key: 'shadow', file: 'cham-shadow.webp', fw: 307, fh: 307, cols: 1, count: 1, w: 512, h: 512, shift: [0, 0], kind: 'shadow' },
+      { key: 'anim', file: 'cham-base.webp', fw: 307, fh: 307, cols: 1, count: 1, w: 512, h: 512, shift: [0, 0], kind: 'normal' },
+      { key: 'layer1', file: 'cham-layer1.webp', fw: 307, fh: 307, cols: 1, count: 1, w: 512, h: 512, shift: [0, 0], kind: 'stage', stage: 1 },
+      { key: 'layer2', file: 'cham-layer2.webp', fw: 307, fh: 307, cols: 1, count: 1, w: 512, h: 512, shift: [0, 0], kind: 'stage', stage: 2 },
+      { key: 'layer3', file: 'cham-layer3.webp', fw: 307, fh: 307, cols: 1, count: 1, w: 512, h: 512, shift: [0, 0], kind: 'stage', stage: 3 },
+      { key: 'layer4', file: 'cham-layer4.webp', fw: 307, fh: 307, cols: 1, count: 1, w: 512, h: 512, shift: [0, 0], kind: 'stage', stage: 4 },
+      { key: 'screen', file: 'cham-screen.webp', fw: 64, fh: 64, cols: 32, count: 255, w: 64, h: 64, shift: [-2, -1.75], kind: 'glow', own: true },
+      { key: 'glow', file: 'cham-glow.webp', fw: 307, fh: 307, cols: 1, count: 1, w: 512, h: 512, shift: [0, 0], kind: 'glow' },
+    ],
+    files: { base: 'simulation_chamber_base.png', shadow: 'simulation_chamber_shadow.png', glow: 'simulation_chamber_glow.png', screen: 'simulation_chamber_screen_anim.png', layers: ['layer1.png', 'layer2.png', 'layer3.png', 'layer4.png'] },
+  },
+  lau: {
+    label: 'Larva launcher', art: 'Rocket turret', native: 4, sizes: [2, 3], size: 3, speed: 1 / 8, baseScale: 0.3, dir: 'larva-launcher', turret: true,
+    by: 'hlittlezero', licence: 'MIT',
+    note: 'Twin rocket pods on a hazard-striped base, with 64 aim directions and an unfold animation. Only built without Space Age; with Space Age the vanilla rocket turret fires larva rockets. Drawn for 4×4.',
+    layers: [
+      { key: 'shadow', file: 'lau-attack-shadow.webp', fw: 256, fh: 256, cols: 8, count: 64, w: 512, h: 512, shift: [2, 0], kind: 'shadow', mode: 'aim' },
+      { key: 'anim', file: 'lau-attack.webp', fw: 256, fh: 256, cols: 8, count: 64, w: 512, h: 512, shift: [0, 0], kind: 'normal', mode: 'aim' },
+      { key: 'extshadow', file: 'lau-ext-shadow.webp', fw: 256, fh: 256, cols: 12, count: 48, w: 512, h: 512, shift: [2, 0], kind: 'shadow', mode: 'fold', pick: foldFrame },
+      { key: 'ext', file: 'lau-ext.webp', fw: 256, fh: 256, cols: 12, count: 48, w: 512, h: 512, shift: [0, 0], kind: 'normal', mode: 'fold', pick: foldFrame },
+    ],
+    files: { attack: 'rocket-turret_attack.png', attackShadow: 'rocket-turret_attack-shadow.png', ext: 'rocket-turret_extension.png', extShadow: 'rocket-turret_extension-shadow.png' },
+  },
+};
+
+// the launcher unfolds and folds back, facing north (first row of the sheet)
+function foldFrame(tick) { const p = Math.floor(tick / 5) % 24; return p < 12 ? p : 23 - p; }
+
+const state = { machine: 'pod', playing: true, tick: 0, night: false, zoom: 9, grid: true, outline: true, creature: true, turretMode: 'aim' };
+const images = {};
+function load(file) {
+  if (!images[file]) images[file] = new Promise((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = () => rej(new Error('Could not load ' + file)); i.src = 'assets/' + file; });
+  return images[file];
+}
+const loaded = {};
+function ensure(key) {
+  const M = MACHINES[key];
+  return Promise.all(M.layers.map((L) => load(L.file).then((img) => { L.img = img; }))).then(() => { loaded[key] = true; });
+}
+
+const cv = document.getElementById('view');
+const ctx = cv.getContext('2d');
+let ground = null;
+function groundCanvas(w, h, p) {
+  const key = w + 'x' + h + 'x' + Math.round(p);
+  if (ground && ground.key === key) return ground.c;
+  const c = document.createElement('canvas'); c.width = w; c.height = h;
+  const x = c.getContext('2d');
+  x.fillStyle = '#4a4330'; x.fillRect(0, 0, w, h);
+  let s = 12345; const r = () => ((s = (s * 1664525 + 1013904223) >>> 0) / 4294967296);
+  for (let i = 0; i < (w * h) / 60; i++) {
+    const v = r(); x.fillStyle = v < 0.5 ? `rgba(28,24,14,${0.25 * r()})` : `rgba(120,108,72,${0.16 * r()})`;
+    const sz = (1 + r() * 3) * p / 32; x.fillRect(r() * w, r() * h, sz, sz);
+  }
+  ground = { key, c };
+  return c;
+}
+
+function resize() {
+  const dpr = Math.min(window.devicePixelRatio || 1, 2);
+  const w = cv.parentElement.clientWidth;
+  const h = Math.min(w, Math.round(window.innerHeight * 0.62), 760);
+  cv.style.height = h + 'px';
+  cv.width = Math.round(w * dpr); cv.height = Math.round(h * dpr);
+}
+
+function frameOf(L, tick, speed) { if (L.pick) return L.pick(tick); return L.count > 1 ? Math.floor(tick * (L.own ? 1 : speed)) % L.count : 0; }
+
+function draw() {
+  const M = MACHINES[state.machine];
+  const W = cv.width, H = cv.height;
+  const P = Math.min(W, H) / state.zoom; // canvas px per tile
+  ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = 'high';
+  ctx.globalCompositeOperation = 'source-over'; ctx.globalAlpha = 1;
+  ctx.drawImage(groundCanvas(W, H, P), 0, 0);
+  const cx = W / 2, cy = H / 2, N = M.size, f = N / M.native;
+  if (state.grid) {
+    ctx.strokeStyle = 'rgba(0,0,0,0.28)'; ctx.lineWidth = 1;
+    const ox = (cx - (N % 2 ? P / 2 : 0)) % P, oy = (cy - (N % 2 ? P / 2 : 0)) % P;
+    for (let x = ox; x <= W; x += P) { ctx.beginPath(); ctx.moveTo(Math.round(x) + 0.5, 0); ctx.lineTo(Math.round(x) + 0.5, H); ctx.stroke(); }
+    for (let y = oy; y <= H; y += P) { ctx.beginPath(); ctx.moveTo(0, Math.round(y) + 0.5); ctx.lineTo(W, Math.round(y) + 0.5); ctx.stroke(); }
+  }
+  if (!loaded[state.machine]) return;
+  const tick = state.tick;
+  const stage = Math.floor(tick / 75) % 5; // craft cycle for the chamber: empty, then four growth stages
+  const shown = (L) => !L.mode || L.mode === state.turretMode;
+  const put = (L) => {
+    if (!shown(L)) return;
+    const fr = frameOf(L, tick, M.speed);
+    const sx = (fr % L.cols) * L.fw, sy = Math.floor(fr / L.cols) * L.fh;
+    const bs = M.baseScale || 0.5;
+    const dw = L.w * bs * f / 32 * P, dh = L.h * bs * f / 32 * P;
+    const dx = cx + L.shift[0] * f * P - dw / 2, dy = cy + L.shift[1] * f * P - dh / 2;
+    ctx.drawImage(L.img, sx, sy, L.fw, L.fh, dx, dy, dw, dh);
+  };
+  ctx.globalAlpha = 0.55;
+  M.layers.filter((L) => L.kind === 'shadow').forEach(put);
+  ctx.globalAlpha = 1;
+  M.layers.filter((L) => L.kind === 'normal' || (L.kind === 'stage' && state.creature && L.stage === stage)).forEach(put);
+  if (state.outline) {
+    ctx.strokeStyle = 'rgba(148,188,227,0.85)'; ctx.lineWidth = Math.max(1, P / 32);
+    ctx.strokeRect(cx - N * P / 2, cy - N * P / 2, N * P, N * P);
+  }
+  if (state.night) { ctx.globalCompositeOperation = 'multiply'; ctx.fillStyle = '#29303f'; ctx.fillRect(0, 0, W, H); }
+  ctx.globalCompositeOperation = 'lighter';
+  ctx.globalAlpha = state.night ? 1 : 0.5;
+  M.layers.filter((L) => L.kind === 'glow').forEach(put);
+  ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'source-over';
+}
+
+// 60 game ticks per second, like Factorio
+let last = performance.now(), acc = 0;
+function loop(t) {
+  requestAnimationFrame(loop);
+  if (state.playing) { acc += (t - last) / (1000 / 60); const n = Math.floor(acc); if (n) { acc -= n; state.tick += n; syncFrame(); } }
+  last = t;
+  draw();
+}
+
+function mainLayer() { return MACHINES[state.machine].layers.find((L) => L.key === 'anim'); }
+function syncFrame() {
+  const M = MACHINES[state.machine], L = mainLayer();
+  const slider = document.getElementById('frame');
+  if (M.turret && state.turretMode === 'fold') {
+    slider.disabled = true; slider.value = 0;
+    const fr = foldFrame(state.tick);
+    document.getElementById('frameNum').textContent = 'unfold ' + (fr + 1) + ' / 12';
+  } else if (L.count > 1) {
+    const fr = frameOf(L, state.tick, M.speed);
+    slider.disabled = false; slider.max = L.count - 1; slider.value = fr;
+    document.getElementById('frameNum').textContent = (fr + 1) + ' / ' + L.count;
+  } else {
+    const stage = Math.floor(state.tick / 75) % 5;
+    slider.disabled = true; slider.value = 0;
+    document.getElementById('frameNum').textContent = stage ? 'stage ' + stage : 'empty';
+  }
+}
+
+function fmt(n) { return String(Math.round(n * 10000) / 10000); }
+
+function lua() {
+  const M = MACHINES[state.machine], N = M.size, f = N / M.native, s = fmt(0.5 * f);
+  const sh = (L) => `{${fmt(L.shift[0] * f)}, ${fmt(L.shift[1] * f)}}`;
+  const by = Object.fromEntries(M.layers.map((L) => [L.key, L]));
+  const dir = `__abominable-ordnance__/graphics/entity/${M.dir}/`;
+  const box = fmt(N / 2 - 0.3), sel = fmt(N / 2);
+  const head = `-- ${M.label}: ${M.art} by ${M.by} (${M.licence}).\n-- Drawn for ${M.native}x${M.native}, shipped at ${N}x${N}: scale ${s}.\n` +
+    `collision_box = {{-${box}, -${box}}, {${box}, ${box}}},\nselection_box = {{-${sel}, -${sel}}, {${sel}, ${sel}}},\n`;
+  if (M.turret) {
+    const ts = fmt(0.3 * f), sx = fmt(2 * f);
+    const head2 = `-- ${M.label}: ${M.art} by ${M.by} (${M.licence}). Drawn for 4x4, shipped at ${N}x${N}: scale ${ts}.\n` +
+      `collision_box = {{-${box}, -${box}}, {${box}, ${box}}},\nselection_box = {{-${sel}, -${sel}}, {${sel}, ${sel}}},\n`;
+    return head2 + `local function ext(inputs)\n  return { layers = {\n    { filename = "${dir}${M.files.ext}", width = 512, height = 512, scale = ${ts},\n      frame_count = inputs.frame_count or 12, line_length = inputs.line_length or 0,\n      run_mode = inputs.run_mode or "forward", direction_count = 4 },\n    { filename = "${dir}${M.files.extShadow}", width = 512, height = 512, scale = ${ts},\n      frame_count = inputs.frame_count or 12, line_length = inputs.line_length or 0,\n      run_mode = inputs.run_mode or "forward", direction_count = 4,\n      shift = {${sx}, 0}, draw_as_shadow = true },\n  }}\nend\nlocal attack = { layers = {\n  { filename = "${dir}${M.files.attack}", width = 512, height = 512, scale = ${ts},\n    frame_count = 1, direction_count = 64, line_length = 8 },\n  { filename = "${dir}${M.files.attackShadow}", width = 512, height = 512, scale = ${ts},\n    frame_count = 1, direction_count = 64, line_length = 8,\n    shift = {${sx}, 0}, draw_as_shadow = true },\n}}\n-- in the ammo-turret prototype:\nfolded_animation = ext{ frame_count = 1, line_length = 1 },\npreparing_animation = ext{},\nprepared_animation = attack,\nattacking_animation = attack,\nfolding_animation = ext{ run_mode = "backward" },\npreparing_speed = 0.05, folding_speed = 0.05,`;
+  }
+  if (state.machine === 'pod') {
+    const a = by.anim, d = by.shadow;
+    const sheet = (file, extra) => `{\n      width = ${a.w}, height = ${a.h}, frame_count = 60, animation_speed = ${M.speed},\n      shift = ${sh(a)}, scale = ${s},${extra || ''}\n      stripes = {{ filename = "${dir}${file}", width_in_frames = 8, height_in_frames = 8 }},\n    }`;
+    return head + `graphics_set = {\n  animation = { layers = {\n    ${sheet(M.files.animation)},\n    {\n      filename = "${dir}${M.files.shadow}", width = ${d.w}, height = ${d.h},\n      frame_count = 1, line_length = 1, repeat_count = 60, animation_speed = ${M.speed},\n      shift = ${sh(d)}, scale = ${s}, draw_as_shadow = true,\n    },\n  }},\n  working_visualisations = {\n    { fadeout = true, animation = ${sheet(M.files.emission, ' draw_as_glow = true, blend_mode = "additive",').replace(/\n    /g, '\n      ')} },\n  },\n  frozen_patch = {\n    filename = "${dir}${M.files.frozen}", width = ${a.w}, height = ${a.h},\n    shift = ${sh(a)}, scale = ${s},\n  },\n},\nicon = "${dir}${M.files.icon}", icon_size = 64,`;
+  }
+  if (state.machine === 'inc') {
+    const a = by.anim, e = by.emis, d = by.shadow;
+    return head + `graphics_set = {\n  animation = { layers = {\n    {\n      filename = "${dir}${M.files.animation}", width = ${a.w}, height = ${a.h},\n      frame_count = 60, line_length = 8, animation_speed = ${M.speed},\n      shift = ${sh(a)}, scale = ${s},\n    },\n    {\n      filename = "${dir}${M.files.shadow}", width = ${d.w}, height = ${d.h},\n      frame_count = 1, repeat_count = 60, animation_speed = ${M.speed},\n      shift = ${sh(d)}, scale = ${s}, draw_as_shadow = true,\n    },\n  }},\n  working_visualisations = {\n    { fadeout = true, animation = {\n      filename = "${dir}${M.files.emission}", width = ${e.w}, height = ${e.h},\n      frame_count = 60, line_length = 9, animation_speed = ${M.speed},\n      shift = ${sh(e)}, scale = ${s}, draw_as_glow = true, blend_mode = "additive",\n    }},\n  },\n},\n-- ${M.files.mask} (same frames as the base) can tint the tank later, e.g. per tier.`;
+  }
+  const big = (file, extra) => `{ filename = "${dir}${file}", width = 512, height = 512, scale = ${s},${extra || ''} }`;
+  const scr = by.screen;
+  return head + `graphics_set = {\n  animation = { layers = {\n    ${big(M.files.base)},\n    ${big(M.files.shadow, ' draw_as_shadow = true,')},\n  }},\n  working_visualisations = {\n    { animation = {\n      filename = "${dir}${M.files.screen}", width = 64, height = 64,\n      frame_count = 255, line_length = 32, animation_speed = 1,\n      shift = ${sh(scr)}, scale = ${s}, draw_as_glow = true,\n    }},\n` +
+    M.files.layers.map((file, i) => `    -- creature, growth stage ${i + 1}: Panglia tints these with the recipe colours\n    { apply_recipe_tint = "${['primary', 'secondary', 'tertiary', 'quaternary'][i]}", animation = ${big(file)} },`).join('\n') +
+    `\n    { animation = ${big(M.files.glow, ' draw_as_glow = true, blend_mode = "additive",')} },\n  },\n},\nworking_sound = {\n  sound = { filename = "__abominable-ordnance__/sound/simulation_chamber_working_sound.ogg", volume = 0.7 },\n  idle_sound = { filename = "__abominable-ordnance__/sound/simulation_chamber_working_sound_idle.ogg", volume = 0.7 },\n  fade_in_ticks = 10, fade_out_ticks = 40, max_sounds_per_prototype = 4,\n},`;
+}
+
+const CREDITS = `
+<p><b>Hurricane046</b>: pathogen lab and oxidizer, CC BY 4.0. Pathogen lab sheets from the Mod Framework repo by Simon Brodtmann; oxidizer sheets from Nullius: Hurricane Reskins by brickbrycebrick.</p>
+<p><b>snouz</b>: simulation chamber from Panglia assets, MIT, which contains parts of Hurricane046’s buildings (CC BY 4.0).</p>
+<p><b>hlittlezero</b>: larva launcher from Rocket turret (hl-Rocket-turret 0.1.2), MIT.</p>
+<p>CC BY needs a credit line in the mod’s description or THIRD_PARTY file; MIT needs its licence text shipped with the files.</p>`;
+
+function render() {
+  const M = MACHINES[state.machine];
+  document.getElementById('tabs').innerHTML = Object.entries(MACHINES).map(([k, m]) =>
+    `<button type="button" class="tab" data-m="${k}" aria-pressed="${k === state.machine}"><b>${m.label}</b><span>${m.art}</span></button>`).join('');
+  document.getElementById('sizes').innerHTML = M.sizes.map((n) =>
+    `<button type="button" data-size="${n}" aria-pressed="${n === M.size}">${n}×${n}</button>`).join('') +
+    `<button type="button" data-size="${M.native}" aria-pressed="${M.size === M.native}">${M.native}×${M.native} as drawn</button>`;
+  const f = M.size / M.native;
+  const fit = M.size <= 5 ? '<span class="chip ok">within 5×5</span>' : '<span class="chip warn">over 5×5</span>';
+  document.getElementById('info').innerHTML =
+    `<dt>Machine</dt><dd>${M.label}</dd><dt>Art</dt><dd>${M.art}</dd><dt>By</dt><dd>${M.by}</dd><dt>Licence</dt><dd>${M.licence}</dd>` +
+    `<dt>Drawn for</dt><dd>${M.native}×${M.native}</dd><dt>Ships at</dt><dd>${M.size}×${M.size} ${fit}</dd>` +
+    `<dt>Sprite scale</dt><dd>${fmt((M.baseScale || 0.5) * f)} (${Math.round(f * 100)}% of the art)</dd><dt>Animation</dt><dd>${M.turret ? '64 aim directions, 12-frame unfold' : M.speed === 1 ? 'screen at 60 fps, creature in 4 stages' : '60 frames at ' + Math.round(60 * M.speed) + ' fps'}</dd>`;
+  document.getElementById('infoNote').textContent = M.note;
+  document.getElementById('creatureWrap').hidden = state.machine !== 'cham';
+  document.getElementById('turretWrap').hidden = !M.turret;
+  document.getElementById('credits').innerHTML = CREDITS;
+  document.getElementById('luaNote').textContent = `Paste into the ${M.label.toLowerCase()} prototype. It uses the original full-size sheets, copied to graphics/entity/${M.dir}/.`;
+  document.getElementById('lua').textContent = lua();
+  document.getElementById('badge').textContent = loaded[state.machine] ? `${M.label} · ${M.size}×${M.size}` : 'Loading sprites…';
+  syncFrame();
+}
+
+function select(key) {
+  state.machine = key; render();
+  ensure(key).then(render).catch((e) => { document.getElementById('badge').textContent = e.message; });
+}
+
+document.addEventListener('click', (e) => {
+  const t = e.target.closest('button'); if (!t) return;
+  if (t.dataset.m) select(t.dataset.m);
+  else if (t.dataset.size) { MACHINES[state.machine].size = +t.dataset.size; render(); }
+  else if (t.dataset.tmode) { state.turretMode = t.dataset.tmode; document.querySelectorAll('[data-tmode]').forEach((b) => b.setAttribute('aria-pressed', String(b === t))); syncFrame(); }
+  else if (t.dataset.zoom) { state.zoom = +t.dataset.zoom; document.querySelectorAll('[data-zoom]').forEach((b) => b.setAttribute('aria-pressed', String(b === t))); }
+  else if (t.id === 'play') { state.playing = !state.playing; t.textContent = state.playing ? 'Pause' : 'Play'; }
+  else if (t.id === 'day' || t.id === 'night') { state.night = t.id === 'night'; document.getElementById('day').setAttribute('aria-pressed', String(!state.night)); document.getElementById('night').setAttribute('aria-pressed', String(state.night)); }
+  else if (t.id === 'copy') {
+    const text = document.getElementById('lua').textContent;
+    Promise.resolve().then(() => navigator.clipboard.writeText(text)).then(() => { t.textContent = 'Copied'; }, () => { t.textContent = 'Select the code to copy'; })
+      .finally(() => setTimeout(() => { t.textContent = 'Copy Lua'; }, 1600));
+  }
+});
+document.getElementById('frame').addEventListener('input', (e) => {
+  const M = MACHINES[state.machine]; state.playing = false; document.getElementById('play').textContent = 'Play';
+  state.tick = Math.ceil(+e.target.value / M.speed); syncFrame();
+});
+['grid', 'outline', 'creature'].forEach((id) => document.getElementById(id).addEventListener('change', (e) => { state[id] = e.target.checked; }));
+window.addEventListener('resize', resize);
+if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) { state.playing = false; document.getElementById('play').textContent = 'Play'; }
+
+resize();
+select('pod');
+requestAnimationFrame(loop);
+Object.keys(MACHINES).forEach((k) => ensure(k).catch(() => {}));
+</script>
+</body>
+</html>

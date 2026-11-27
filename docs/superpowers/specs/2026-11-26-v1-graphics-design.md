@@ -25,8 +25,9 @@ Non-goals:
 
 - Loaded monsters stay tinted vanilla units until design version 3. The
   maintainer confirmed this on 2026-11-26.
-- No sprite tooling. The Blender scripts that made the icons stay outside
-  the repository for now. `ROADMAP.md` keeps the tooling under 3.0.0.
+- No sprite tooling. The scripts that made the icons are in `art/` as a
+  record, with the full-size renders. They have no tests and do not
+  ship. `ROADMAP.md` keeps the tooling, and its tests, under 3.0.0.
 
 ## Decisions
 
@@ -172,6 +173,11 @@ they get some:
 `OPTIONAL` in `tools/package.py`, test-first, in the same PR that wires
 the chamber sound. The graphics add about 26 MB to the zip.
 
+CC BY and MIT need the credits and the licence text in every copy of
+the art. The zip does not ship `THIRD_PARTY.md` today. Add
+`THIRD_PARTY.md` and `LICENSE-third-party-MIT.txt` to `REQUIRED` in
+`tools/package.py`, test-first, before any release that ships the art.
+
 ## Credits and licences
 
 `THIRD_PARTY.md` lists each source. In short:
@@ -179,10 +185,12 @@ the chamber sound. The graphics add about 26 MB to the zip.
 - Pathogen lab and oxidizer: © Hurricane046, CC BY 4.0. Changes: the
   oxidizer sheets come from the Nullius Hurricane Reskins repack.
 - Simulation chamber and its sounds: snouz, from the Panglia mods, MIT
-  as stated on the mod portal. The download has no licence file. The
+  as stated on the mod portal. The download has no licence file, so the
+  maintainer takes the portal licence as the grant (2026-11-27). The
   building contains parts of Hurricane046's art, CC BY 4.0.
 - Rocket turret: hlittlezero, MIT as stated on the mod portal. The
-  download has no licence file. Changes: the "Hlittlezero" lettering is
+  download has no licence file, so the maintainer takes the portal
+  licence as the grant (2026-11-27). Changes: the "Hlittlezero" lettering is
   removed from every frame.
 - Item and technology icons: made for this mod.
 
@@ -192,8 +200,11 @@ Nothing from this work merges before you complete every item here.
 The maintainer asked for this on 2026-11-26.
 
 - [ ] Replace the stand-in payload badges with the vanilla icons.
-- [ ] The maintainer confirms the MIT licences of the Panglia and
-  hl-Rocket-turret art from the mod portal pages, or from the authors.
+- [x] The maintainer confirms the MIT licences of the Panglia and
+  hl-Rocket-turret art. On 2026-11-27 the maintainer took the mod portal
+  licences as the grant. `LICENSE-third-party-MIT.txt` has the text.
+- [ ] The mod zip ships `THIRD_PARTY.md` and
+  `LICENSE-third-party-MIT.txt` (see "The mod zip").
 - [ ] An EGM review of this spec, then a plan from writing-plans.
 - [ ] The wiring follows `superpowers:test-driven-development`.
 - [ ] `make check` passes, with and without Space Age.

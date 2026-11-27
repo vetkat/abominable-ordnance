@@ -49,7 +49,8 @@
 - Source: snouz, Panglia mods on the Factorio mod portal
   (<https://mods.factorio.com/user/snouz>)
 - Licence: MIT, as the mod portal states. The download had no licence
-  file. Confirm before merge. The building contains parts of
+  file, so we take the portal licence as the grant (maintainer,
+  2026-11-27). See `LICENSE-third-party-MIT.txt`. The building contains parts of
   Hurricane046's art, so those parts are also under CC BY 4.0
   (<https://creativecommons.org/licenses/by/4.0/>), © Hurricane046.
 - Changes: new file names. The sounds have no other change.
@@ -61,7 +62,8 @@
 - Source: hl-Rocket-turret 0.1.2 by hlittlezero
   (<https://mods.factorio.com/mod/hl-Rocket-turret>)
 - Licence: MIT, as the mod portal states. The download had no licence
-  file. Confirm before merge.
+  file, so we take the portal licence as the grant (maintainer,
+  2026-11-27). See `LICENSE-third-party-MIT.txt`.
 - Changes: we removed the "Hlittlezero" lettering from every frame of
   the attack sheet. New file names. We resized the icon to 64 px.
 

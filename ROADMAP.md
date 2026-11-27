@@ -49,8 +49,8 @@ the version is 0.9.0.
 
 ## 1.1.0: graphics for design version 1
 
-- [ ] Own graphics for the breeding pod, incubator, loading chamber and
-  larva launcher ([spec][v1-graphics])
+- [ ] Graphics from openly licensed mods for the breeding pod,
+  incubator, loading chamber and larva launcher ([spec][v1-graphics])
 - [ ] Own icons for eggs, larvae, loaded larvae, wards, larva rockets and
   the four technologies. The mod tints the larva rocket icon per species
   ([spec][v1-graphics])
@@ -71,6 +71,8 @@ Loaded monsters stay tinted vanilla units until version 3.
   hybrids ([design][crossbreeding])
 - [ ] Facehuggers on enemies
   ([design][facehuggers])
+- [ ] Graphics for the new buildings, items and technologies of design
+  version 2
 
 ## 3.0.0: design version 3
 
@@ -83,10 +85,11 @@ Loaded monsters stay tinted vanilla units until version 3.
 - [ ] PvP setting for multiplayer ([design][concept])
 - [ ] Custom graphics for every building, item and monster that does not
   have them yet, loaded monsters included, with tooling to make the
-  sprites
+  sprites. The scripts in `art/` get tests then.
 
-From version 3 on, every new building, item and monster gets its own
-custom graphics. No new asset uses a tinted vanilla copy.
+Each major release ships with graphics for its new content. We make
+them just before the release. Art from other mods is fine, edited or
+not, when its licence allows it. `THIRD_PARTY.md` credits it.
 
 Until version 3, the mod does not keep old saves working, on GitHub or
 on the mod portal. A change needs no migration unless a load would crash without
